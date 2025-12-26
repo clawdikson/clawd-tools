@@ -1,0 +1,341 @@
+{
+  "plan_file": "HEALTHSPARQ_SINGLETON_PLAN.md",
+  "created_at": null,
+  "updated_at": "2025-12-26T14:35:39.423726",
+  "current_phase": "0",
+  "overall_status": "in_progress",
+  "phases": {
+    "0": {
+      "name": "Test Infrastructure Setup",
+      "status": "in_progress",
+      "subagent": "test-automator",
+      "max_iterations": 15,
+      "current_iteration": 0,
+      "started_at": "2025-12-26T14:33:55.051114",
+      "completed_at": null,
+      "success_criteria": [
+        {
+          "criterion": "pytest healthsparq/tests/ --collect-only exits 0",
+          "passed": false
+        },
+        {
+          "criterion": "healthsparq/tests/conftest.py exists with fixtures",
+          "passed": false
+        },
+        {
+          "criterion": "healthsparq/tests/fixtures/ contains mock JSON files",
+          "passed": false
+        }
+      ],
+      "verification_commands": [
+        "python -c \"import pytest; print('pytest available')\"",
+        "pytest healthsparq/tests/ --collect-only",
+        "ls healthsparq/tests/conftest.py"
+      ],
+      "error": null
+    },
+    "1": {
+      "name": "Package Foundation",
+      "status": "pending",
+      "subagent": "architect-reviewer",
+      "max_iterations": 15,
+      "current_iteration": 0,
+      "started_at": null,
+      "completed_at": null,
+      "success_criteria": [
+        {
+          "criterion": "python -c 'import healthsparq' exits 0",
+          "passed": false
+        },
+        {
+          "criterion": "All subpackage imports work without error",
+          "passed": false
+        },
+        {
+          "criterion": "__version__ defined in __init__.py",
+          "passed": false
+        },
+        {
+          "criterion": "__main__.py exists for CLI entry",
+          "passed": false
+        }
+      ],
+      "verification_commands": [
+        "python -c \"import healthsparq; print(healthsparq.__version__)\"",
+        "python -c \"from healthsparq.core import *\"",
+        "python -c \"from healthsparq.phases import *\"",
+        "python -c \"from healthsparq.utils import *\"",
+        "ls healthsparq/__main__.py"
+      ],
+      "error": null
+    },
+    "2": {
+      "name": "Configuration System",
+      "status": "pending",
+      "subagent": "code-simplifier",
+      "max_iterations": 15,
+      "current_iteration": 0,
+      "started_at": null,
+      "completed_at": null,
+      "success_criteria": [
+        {
+          "criterion": "load_config('christus_health_plan') returns valid config",
+          "passed": false
+        },
+        {
+          "criterion": "Pydantic validates all required fields",
+          "passed": false
+        },
+        {
+          "criterion": "pytest healthsparq/tests/test_config.py passes",
+          "passed": false
+        },
+        {
+          "criterion": "Config matches legacy audiobee_christus_health_plan/config.py values",
+          "passed": false
+        }
+      ],
+      "verification_commands": [
+        "python -c \"from healthsparq.config import load_config; c = load_config('christus_health_plan'); print(c.project.name)\"",
+        "python -c \"from healthsparq.config.schema import HealthSparqProjectConfig\"",
+        "pytest healthsparq/tests/test_config.py -v",
+        "ls healthsparq/configs/christus_health_plan.yaml"
+      ],
+      "error": null
+    },
+    "3": {
+      "name": "CLI Implementation",
+      "status": "pending",
+      "subagent": "python-pro",
+      "max_iterations": 15,
+      "current_iteration": 0,
+      "started_at": null,
+      "completed_at": null,
+      "success_criteria": [
+        {
+          "criterion": "python -m healthsparq --help shows all commands",
+          "passed": false
+        },
+        {
+          "criterion": "python -m healthsparq list shows available projects",
+          "passed": false
+        },
+        {
+          "criterion": "python -m healthsparq validate christus_health_plan exits 0",
+          "passed": false
+        },
+        {
+          "criterion": "--dry-run flag works without executing scraper",
+          "passed": false
+        },
+        {
+          "criterion": "pytest healthsparq/tests/test_cli.py passes",
+          "passed": false
+        }
+      ],
+      "verification_commands": [
+        "python -m healthsparq --help",
+        "python -m healthsparq list",
+        "python -m healthsparq validate christus_health_plan",
+        "python -m healthsparq run christus_health_plan --curr 20251226 --dry-run",
+        "pytest healthsparq/tests/test_cli.py -v"
+      ],
+      "error": null
+    },
+    "4": {
+      "name": "Core Module Migration",
+      "status": "pending",
+      "subagent": "refactoring-specialist",
+      "max_iterations": 20,
+      "current_iteration": 0,
+      "started_at": null,
+      "completed_at": null,
+      "success_criteria": [
+        {
+          "criterion": "HealthSpark class instantiates with config",
+          "passed": false
+        },
+        {
+          "criterion": "All imports resolve without error",
+          "passed": false
+        },
+        {
+          "criterion": "healthspark.py under 600 LOC",
+          "passed": false
+        },
+        {
+          "criterion": "No hardcoded domains, plan codes, or states",
+          "passed": false
+        },
+        {
+          "criterion": "pytest healthsparq/tests/test_healthspark.py passes",
+          "passed": false
+        }
+      ],
+      "verification_commands": [
+        "python -c \"from healthsparq.core import HealthSpark, HealthSparkConfig\"",
+        "python -c \"from healthsparq.core.session import create_session\"",
+        "python -c \"from healthsparq.core.file_writer import FileWriteWorker\"",
+        "pytest healthsparq/tests/test_healthspark.py -v",
+        "wc -l healthsparq/core/healthspark.py | awk '{if($1<600) exit 0; else exit 1}'"
+      ],
+      "error": null
+    },
+    "5": {
+      "name": "Phase Execution Modules",
+      "status": "pending",
+      "subagent": "python-pro",
+      "max_iterations": 20,
+      "current_iteration": 0,
+      "started_at": null,
+      "completed_at": null,
+      "success_criteria": [
+        {
+          "criterion": "All phase functions importable",
+          "passed": false
+        },
+        {
+          "criterion": "Each phase under 400 LOC",
+          "passed": false
+        },
+        {
+          "criterion": "Phase functions accept config as parameter (no globals)",
+          "passed": false
+        },
+        {
+          "criterion": "Tests pass for each phase",
+          "passed": false
+        },
+        {
+          "criterion": "CLI --phase 1|2|3 option works",
+          "passed": false
+        }
+      ],
+      "verification_commands": [
+        "python -c \"from healthsparq.phases import run_search, run_details, run_normalize\"",
+        "pytest healthsparq/tests/test_search.py -v",
+        "pytest healthsparq/tests/test_details.py -v",
+        "pytest healthsparq/tests/test_normalize.py -v",
+        "wc -l healthsparq/phases/search.py | awk '{if($1<400) exit 0; else exit 1}'"
+      ],
+      "error": null
+    },
+    "6": {
+      "name": "Project Configuration Generation",
+      "status": "pending",
+      "subagent": "general-purpose",
+      "max_iterations": 15,
+      "current_iteration": 0,
+      "started_at": null,
+      "completed_at": null,
+      "success_criteria": [
+        {
+          "criterion": "25 YAML configs created (one per healthsparq project)",
+          "passed": false
+        },
+        {
+          "criterion": "All configs pass validation",
+          "passed": false
+        },
+        {
+          "criterion": "python -m healthsparq list shows 25 projects",
+          "passed": false
+        },
+        {
+          "criterion": "Each config matches legacy config.py values",
+          "passed": false
+        },
+        {
+          "criterion": "PlanConfig includes: insurerCode, brandCode, productCode, state",
+          "passed": false
+        }
+      ],
+      "verification_commands": [
+        "python -m healthsparq list --count",
+        "python -m healthsparq doctor",
+        "for cfg in healthsparq/configs/*.yaml; do python -m healthsparq validate $(basename $cfg .yaml) || exit 1; done"
+      ],
+      "error": null
+    },
+    "7": {
+      "name": "End-to-End Validation",
+      "status": "pending",
+      "subagent": "test-automator",
+      "max_iterations": 10,
+      "current_iteration": 0,
+      "started_at": null,
+      "completed_at": null,
+      "success_criteria": [
+        {
+          "criterion": "Output structure matches (same fields, same format)",
+          "passed": false
+        },
+        {
+          "criterion": "Provider counts within 1% (timing variations)",
+          "passed": false
+        },
+        {
+          "criterion": "NPI deduplication works correctly",
+          "passed": false
+        },
+        {
+          "criterion": "All phases execute without error",
+          "passed": false
+        },
+        {
+          "criterion": "Regression tests pass",
+          "passed": false
+        }
+      ],
+      "verification_commands": [
+        "python healthsparq/tests/compare_outputs.py --legacy audiobee_christus_health_plan/20251226/processed --singleton healthsparq/output/christus_health_plan/20251226/processed --threshold 0.99"
+      ],
+      "error": null
+    },
+    "8": {
+      "name": "Documentation & Cleanup",
+      "status": "pending",
+      "subagent": "docs-architect",
+      "max_iterations": 5,
+      "current_iteration": 0,
+      "started_at": null,
+      "completed_at": null,
+      "success_criteria": [
+        {
+          "criterion": "healthsparq/README.md exists with usage examples",
+          "passed": false
+        },
+        {
+          "criterion": "Legacy CLAUDE.md files have deprecation notice",
+          "passed": false
+        },
+        {
+          "criterion": "Main docs updated to reference singleton",
+          "passed": false
+        },
+        {
+          "criterion": "No broken internal links",
+          "passed": false
+        }
+      ],
+      "verification_commands": [
+        "ls healthsparq/README.md",
+        "grep -l 'DEPRECATED' audiobee_christus_health_plan/CLAUDE.md",
+        "cat healthsparq/README.md | grep -q 'healthsparq run'"
+      ],
+      "error": null
+    }
+  },
+  "execution_log": [
+    {
+      "timestamp": "2025-12-26T14:33:55.051866",
+      "level": "info",
+      "message": "Started Phase 0: Test Infrastructure Setup"
+    },
+    {
+      "timestamp": "2025-12-26T14:35:39.423331",
+      "level": "info",
+      "message": "Started full autonomous execution"
+    }
+  ]
+}

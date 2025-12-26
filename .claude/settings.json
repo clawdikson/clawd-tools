@@ -1,0 +1,55 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/hook_enforce_rg_over_grep.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file_path=$(jq -r '.tool_input.file_path // empty' 2>/dev/null); if [[ -n \"$file_path\" && -f \"$file_path\" ]]; then case \"$file_path\" in *.py|*.js|*.jsx|*.ts|*.tsx) if [[ \"$OSTYPE\" == \"darwin\"* ]]; then sed -i '' 's/^[[:space:]]*$//g' \"$file_path\" 2>/dev/null || true; else sed -i 's/^[[:space:]]*$//g' \"$file_path\" 2>/dev/null || true; fi ;; esac; fi"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/hook_python_code_quality.py"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/hook_prettier_formatting.py"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/hook_markdown_formatting.py"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/hook_bash_formatting.py"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node $CLAUDE_PROJECT_DIR/sessions/statusline.js"
+  },
+  "enabledPlugins": {
+    "hookify@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "general-dev@fcakyon-claude-plugins": true,
+    "claude-mem@thedotmack": true,
+    "serena@claude-plugins-official": true,
+    "compound-engineering@every-marketplace": true,
+    "playwright-skill@playwright-skill": true
+  }
+}
