@@ -1,0 +1,24 @@
+project:
+  name: Healthcare Management Administrators
+  slug: hma
+  description: Large Group plans for WA, OR
+  version: "1.0"
+
+site:
+  domain: web.healthsparq.com
+  brand_code: HMA
+  insurer_code: HMA_RGA_I
+  api_version: v4
+
+plans:
+  - product_code: all
+    name: All Plans
+
+coverage:
+  states:
+    - WA
+    - OR
+
+concurrency:
+  max_workers: 25
+  max_browsers: 25

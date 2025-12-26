@@ -1,0 +1,27 @@
+project:
+  name: Alliance Trilogy
+  slug: alliance_trilogy
+  description: Medicare Advantage plans for WI, MN, IL, IA, MI
+  version: "1.0"
+
+site:
+  domain: web.healthsparq.com
+  brand_code: ALLI
+  insurer_code: ALLI_I
+  api_version: v4
+
+plans:
+  - product_code: all
+    name: All Plans
+
+coverage:
+  states:
+    - WI
+    - MN
+    - IL
+    - IA
+    - MI
+
+concurrency:
+  max_workers: 25
+  max_browsers: 25

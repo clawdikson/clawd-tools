@@ -1,0 +1,26 @@
+project:
+  name: Quartz
+  slug: quartz
+  description: ACA plans for WI, MN, IL, IA
+  version: "1.0"
+
+site:
+  domain: quartz.healthsparq.com
+  brand_code: QUARTZ
+  insurer_code: QUARTZ_I
+  api_version: v4
+
+plans:
+  - product_code: all
+    name: All Plans
+
+coverage:
+  states:
+    - WI
+    - MN
+    - IL
+    - IA
+
+concurrency:
+  max_workers: 25
+  max_browsers: 25

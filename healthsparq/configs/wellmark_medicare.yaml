@@ -1,0 +1,24 @@
+project:
+  name: Wellmark Medicare
+  slug: wellmark_medicare
+  description: Medicare Advantage plans for IA, SD
+  version: "1.0"
+
+site:
+  domain: web.healthsparq.com
+  brand_code: WELLMARKMA
+  insurer_code: WMRK_I
+  api_version: v4
+
+plans:
+  - product_code: all
+    name: All Medicare Advantage Plans
+
+coverage:
+  states:
+    - IA
+    - SD
+
+concurrency:
+  max_workers: 25
+  max_browsers: 25

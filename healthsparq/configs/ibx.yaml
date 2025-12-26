@@ -1,0 +1,23 @@
+project:
+  name: Independence Blue Cross
+  slug: ibx
+  description: Commercial plans for PA
+  version: "1.0"
+
+site:
+  domain: ibxweb.healthsparq.com
+  brand_code: IBXBLUECOMM
+  insurer_code: IBXBLUE_I
+  api_version: v4
+
+plans:
+  - product_code: all
+    name: All Plans
+
+coverage:
+  states:
+    - PA
+
+concurrency:
+  max_workers: 25
+  max_browsers: 25

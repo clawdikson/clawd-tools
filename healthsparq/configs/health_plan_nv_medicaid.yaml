@@ -1,0 +1,23 @@
+project:
+  name: Health Plan of Nevada
+  slug: health_plan_nv_medicaid
+  description: Medicaid plans for NV
+  version: "1.0"
+
+site:
+  domain: hsprov.healthsparq.com
+  brand_code: HPNMED
+  insurer_code: HPNSHL_I
+  api_version: v4
+
+plans:
+  - product_code: all
+    name: All Medicaid Plans
+
+coverage:
+  states:
+    - NV
+
+concurrency:
+  max_workers: 25
+  max_browsers: 25
