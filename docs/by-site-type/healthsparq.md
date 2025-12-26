@@ -1,8 +1,16 @@
 # Healthsparq Projects
 
+> **NEW**: All HealthSparq projects can now be run via the unified singleton scraper:
+>
+> ```bash
+> python -m healthsparq run <project_slug> --curr YYYYMMDD
+> ```
+>
+> See [healthsparq/README.md](../../healthsparq/README.md) for full documentation.
+
 > For architecture and runbook details shared by all Healthsparq scrapers, see [Healthsparq Architecture Overview](../architecture/healthsparq.md).
 
-24 projects using Healthsparq infrastructure.
+23 projects using Healthsparq infrastructure (excludes `audiobee_mass_gen` which uses vitalschoice.com).
 
 ## Projects
 
@@ -11,6 +19,7 @@
 **Project Slug**: `audiobee_alliance_trilogy`
 
 **Metadata**:
+
 - States: WI, MN, IL, IA, MI
 - Coverage: Large Group
 - Status: Approved
@@ -18,6 +27,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_alliance_trilogy/)
 - [CLAUDE.md](../../audiobee_alliance_trilogy/CLAUDE.md)
 
@@ -28,6 +38,7 @@
 **Project Slug**: `audiobee_amerihealth_administrators_pa`
 
 **Metadata**:
+
 - States: PA
 - Coverage: -
 - Status: Approved
@@ -35,6 +46,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_amerihealth_administrators_pa/)
 - [CLAUDE.md](../../audiobee_amerihealth_administrators_pa/CLAUDE.md)
 
@@ -45,6 +57,7 @@
 **Project Slug**: `audiobee_amerihealth_caritas_vip_de`
 
 **Metadata**:
+
 - States: -
 - Coverage: -
 - Status: Approved
@@ -52,6 +65,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_amerihealth_caritas_vip_de/)
 - [CLAUDE.md](../../audiobee_amerihealth_caritas_vip_de/CLAUDE.md)
 
@@ -62,6 +76,7 @@
 **Project Slug**: `audiobee_amerihealth_nj`
 
 **Metadata**:
+
 - States: NJ
 - Coverage: ACA
 - Status: Approved
@@ -69,6 +84,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_amerihealth_nj/)
 - [CLAUDE.md](../../audiobee_amerihealth_nj/CLAUDE.md)
 
@@ -79,6 +95,7 @@
 **Project Slug**: `audiobee_asuris_northwest`
 
 **Metadata**:
+
 - States: WA, OR, ID, UT
 - Coverage: -
 - Status: Approved
@@ -86,6 +103,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_asuris_northwest/)
 - [CLAUDE.md](../../audiobee_asuris_northwest/CLAUDE.md)
 
@@ -96,6 +114,7 @@
 **Project Slug**: `audiobee_capital_blue`
 
 **Metadata**:
+
 - States: PA and surrounding states
 - Coverage: ACA
 - Status: Approved
@@ -103,6 +122,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_capital_blue/)
 - [CLAUDE.md](../../audiobee_capital_blue/CLAUDE.md)
 
@@ -113,6 +133,7 @@
 **Project Slug**: `audiobee_christus_health_plan`
 
 **Metadata**:
+
 - States: LA, NM, TX
 - Coverage: Medicare Advantage, ACA
 - Status: Approved
@@ -120,6 +141,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_christus_health_plan/)
 - [CLAUDE.md](../../audiobee_christus_health_plan/CLAUDE.md)
 
@@ -130,6 +152,7 @@
 **Project Slug**: `audiobee_excellus`
 
 **Metadata**:
+
 - States: NY
 - Coverage: Medicare Advantage, Medicaid, ACA
 - Status: Approved
@@ -137,6 +160,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_excellus/)
 - [CLAUDE.md](../../audiobee_excellus/CLAUDE.md)
 
@@ -147,6 +171,7 @@
 **Project Slug**: `audiobee_health_plan_nv_medicaid`
 
 **Metadata**:
+
 - States: NV
 - Coverage: Medicaid
 - Status: Approved
@@ -154,6 +179,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_health_plan_nv_medicaid/)
 - [CLAUDE.md](../../audiobee_health_plan_nv_medicaid/CLAUDE.md)
 
@@ -164,6 +190,7 @@
 **Project Slug**: `audiobee_hma`
 
 **Metadata**:
+
 - States: WA, OR, etc.
 - Coverage: Large Group
 - Status: Approved
@@ -171,6 +198,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_hma/)
 - [CLAUDE.md](../../audiobee_hma/CLAUDE.md)
 
@@ -181,6 +209,7 @@
 **Project Slug**: `audiobee_highmark_wholecare`
 
 **Metadata**:
+
 - States: PA
 - Coverage: Medicare Advantage, Medicaid
 - Status: Approved
@@ -188,6 +217,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_highmark_wholecare/)
 - [CLAUDE.md](../../audiobee_highmark_wholecare/CLAUDE.md)
 
@@ -198,6 +228,7 @@
 **Project Slug**: `audiobee_ibx`
 
 **Metadata**:
+
 - States: PA
 - Coverage: ACA
 - Status: Approved
@@ -205,6 +236,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_ibx/)
 - [CLAUDE.md](../../audiobee_ibx/CLAUDE.md)
 
@@ -215,6 +247,7 @@
 **Project Slug**: `audiobee_mvp_health`
 
 **Metadata**:
+
 - States: NY/VT
 - Coverage: Medicare Advantage, Medicaid, ACA
 - Status: Approved
@@ -222,6 +255,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_mvp_health/)
 - [CLAUDE.md](../../audiobee_mvp_health/CLAUDE.md)
 
@@ -232,6 +266,7 @@
 **Project Slug**: `audiobee_maine_community_health_options`
 
 **Metadata**:
+
 - States: ME
 - Coverage: ACA
 - Status: Approved
@@ -239,6 +274,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_maine_community_health_options/)
 - [CLAUDE.md](../../audiobee_maine_community_health_options/CLAUDE.md)
 
@@ -249,6 +285,7 @@
 **Project Slug**: `audiobee_mass_gen`
 
 **Metadata**:
+
 - States: MA and neighboring states
 - Coverage: ACA
 - Status: Approved
@@ -256,6 +293,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_mass_gen/)
 - [CLAUDE.md](../../audiobee_mass_gen/CLAUDE.md)
 
@@ -266,6 +304,7 @@
 **Project Slug**: `audiobee_medica`
 
 **Metadata**:
+
 - States: IA, MN, ND, NE, WI
 - Coverage: ACA
 - Status: Approved
@@ -273,6 +312,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_medica/)
 - [CLAUDE.md](../../audiobee_medica/CLAUDE.md)
 
@@ -283,6 +323,7 @@
 **Project Slug**: `audiobee_medica_sg`
 
 **Metadata**:
+
 - States: IA, MN, ND, NE, WI
 - Coverage: ACA
 - Status: Approved
@@ -290,6 +331,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_medica_sg/)
 - [CLAUDE.md](../../audiobee_medica_sg/CLAUDE.md)
 
@@ -300,6 +342,7 @@
 **Project Slug**: `audiobee_medical_mutual`
 
 **Metadata**:
+
 - States: OH and surrounding states
 - Coverage: -
 - Status: Approved
@@ -307,6 +350,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_medical_mutual/)
 - [CLAUDE.md](../../audiobee_medical_mutual/CLAUDE.md)
 
@@ -317,6 +361,7 @@
 **Project Slug**: `audiobee_quartz`
 
 **Metadata**:
+
 - States: WI, MN, IL, IA
 - Coverage: Medicare Advantage, Medicaid, ACA
 - Status: Approved
@@ -324,6 +369,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_quartz/)
 - [CLAUDE.md](../../audiobee_quartz/CLAUDE.md)
 
@@ -334,6 +380,7 @@
 **Project Slug**: `audiobee_first_choice_sc`
 
 **Metadata**:
+
 - States: SC
 - Coverage: Medicaid
 - Status: Approved
@@ -341,6 +388,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_first_choice_sc/)
 - [CLAUDE.md](../../audiobee_first_choice_sc/CLAUDE.md)
 
@@ -351,6 +399,7 @@
 **Project Slug**: `audiobee_sentara`
 
 **Metadata**:
+
 - States: VA, NC
 - Coverage: Medicare Advantage, Medicaid, ACA
 - Status: Approved
@@ -358,6 +407,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_sentara/)
 - [CLAUDE.md](../../audiobee_sentara/CLAUDE.md)
 
@@ -368,6 +418,7 @@
 **Project Slug**: `audiobee_tufts_health_plans`
 
 **Metadata**:
+
 - States: MA, NH, RI
 - Coverage: -
 - Status: Approved
@@ -375,6 +426,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_tufts_health_plans/)
 - [CLAUDE.md](../../audiobee_tufts_health_plans/CLAUDE.md)
 
@@ -385,6 +437,7 @@
 **Project Slug**: `audiobee_wellmark`
 
 **Metadata**:
+
 - States: IA, SD
 - Coverage: ACA
 - Status: Approved
@@ -392,6 +445,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_wellmark/)
 - [CLAUDE.md](../../audiobee_wellmark/CLAUDE.md)
 
@@ -402,6 +456,7 @@
 **Project Slug**: `audiobee_wellmark_medicare`
 
 **Metadata**:
+
 - States: IA, SD
 - Coverage: Medicare Advantage
 - Status: Approved
@@ -409,6 +464,7 @@
 - Frequency: Monthly
 
 **Links**:
+
 - [Project Directory](../../audiobee_wellmark_medicare/)
 - [CLAUDE.md](../../audiobee_wellmark_medicare/CLAUDE.md)
 

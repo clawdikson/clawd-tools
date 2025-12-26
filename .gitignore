@@ -5,15 +5,8 @@
 .idea
 .vscode
 .pytest_cache
-.pytest_cache/*
-.pytest_cache/**/*
-.pytest_cache/**/**/*
-.pytest_cache/**/**/**/*
-.pytest_cache/**/**/**/**/*
-.pytest_cache/**/**/**/**/**/*
 __pycache__
 node_modules
-tests
 .env
 *.zip
 output
@@ -21,5 +14,9 @@ skipped*
 downloaded_files
 .idea/
 old_code/
-audiobee_*
 healthsparq-server/
+audiobee_*/
+.venv/
+*.egg-info/
+.coverage
+*.7z

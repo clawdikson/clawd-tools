@@ -1,0 +1,795 @@
+{
+  "project": "shared_package_restructuring",
+  "version": "1.1",
+  "created": "2025-12-26",
+  "last_updated": "2025-12-26",
+  "status": "reviewed",
+  "overall_progress": 0,
+
+  "phases": [
+    {
+      "id": 1,
+      "name": "Package Infrastructure",
+      "priority": "P0",
+      "status": "pending",
+      "progress": 0,
+      "tasks": [
+        {
+          "id": "1.1",
+          "name": "Create pyproject.toml",
+          "status": "pending",
+          "file": "shared_package/pyproject.toml",
+          "notes": "Use flat layout: packages = [\"shared_package\"], NOT [\".\"]"
+        },
+        {
+          "id": "1.2",
+          "name": "Update __init__.py with version/exports",
+          "status": "pending",
+          "file": "shared_package/__init__.py"
+        },
+        { "id": "1.3", "name": "Test uv pip install -e", "status": "pending" }
+      ],
+      "verification": [
+        "uv pip install -e shared_package/",
+        "python -c \"import shared_package; print(shared_package.__version__)\"",
+        "python -c \"from shared_package.session import BrowserSession\""
+      ],
+      "dependencies": []
+    },
+    {
+      "id": 2,
+      "name": "Configuration System",
+      "priority": "P0",
+      "status": "pending",
+      "progress": 0,
+      "tasks": [
+        {
+          "id": "2.1",
+          "name": "Create config/ directory",
+          "status": "pending",
+          "file": "shared_package/config/"
+        },
+        {
+          "id": "2.2",
+          "name": "Implement BaseConfig (Pydantic Settings)",
+          "status": "pending",
+          "file": "shared_package/config/base.py",
+          "notes": "Use TYPE_CHECKING guards to prevent circular imports"
+        },
+        {
+          "id": "2.3",
+          "name": "Implement ProxySettings with SecretStr",
+          "status": "pending",
+          "file": "shared_package/config/proxy.py",
+          "notes": "CRITICAL: All credentials MUST use SecretStr"
+        },
+        {
+          "id": "2.4",
+          "name": "Create SapphireConfig",
+          "status": "pending",
+          "file": "shared_package/config/sapphire.py"
+        },
+        {
+          "id": "2.5",
+          "name": "Create HealthsparqConfig",
+          "status": "pending",
+          "file": "shared_package/config/healthsparq.py"
+        },
+        {
+          "id": "2.6",
+          "name": "Create CarrierConfig",
+          "status": "pending",
+          "file": "shared_package/config/carrier.py"
+        },
+        {
+          "id": "2.7",
+          "name": "Create AnthemConfig",
+          "status": "pending",
+          "file": "shared_package/config/anthem.py"
+        },
+        {
+          "id": "2.8",
+          "name": "Implement load_config() factory with @overload",
+          "status": "pending",
+          "file": "shared_package/config/factory.py",
+          "notes": "Use registry pattern + @overload for type-safe returns"
+        },
+        {
+          "id": "2.9",
+          "name": "Write config unit tests",
+          "status": "pending",
+          "file": "shared_package/tests/test_config.py"
+        },
+        {
+          "id": "2.10",
+          "name": "Remove dotenv loading from proxy/__init__.py",
+          "status": "pending",
+          "file": "shared_package/proxy/__init__.py",
+          "notes": "NEW: Centralize env loading to prevent dual-source confusion"
+        }
+      ],
+      "verification": [
+        "python -c \"from shared_package.config import load_config\"",
+        "python -c \"from shared_package.config import BaseConfig, ProxySettings\"",
+        "python -c \"c = load_config('sapphire', 'test'); assert 'SecretStr' in str(type(c.proxy.nord_password))\"",
+        "pytest shared_package/tests/test_config.py -v"
+      ],
+      "dependencies": [1]
+    },
+    {
+      "id": 3,
+      "name": "File I/O Utilities",
+      "priority": "P1",
+      "status": "pending",
+      "progress": 0,
+      "tasks": [
+        {
+          "id": "3.1",
+          "name": "Create io/ directory",
+          "status": "pending",
+          "file": "shared_package/io/"
+        },
+        {
+          "id": "3.2",
+          "name": "Implement JSONLWriter with bounded dedup",
+          "status": "pending",
+          "file": "shared_package/io/jsonl.py",
+          "notes": "CRITICAL: Use LRU-bounded or bloom filter for _seen_keys"
+        },
+        {
+          "id": "3.3",
+          "name": "Implement JSONLReader",
+          "status": "pending",
+          "file": "shared_package/io/jsonl.py"
+        },
+        {
+          "id": "3.4",
+          "name": "Implement AtomicWriter",
+          "status": "pending",
+          "file": "shared_package/io/file_manager.py"
+        },
+        {
+          "id": "3.5",
+          "name": "Write I/O unit tests",
+          "status": "pending",
+          "file": "shared_package/tests/test_io.py"
+        },
+        {
+          "id": "3.6",
+          "name": "Flush outside lock pattern",
+          "status": "pending",
+          "notes": "NEW: Move flush operations outside threading lock"
+        }
+      ],
+      "verification": [
+        "python -c \"from shared_package.io import JSONLReader, JSONLWriter\"",
+        "pytest shared_package/tests/test_io.py -v"
+      ],
+      "dependencies": [1]
+    },
+    {
+      "id": 4,
+      "name": "Logging System",
+      "priority": "P1",
+      "status": "pending",
+      "progress": 0,
+      "tasks": [
+        {
+          "id": "4.1",
+          "name": "Create logging/ directory",
+          "status": "pending",
+          "file": "shared_package/logging/"
+        },
+        {
+          "id": "4.2",
+          "name": "Implement setup_logging() with enqueue=True",
+          "status": "pending",
+          "file": "shared_package/logging/logger.py",
+          "notes": "CRITICAL: Use enqueue=True for async-safe file writes"
+        },
+        {
+          "id": "4.3",
+          "name": "Implement get_logger() with rich context",
+          "status": "pending",
+          "file": "shared_package/logging/logger.py",
+          "notes": "Include: project_name, phase, trace_id, timing"
+        },
+        {
+          "id": "4.4",
+          "name": "Add InterceptHandler for stdlib logging",
+          "status": "pending",
+          "file": "shared_package/logging/logger.py",
+          "notes": "NEW: Capture stdlib logging from third-party libs"
+        },
+        {
+          "id": "4.5",
+          "name": "Write logging unit tests",
+          "status": "pending",
+          "file": "shared_package/tests/test_logging.py"
+        }
+      ],
+      "verification": [
+        "python -c \"from shared_package.logging import setup_logging, get_logger\"",
+        "python -c \"import logging; from shared_package.logging import setup_logging; setup_logging('test'); logging.getLogger('httpx').info('captured')\"",
+        "pytest shared_package/tests/test_logging.py -v"
+      ],
+      "dependencies": [1]
+    },
+    {
+      "id": 5,
+      "name": "Queue & Validation",
+      "priority": "P2",
+      "status": "pending",
+      "progress": 0,
+      "tasks": [
+        {
+          "id": "5.1",
+          "name": "Create queue/ directory",
+          "status": "pending",
+          "file": "shared_package/queue/"
+        },
+        {
+          "id": "5.2",
+          "name": "Implement TaskQueue",
+          "status": "pending",
+          "file": "shared_package/queue/task_queue.py"
+        },
+        {
+          "id": "5.3",
+          "name": "Create validation/ directory",
+          "status": "pending",
+          "file": "shared_package/validation/"
+        },
+        {
+          "id": "5.4",
+          "name": "Create Provider/Location models",
+          "status": "pending",
+          "file": "shared_package/validation/schema.py"
+        },
+        {
+          "id": "5.5",
+          "name": "Move localdataclass to validation/",
+          "status": "pending",
+          "notes": "NEW: Consolidate data models under validation/"
+        }
+      ],
+      "verification": [
+        "python -c \"from shared_package.queue import TaskQueue\"",
+        "python -c \"from shared_package.validation import ProviderSchema\""
+      ],
+      "dependencies": [1]
+    },
+    {
+      "id": 6,
+      "name": "Environment Setup",
+      "priority": "P0",
+      "status": "pending",
+      "progress": 0,
+      "tasks": [
+        {
+          "id": "6.1",
+          "name": "Create root .env.example",
+          "status": "pending",
+          "file": ".env.example"
+        },
+        {
+          "id": "6.2",
+          "name": "Create tools/validate_env.py",
+          "status": "pending",
+          "file": "tools/validate_env.py",
+          "notes": "CRITICAL: Missing in original plan, required for production safety"
+        },
+        {
+          "id": "6.3",
+          "name": "Update .gitignore for .env",
+          "status": "pending",
+          "file": ".gitignore"
+        },
+        {
+          "id": "6.4",
+          "name": "Document .env hierarchy loading order",
+          "status": "pending",
+          "notes": "NEW: Clarify precedence rules to prevent confusion"
+        }
+      ],
+      "verification": [
+        "python tools/validate_env.py",
+        "grep -q '.env' .gitignore"
+      ],
+      "dependencies": [2]
+    },
+    {
+      "id": 7,
+      "name": "Backward Compatibility",
+      "priority": "P1",
+      "status": "pending",
+      "progress": 0,
+      "tasks": [
+        {
+          "id": "7.1",
+          "name": "Keep legacy config.py working",
+          "status": "pending",
+          "file": "shared_package/config.py"
+        },
+        {
+          "id": "7.2",
+          "name": "Support function exports (_get_headers)",
+          "status": "pending",
+          "notes": "CRITICAL: Real projects import functions, not just scalars"
+        },
+        {
+          "id": "7.3",
+          "name": "Preserve auto-directory creation",
+          "status": "pending",
+          "notes": "CRITICAL: Projects rely on import-time directory creation"
+        },
+        {
+          "id": "7.4",
+          "name": "Fix UUID generation timing",
+          "status": "pending",
+          "notes": "CRITICAL: Use default_factory, not field defaults"
+        },
+        {
+          "id": "7.5",
+          "name": "Document migration patterns",
+          "status": "pending",
+          "file": "shared_package/docs/MIGRATION.md"
+        },
+        {
+          "id": "7.6",
+          "name": "Test backward compat imports",
+          "status": "pending"
+        }
+      ],
+      "verification": [
+        "python -c \"from shared_package.config import NORD_USERNAME\"",
+        "python -c \"from shared_package.config import get_default_proxy\"",
+        "python -c \"from config import _get_headers\" # Project-level test"
+      ],
+      "dependencies": [2]
+    },
+    {
+      "id": 8,
+      "name": "Testing & Documentation",
+      "priority": "P1",
+      "status": "pending",
+      "progress": 0,
+      "tasks": [
+        {
+          "id": "8.1",
+          "name": "Create tests/ directory structure",
+          "status": "pending",
+          "file": "shared_package/tests/"
+        },
+        {
+          "id": "8.2",
+          "name": "Create tests/conftest.py with mock fixtures",
+          "status": "pending",
+          "file": "shared_package/tests/conftest.py",
+          "notes": "NEW: Mock Patchright, curl_cffi, file system"
+        },
+        {
+          "id": "8.3",
+          "name": "Write concurrency tests for sessions",
+          "status": "pending",
+          "notes": "NEW: Test semaphore, locks, conditions"
+        },
+        {
+          "id": "8.4",
+          "name": "Write integration tests",
+          "status": "pending"
+        },
+        {
+          "id": "8.5",
+          "name": "Create README.md",
+          "status": "pending",
+          "file": "shared_package/README.md"
+        },
+        {
+          "id": "8.6",
+          "name": "Update CLAUDE.md",
+          "status": "pending",
+          "file": "shared_package/CLAUDE.md"
+        },
+        {
+          "id": "8.7",
+          "name": "Configure pytest-asyncio properly",
+          "status": "pending",
+          "notes": "NEW: asyncio_mode = auto, timeouts"
+        },
+        {
+          "id": "8.8",
+          "name": "Achieve 90%+ test coverage for config/",
+          "status": "pending"
+        }
+      ],
+      "verification": [
+        "pytest shared_package/tests/ -v --cov=shared_package --cov-report=term-missing",
+        "ls shared_package/README.md"
+      ],
+      "dependencies": [1, 2, 3, 4]
+    },
+    {
+      "id": 9,
+      "name": "Migration Tooling",
+      "priority": "P0",
+      "status": "pending",
+      "progress": 0,
+      "tasks": [
+        {
+          "id": "9.1",
+          "name": "Create tools/validate_migration.py",
+          "status": "pending",
+          "file": "tools/validate_migration.py",
+          "notes": "NEW: Verify output identical before/after migration"
+        },
+        {
+          "id": "9.2",
+          "name": "Create tools/rollback_migration.py",
+          "status": "pending",
+          "file": "tools/rollback_migration.py",
+          "notes": "NEW: Safe rollback mechanism"
+        },
+        {
+          "id": "9.3",
+          "name": "Create tools/find_hardcoded_credentials.py",
+          "status": "pending",
+          "file": "tools/find_hardcoded_credentials.py",
+          "notes": "NEW: Scan all 95+ projects for credential exposure"
+        },
+        {
+          "id": "9.4",
+          "name": "Pilot migration on 3 diverse projects",
+          "status": "pending",
+          "notes": "Test: 1 Sapphire, 1 Healthsparq, 1 Carrier"
+        }
+      ],
+      "verification": [
+        "python tools/validate_migration.py audiobee_bcbs_il --compare-outputs",
+        "python tools/find_hardcoded_credentials.py --scan-all"
+      ],
+      "dependencies": [2, 6, 7]
+    }
+  ],
+
+  "reviews": {
+    "status": "completed",
+    "completed_at": "2025-12-26",
+    "reviewers": [
+      {
+        "id": 1,
+        "role": "Python Packaging Expert",
+        "task_id": "a748da1",
+        "status": "completed",
+        "verdict": "APPROVE_WITH_CHANGES",
+        "key_findings": [
+          "pyproject.toml needs flat layout fix: packages = [\"shared_package\"]",
+          "Pin pydantic-settings version: >=2.0.0,<3.0.0"
+        ]
+      },
+      {
+        "id": 2,
+        "role": "Security Specialist",
+        "task_id": "a2e26a3",
+        "status": "completed",
+        "verdict": "NEEDS_WORK",
+        "key_findings": [
+          "CRITICAL: Credentials stored as plaintext - must use SecretStr",
+          "Potential credential exposure in debug prints",
+          ".gitignore must include .env files"
+        ]
+      },
+      {
+        "id": 3,
+        "role": "Performance Engineer",
+        "task_id": "a3d72aa",
+        "status": "completed",
+        "verdict": "ACCEPTABLE",
+        "key_findings": [
+          "orjson is correct choice",
+          "CRITICAL: Bound deduplication sets to prevent memory exhaustion",
+          "CRITICAL: Add enqueue=True to loguru file handlers",
+          "Move flush operations outside threading lock",
+          "Consider aiofiles for truly async I/O"
+        ]
+      },
+      {
+        "id": 4,
+        "role": "API Design Expert",
+        "task_id": "ab79c64",
+        "status": "completed",
+        "verdict": "NEEDS_REFINEMENT",
+        "key_findings": [
+          "load_config() returns BaseConfig - loses type information",
+          "Use @overload for type-safe returns",
+          "Registry pattern for self-registering configs recommended"
+        ]
+      },
+      {
+        "id": 5,
+        "role": "DevOps Engineer",
+        "task_id": "a750e5c",
+        "status": "completed",
+        "verdict": "NEEDS_WORK",
+        "key_findings": [
+          "CRITICAL: Missing tools/validate_env.py",
+          "CI/CD pipeline integration gaps",
+          "Hierarchical .env loading order needs documentation"
+        ]
+      },
+      {
+        "id": 6,
+        "role": "Testing Specialist",
+        "task_id": "adfd62f",
+        "status": "completed",
+        "verdict": "NEEDS_TEST_STRATEGY",
+        "key_findings": [
+          "No mocking strategy for browser/network dependencies",
+          "Coverage targets unrealistic without mock infrastructure",
+          "Missing concurrency tests for session modules",
+          "Need pytest-asyncio configuration",
+          "Need separate unit/integration/live test suites"
+        ]
+      },
+      {
+        "id": 7,
+        "role": "Code Architecture Reviewer",
+        "task_id": "a39c5c7",
+        "status": "completed",
+        "verdict": "ACCEPTABLE",
+        "key_findings": [
+          "Circular dependency risk: config/ <-> proxy/",
+          "Dual configuration loading problem (proxy/__init__.py + config.py)",
+          "Use composition over inheritance for site configs",
+          "Registry pattern recommended for factory",
+          "Reorder phases: test config before touching session/proxy"
+        ]
+      },
+      {
+        "id": 8,
+        "role": "Migration Expert",
+        "task_id": "a867e3b",
+        "status": "completed",
+        "verdict": "RISKY",
+        "key_findings": [
+          "CRITICAL: 'Zero breaking changes' claim is FALSE",
+          "Function exports (_get_headers) not supported",
+          "Directory auto-creation at import breaks",
+          "UUID generation timing issue (field defaults vs default_factory)",
+          "No rollback mechanism exists",
+          "Need tools/validate_migration.py and tools/rollback_migration.py"
+        ]
+      },
+      {
+        "id": 9,
+        "role": "Logging & Observability Expert",
+        "task_id": "a01612c",
+        "status": "completed",
+        "verdict": "NEEDS_IMPROVEMENT",
+        "key_findings": [
+          "Log format missing: project_name, trace_id, timing",
+          "Need InterceptHandler for stdlib logging compatibility",
+          "Missing error aggregation strategy for 95+ scrapers",
+          "No metrics collection",
+          "No cross-scraper correlation (run_id)"
+        ]
+      },
+      {
+        "id": 10,
+        "role": "Senior Python Developer",
+        "status": "skipped",
+        "verdict": null,
+        "notes": "Review not completed in time"
+      }
+    ],
+    "summary": {
+      "total_reviews": 9,
+      "approved": 2,
+      "needs_changes": 7,
+      "consensus": "Plan requires significant revisions before implementation",
+      "critical_blockers": [
+        "Security: SecretStr for all credentials",
+        "Migration: Breaking changes not addressed (function exports, auto-init)",
+        "Performance: Memory-bounded deduplication",
+        "Testing: Mock infrastructure needed before coverage targets"
+      ],
+      "recommended_phase_order": [
+        "Phase 1: Package Infrastructure",
+        "Phase 6: Environment Setup (with validate_env.py)",
+        "Phase 9: Migration Tooling (NEW - critical)",
+        "Phase 2: Configuration System",
+        "Phase 3: File I/O Utilities",
+        "Phase 4: Logging System",
+        "Phase 7: Backward Compatibility",
+        "Phase 5: Queue & Validation",
+        "Phase 8: Testing & Documentation"
+      ]
+    },
+    "action_items": [
+      {
+        "id": "A1",
+        "priority": "P0",
+        "category": "Security",
+        "description": "Use SecretStr for ALL credential fields in ProxySettings",
+        "source": "Security Specialist",
+        "phase": 2
+      },
+      {
+        "id": "A2",
+        "priority": "P0",
+        "category": "Migration",
+        "description": "Create tools/validate_migration.py for output comparison",
+        "source": "Migration Expert",
+        "phase": 9
+      },
+      {
+        "id": "A3",
+        "priority": "P0",
+        "category": "Migration",
+        "description": "Create tools/rollback_migration.py for safe revert",
+        "source": "Migration Expert",
+        "phase": 9
+      },
+      {
+        "id": "A4",
+        "priority": "P0",
+        "category": "Migration",
+        "description": "Support function exports (_get_headers, etc.) in backward compat layer",
+        "source": "Migration Expert",
+        "phase": 7
+      },
+      {
+        "id": "A5",
+        "priority": "P0",
+        "category": "Migration",
+        "description": "Preserve auto-directory creation at import time",
+        "source": "Migration Expert",
+        "phase": 7
+      },
+      {
+        "id": "A6",
+        "priority": "P0",
+        "category": "DevOps",
+        "description": "Create tools/validate_env.py",
+        "source": "DevOps Engineer",
+        "phase": 6
+      },
+      {
+        "id": "A7",
+        "priority": "P0",
+        "category": "Performance",
+        "description": "Use LRU-bounded or bloom filter for JSONLWriter._seen_keys",
+        "source": "Performance Engineer",
+        "phase": 3
+      },
+      {
+        "id": "A8",
+        "priority": "P0",
+        "category": "Performance",
+        "description": "Add enqueue=True to all loguru file handlers",
+        "source": "Performance Engineer",
+        "phase": 4
+      },
+      {
+        "id": "A9",
+        "priority": "P1",
+        "category": "Architecture",
+        "description": "Remove dotenv loading from proxy/__init__.py (centralize in config/)",
+        "source": "Code Architecture Reviewer",
+        "phase": 2
+      },
+      {
+        "id": "A10",
+        "priority": "P1",
+        "category": "Architecture",
+        "description": "Use TYPE_CHECKING guards to prevent circular imports",
+        "source": "Code Architecture Reviewer",
+        "phase": 2
+      },
+      {
+        "id": "A11",
+        "priority": "P1",
+        "category": "API Design",
+        "description": "Use @overload for load_config() to preserve type information",
+        "source": "API Design Expert",
+        "phase": 2
+      },
+      {
+        "id": "A12",
+        "priority": "P1",
+        "category": "Logging",
+        "description": "Add InterceptHandler for stdlib logging compatibility",
+        "source": "Logging Expert",
+        "phase": 4
+      },
+      {
+        "id": "A13",
+        "priority": "P1",
+        "category": "Logging",
+        "description": "Include project_name, trace_id, timing in log format",
+        "source": "Logging Expert",
+        "phase": 4
+      },
+      {
+        "id": "A14",
+        "priority": "P1",
+        "category": "Testing",
+        "description": "Create tests/conftest.py with mock fixtures for Patchright, curl_cffi",
+        "source": "Testing Specialist",
+        "phase": 8
+      },
+      {
+        "id": "A15",
+        "priority": "P1",
+        "category": "Testing",
+        "description": "Add concurrency tests for session semaphores/locks",
+        "source": "Testing Specialist",
+        "phase": 8
+      },
+      {
+        "id": "A16",
+        "priority": "P1",
+        "category": "Packaging",
+        "description": "Use flat layout in pyproject.toml: packages = [\"shared_package\"]",
+        "source": "Python Packaging Expert",
+        "phase": 1
+      },
+      {
+        "id": "A17",
+        "priority": "P2",
+        "category": "Migration",
+        "description": "Fix UUID generation timing (use default_factory)",
+        "source": "Migration Expert",
+        "phase": 7
+      },
+      {
+        "id": "A18",
+        "priority": "P2",
+        "category": "Performance",
+        "description": "Consider aiofiles for async file I/O",
+        "source": "Performance Engineer",
+        "phase": 3
+      },
+      {
+        "id": "A19",
+        "priority": "P2",
+        "category": "Observability",
+        "description": "Add run_id for cross-scraper correlation",
+        "source": "Logging Expert",
+        "phase": 4
+      },
+      {
+        "id": "A20",
+        "priority": "P2",
+        "category": "Security",
+        "description": "Create tools/find_hardcoded_credentials.py",
+        "source": "Migration Expert",
+        "phase": 9
+      }
+    ]
+  },
+
+  "context": {
+    "existing_modules": ["proxy/", "session/", "localdataclass/", "config.py"],
+    "reference_docs": [
+      "docs/restructuring/SHARED_PACKAGE_SPEC.md",
+      "docs/restructuring/RESTRUCTURING_PLAN.md",
+      "docs/restructuring/ENV_MANAGEMENT_GUIDE.md",
+      "docs/restructuring/MIGRATION_GUIDE.md"
+    ],
+    "implementation_plan": "docs/restructuring/SHARED_PACKAGE_IMPLEMENTATION_PLAN.md"
+  },
+
+  "metrics": {
+    "total_tasks": 47,
+    "completed_tasks": 0,
+    "blocked_tasks": 0,
+    "estimated_effort_hours": 60,
+    "review_coverage": {
+      "reviews_completed": 9,
+      "reviews_planned": 10,
+      "critical_issues_found": 12,
+      "action_items_generated": 20
+    }
+  }
+}
