@@ -51,7 +51,7 @@ perf(sqlite): implement buffered writes for 15x speedup
 
 ## Overview
 
-This repository contains **95+ web scrapers** for extracting provider directory data from insurance carrier websites. Each scraper targets a specific insurance plan/carrier and extracts provider information (NPIs, names, specialties, locations, network affiliations) for healthcare data aggregation.
+This repository contains **~86 web scrapers** for extracting provider directory data from insurance carrier websites. Each scraper targets a specific insurance plan/carrier and extracts provider information (NPIs, names, specialties, locations, network affiliations) for healthcare data aggregation.
 
 **Purpose**: Collect and standardize provider network data from insurance carrier directories for downstream analytics and compliance reporting.
 
@@ -67,7 +67,7 @@ This repository contains **95+ web scrapers** for extracting provider directory 
 
 ```
 scraping/
-├── audiobee_*/              # 95+ individual scraper projects
+├── audiobee_*/              # ~86 individual scraper projects
 │   ├── config.py            # Configuration (URLs, params, network IDs)
 │   ├── index_1.py           # Phase 1: Search/Discovery
 │   ├── index_2.py           # Phase 2: Detail extraction
@@ -94,10 +94,11 @@ scraping/
 │   ├── ANTHEM_IMPROVEMENT.md           # Architectural analysis
 │   └── SINGLE_PROCESS_PLAN.md          # Single-process implementation plan
 │
-├── healthsparq/             # Unified HealthSparq scraper package (replaces 23 audiobee_* projects)
-│   ├── __init__.py          # Package entry point with public API
+├── healthsparq/             # HealthSparq library v2.0 (importable + CLI + project templates)
+│   ├── __init__.py          # Public API exports (run_scraper_sync, default_mapper, load_config)
 │   ├── __main__.py          # CLI entry point (python -m healthsparq)
 │   ├── cli.py               # Typer-based CLI commands (list, validate, run, doctor)
+│   ├── api.py               # High-level scraper API (run_scraper_sync, ScraperResult)
 │   ├── config/              # Configuration system
 │   │   ├── schema.py        # Pydantic models for project configuration
 │   │   └── loader.py        # YAML configuration loading with validation
@@ -113,11 +114,20 @@ scraping/
 │   │   ├── exceptions.py    # Custom exception hierarchy
 │   │   └── file_writer.py   # Async file writing with worker pool
 │   ├── phases/              # Execution phases (search, details, normalize)
+│   │   └── normalize.py     # Supports custom mapper injection via MapperFunc
+│   ├── templates/           # Project scaffolding templates
+│   │   ├── run.py.template          # Typer CLI importing healthsparq library
+│   │   ├── mapper.py.template       # Custom mapper extending default_mapper()
+│   │   ├── .env.example             # Environment config template
+│   │   ├── .gitignore.template      # Output directory ignores
+│   │   ├── README.md.template       # Usage instructions
+│   │   └── requirements.txt.template # Just healthsparq dependency
 │   ├── tests/               # Test suite (99+ tests)
+│   ├── CLAUDE.md            # Package documentation and conventions
 │   ├── README.md            # Package documentation
-│   └── pyproject.toml       # Python package metadata
+│   └── pyproject.toml       # Python package metadata (v2.0.0)
 │
-├── healthsparq-server/      # Shared browser automation server
+├── healthsparq-server/      # Legacy browser automation server (deprecated - use healthsparq package instead)
 │   ├── server.js            # Node.js/Puppeteer server (port 1018)
 │   └── CLAUDE.md            # Server documentation
 │
@@ -195,12 +205,12 @@ scraping/
 
 Projects are categorized by the underlying provider directory platform:
 
-### 1. Carrier (35 projects)
+### 1. Carrier (32 projects)
 
 **Direct API Integration** - REST APIs with minimal browser automation
 
 ```
-Examples: audiobee_bcbs_ma, audiobee_florida_blue, audiobee_multiplan
+Examples: audiobee_florida_blue, audiobee_multiplan, audiobee_harvard_pilgrim
 Pattern:  config.py → index_1.py (search) → index_2.py (details) → index_3.py (map)
 Tech:     httpx/requests, async pagination, NPI-based deduplication
 ```
@@ -212,51 +222,73 @@ Tech:     httpx/requests, async pagination, NPI-based deduplication
 - Geographic grid search (lat/lng + radius)
 - Network ID-based plan filtering
 
-### 2. Healthsparq (24 projects)
+### 2. Healthsparq (23 projects)
 
-**Browser Automation Required** - Protected sites using healthsparq-server
+**Importable Library v2.0** - Standalone package supporting both CLI and library usage
 
 ```
-Examples: audiobee_mvp_health, audiobee_medica, audiobee_excellus
-Pattern:  healthsparq-server → index_1.py (browse) → index_2.py (extract) → run_all.py
-Tech:     Puppeteer + stealth, session management, anti-detection
+Examples: medica_sg, christus_health_plan, excellus
+Pattern:  python -m healthsparq run <project> --curr YYYYMMDD (CLI)
+          from healthsparq import run_scraper_sync (library)
+Tech:     ResilientBrowserSession (core/session), async HealthSpark API wrapper
 ```
 
 **Characteristics**:
 
-- Requires `healthsparq-server` running on port 1018
-- Session token extraction via browser
-- Rate limiting with delays
-- Cookie/header passthrough to API calls
+- **Dual interface**: CLI tool + importable library with custom mapper injection
+- Uses `core/session.ResilientBrowserSession` for authentication
+- Two-step session pattern: browser auth → fast HTTP API calls
+- Configuration-driven via YAML files in `healthsparq/configs/`
+- Three-phase pipeline: search → details → normalize (customizable via MapperFunc)
+- Project scaffolding templates in `healthsparq/templates/`
 
-**Unified Package**: 23 HealthSparq projects consolidated into `healthsparq/` package:
+**Architecture**:
+
+- `healthsparq/api.py`: High-level API (`run_scraper_sync`, `ScraperResult`)
+- `healthsparq/phases/normalize.py`: Supports custom mapper injection (`MapperFunc`)
+- `healthsparq/templates/`: Project scaffolding (run.py, mapper.py, .env.example)
+- `healthsparq/core/exceptions.py`: Structured exception hierarchy (AuthenticationError, APIError, SearchError, etc.)
+- Public API exports: `run_scraper`, `default_mapper`, `load_config`, `MapperFunc`
+
+**CLI Usage**:
 
 ```bash
-# CLI-based execution with YAML configuration
-python -m healthsparq list                          # List available projects
+python -m healthsparq list                          # List 23 available projects
 python -m healthsparq validate christus_health_plan # Validate config
 python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
+python -m healthsparq run medica_sg --curr 20251226 --phase 1 # Run specific phase
+python -m healthsparq doctor                                  # Validate all configs
 ```
 
-**Architecture** (standalone Python, no external server):
+**Library Usage**:
 
-- `healthsparq/core/`: Shared HealthSpark API wrapper with async session management
-- `healthsparq/configs/`: Per-project YAML configs (domain, insurer_code, product_code)
-- `healthsparq/core/session.py`: Uses `core/session/` (ResilientBrowserSession) for browser auth → cookie extraction → fast HTTP
-- `healthsparq/core/exceptions.py`: Structured exception hierarchy (AuthenticationError, APIError, SearchError, etc.)
-- Configuration-driven with no hardcoded domains or plan codes
+```python
+from healthsparq import load_config, run_scraper_sync, default_mapper
 
-### 3. Sapphire (15 projects)
+# Use default mapper
+config = load_config("christus_health_plan")
+result = run_scraper_sync(config, "20251227")
+
+# Use custom mapper
+def my_mapper(raw: dict) -> dict:
+    result = default_mapper(raw)
+    # Add custom logic here
+    return result
+
+result = run_scraper_sync(config, "20251227", mapper=my_mapper)
+```
+
+### 3. Sapphire (14 projects)
 
 **ProviderFinderOnline Platform** - Standardized API structure
 
 ```
-Examples: audiobee_bcbs_il, audiobee_molina, audiobee_carefirst
+Examples: audiobee_bcbs_il, audiobee_molina, audiobee_bcbs_la
 Pattern:  config.py → faceted search → provider details → location enrichment
 Tech:     providerfinderonline.com API, network_id filtering
 ```
 
-### 4. Anthem (4 projects)
+### 4. Anthem (3 projects)
 
 **Wellpoint Infrastructure** - Multi-phase with intelligent filtering
 
@@ -317,29 +349,25 @@ python tools/run_parallel.py --pattern "audiobee_bcbs*" --workers 8 --curr 20251
 
 ### For Healthsparq Projects
 
-**Legacy (individual audiobee\_\* projects)**:
-
 ```bash
-# 1. Start browser server first
-cd healthsparq-server && npm start
+# Install package (one-time setup)
+cd healthsparq
+pip install -e .
 
-# 2. Run scraper (in separate terminal)
-cd audiobee_mvp_health
-python run_all.py
-```
+# List available projects
+python -m healthsparq list
 
-**Unified Package (recommended)** - Standalone Python, no external server needed:
-
-```bash
-# Run unified scraper (uses core/session for browser automation)
-python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
+# Run scraper
+python -m healthsparq run medica_sg --curr 20251226 --prev 20251110
 
 # Run specific phase only
-python -m healthsparq run medica_sg --curr 20251226 --phase 1 # Search only
-python -m healthsparq run medica_sg --curr 20251226 --phase 2 # Details only
+python -m healthsparq run medica_sg --curr 20251226 --phase 1 # Search
+python -m healthsparq run medica_sg --curr 20251226 --phase 2 # Details
+python -m healthsparq run medica_sg --curr 20251226 --phase 3 # Normalize
 
-# Dry-run mode
-python -m healthsparq run excellus --curr 20251226 --dry-run
+# Validate configuration
+python -m healthsparq validate christus_health_plan
+python -m healthsparq doctor # Validate all configs
 ```
 
 ### Validating Output
@@ -501,9 +529,11 @@ async def fetch_data():
 
 ## Shared Utilities
 
-### healthsparq/ - Unified Scraper Package
+### healthsparq/ - Importable Library v2.0
 
-Consolidated package for 23 HealthSparq projects with CLI-based execution:
+Unified package for 23 HealthSparq projects with dual CLI + library interface:
+
+**CLI Usage**:
 
 ```bash
 # List available projects
@@ -519,9 +549,39 @@ python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
 python -m healthsparq doctor
 ```
 
+**Library Usage**:
+
+```python
+from healthsparq import load_config, run_scraper_sync, default_mapper
+
+# Basic usage
+config = load_config("christus_health_plan")
+result = run_scraper_sync(config, "20251227")
+print(f"Found {result.providers_count} providers")
+
+# Custom mapper injection
+def my_mapper(raw: dict) -> dict:
+    result = default_mapper(raw)
+    # Add custom logic here
+    return result
+
+result = run_scraper_sync(config, "20251227", mapper=my_mapper)
+```
+
+**Project Scaffolding**:
+
+Use templates in `healthsparq/templates/` to create library-based projects:
+
+- `run.py.template`: Typer CLI importing from healthsparq library
+- `mapper.py.template`: Custom mapper extending `default_mapper()`
+- `.env.example`: Environment config (proxy, browser settings)
+- `requirements.txt.template`: Single dependency: `healthsparq`
+
 **Key Features**:
 
+- **Dual interface**: CLI tool + importable library with custom mapper injection
 - **Configuration-driven**: YAML configs in `healthsparq/configs/` (no hardcoded domains/plans)
+- **Custom mapping**: Projects can inject custom mapper functions via `MapperFunc` type
 - **Async session management**: Browser login → cookie extraction → fast HTTP requests
 - **Structured exceptions**: Custom hierarchy (AuthenticationError, APIError, SearchError, etc.)
 - **Context managers**: Proper resource cleanup with `async with` pattern
@@ -529,10 +589,12 @@ python -m healthsparq doctor
 
 **Architecture**:
 
+- `healthsparq/api.py`: High-level API (`run_scraper_sync`, `ScraperResult`, `PhaseResult`)
 - `healthsparq/core/healthspark.py`: HealthSpark API wrapper (search, profile, geocode endpoints)
 - `healthsparq/core/session.py`: HealthSparqSession with ResilientBrowserSession for auth
 - `healthsparq/config/schema.py`: Pydantic models for configuration validation
-- `healthsparq/phases/`: Phase 1 (search), Phase 2 (details), Phase 3 (normalize)
+- `healthsparq/phases/normalize.py`: Supports custom mapper injection via `MapperFunc` type
+- `healthsparq/templates/`: Project scaffolding templates for library-based projects
 
 ### healthsparq-server (Port 1018) - Legacy Only
 
@@ -568,6 +630,73 @@ python output_generator/comparison_creator.py audiobee_*/ --prev 20251010 --curr
 # Create Excel report
 python output_generator/report_generator.py audiobee_*/
 ```
+
+### core/ - Shared Package v3.0
+
+The `core/` submodule (formerly `shared_package/`) provides common utilities for all scrapers. **Always prefer core implementations over reinventing**.
+
+**Logging** (`core/logging/`):
+
+```python
+from core.logging import logger, setup_logging, set_trace_id
+
+# Setup at startup
+setup_logging(project_name="audiobee_bcbs_il", run_id="20251227", level="INFO")
+
+# Structured logging with trace_id correlation
+set_trace_id(f"provider_{npi}")
+logger.bind(npi=npi, phase=3).info("Processing provider")
+```
+
+**File I/O** (`core/io/`):
+
+```python
+from core.io import JSONLWriter, JSONLReader, SQLiteFS, BoundedSet
+
+# JSONL with auto-deduplication
+with JSONLWriter("providers.jsonl", dedup_key="npi") as writer:
+    writer.write(provider)  # Skips duplicates
+
+# SQLite virtual filesystem (15x faster writes)
+fs = SQLiteFS("scraper.db", buffer_size=100)
+fs.write("raw/search/IL_60601.json", data)
+
+# Memory-safe deduplication (LRU at 100k items)
+seen = BoundedSet(max_size=100_000)
+```
+
+**Session Management** (`core/session/`):
+
+```python
+from core.session import ResilientBrowserSession, HttpSession
+from core.proxy import ProxyType
+
+# Browser with proxy and auto-recovery
+async with ResilientBrowserSession(proxy_types=[ProxyType.SMARTPROXY_SESSION]) as session:
+    await session.login(url)
+    response = await session.get("/api/data")
+```
+
+**Configuration** (`core/config/`):
+
+```python
+from core.config import load_config, ProxySettings
+
+config = load_config("sapphire", project_name="audiobee_bcbs_il")
+proxy = ProxySettings()  # Auto-loads from .env
+```
+
+**Import Pattern** (backwards compatibility):
+
+```python
+try:
+    from core.logging import logger
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
+```
+
+See `core/CLAUDE.md` for complete documentation.
 
 ---
 
@@ -640,7 +769,7 @@ Detailed technical research for shared utilities v3.0:
 
 ### Current State vs Target
 
-- **Current**: 95 scrapers, 3 Windows PCs, manual sequential execution (~4-8 hours per run cycle)
+- **Current**: ~86 scrapers, 3 Windows PCs, manual sequential execution (~4-8 hours per run cycle)
 - **Target**: 190 scrapers, 8-10 parallel per PC for API scrapers, 3-4 parallel for browser scrapers (~6-8 hours)
 - **Cost**: ~$50-150/month (S3 backup + Slack alerts, existing PCs owned)
 
@@ -671,13 +800,52 @@ See **docs/extra/PLAN.md** for full implementation details, code samples, AMI se
 3. **Rate Limiting**: Most scrapers include built-in delays; adjust as needed
 4. **Deduplication**: NPI-based deduplication is standard across all projects
 5. **Error Handling**: Check `{date}/raw/` for cached responses if runs fail mid-process; run_parallel.py saves error logs to `logs/{date}/`
-6. **Browser Projects**: Ensure healthsparq-server is running for Healthsparq-type projects
+6. **HealthSparq Projects**: Use `python -m healthsparq` CLI - standalone package with internal browser automation (no external server needed)
 7. **Output Validation**: Always run type_check.py before considering a run complete
 8. **Code Quality**: See `docs/onboarding/IMPROVEMENTS.md` for prioritized enhancement recommendations (security, logging, error recovery)
 9. **Issue Tracking**: Use `bd` (Beads) for issue tracking - see AGENTS.md for workflow details
 10. **SQLite Storage**: `core/io/sqlite_fs.py` provides 15x faster writes vs filesystem - see `docs/restructuring/SQLITE_STORAGE_STRATEGY.md` for migration rationale
 11. **Performance Fixes**: P1 issues completed - SQLiteFS write buffering, async I/O wrappers, JSONLReader context manager (see `todos/` directory)
 12. **HealthSparq Unified Package**: Use `python -m healthsparq` CLI for HealthSparq projects instead of individual audiobee\_\* projects - provides configuration validation, phase control, and better error handling
+
+---
+
+## Recent Enhancements
+
+### HealthSparq Library Transformation (v2.0.0 - Completed)
+
+The `healthsparq/` package has been transformed from a CLI-only tool into an importable library with custom mapper injection support.
+
+**What Changed**:
+
+- **v2.0.0 release**: Dual interface (CLI + importable library)
+- **Public API**: `run_scraper_sync()`, `default_mapper()`, `load_config()`, `MapperFunc`
+- **Custom mappers**: Projects can inject custom normalization logic via `MapperFunc` parameter
+- **Project templates**: `healthsparq/templates/` for scaffolding library-based projects
+- **Pilot project**: `audiobee_christus_health_plan/` demonstrates library usage pattern
+
+**Key Benefits Achieved**:
+
+- Projects can customize normalization logic without forking the library
+- Clean imports: `from healthsparq import run_scraper_sync, default_mapper`
+- No more `sys.path.insert()` hacks in library-based projects
+- Better IDE support and type checking
+- Single dependency in project requirements: `healthsparq`
+
+**Migration Path**:
+
+- Existing CLI workflow unchanged: `python -m healthsparq run <project> --curr YYYYMMDD`
+- New projects can use library pattern with templates from `healthsparq/templates/`
+- Pilot: `audiobee_christus_health_plan/` shows library-based approach
+- Gradual migration: Projects can adopt library pattern as needed
+
+**Next Steps**:
+
+- Migrate additional projects to library pattern using templates
+- Document custom mapper patterns for common use cases
+- Evaluate subclassing support for deeper phase customization
+
+---
 
 ## External References
 
