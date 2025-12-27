@@ -3,6 +3,7 @@
 ## AI Helpers
 
 **Issue Tracking**: This project uses **Beads** (bd) - AI-native issue tracking that lives in the repo.
+**BD Usage**: Always use bd for issue tracking for any tasks. Breakdown the tasks into as small component as possible. Delegate these tasks to subagents with relevant context wherever possible for optimum performance.
 
 ```bash
 bd ready              # Find available work
@@ -154,6 +155,17 @@ scraping/
 │   ├── validation/          # Pydantic models for provider data
 │   ├── proxy/               # Multi-provider proxy orchestration
 │   ├── session/             # Browser/HTTP session management
+│   ├── mapper/              # Provider data normalization and mapping
+│   │   ├── base.py          # BaseMapper ABC, MapperResult, MapperFunc type
+│   │   ├── normalize.py     # Normalization utilities (ZIP, phone, address, gender)
+│   │   ├── dedup.py         # NPI-based deduplication with record merging
+│   │   ├── schema.py        # JSON Schema validation
+│   │   ├── healthsparq.py   # HealthSparq mapper (v2 format, 23 projects)
+│   │   ├── carrier.py       # Carrier mapper base (custom API structures)
+│   │   └── README.md        # Mapper usage documentation
+│   ├── data/                # Shared reference data
+│   │   └── output_json_schema.json  # Provider output schema
+│   ├── tests/test_mapper.py # Mapper test suite
 │   └── CLAUDE.md            # Package documentation
 │
 ├── docs/                    # Project documentation
@@ -635,17 +647,73 @@ python output_generator/report_generator.py audiobee_*/
 
 The `core/` submodule (formerly `shared_package/`) provides common utilities for all scrapers. **Always prefer core implementations over reinventing**.
 
+**Mapper Module** (`core/mapper/`):
+
+Unified provider data normalization for all scraper types:
+
+```python
+from core.mapper import run_normalize, HealthSparqMapper, CarrierMapper
+from pathlib import Path
+
+# HealthSparq projects (23 projects)
+result = run_normalize(
+    raw_dir=Path("20251227/raw/provider_details"),
+    output_file=Path("20251227/processed/providers.jsonl"),
+    validate=True,  # JSON schema validation
+)
+print(f"Mapped {result.total_raw} → {result.total_deduplicated} providers")
+
+# Carrier projects (custom subclass)
+class FloridaBlueMapper(CarrierMapper):
+    def extract_provider(self, data: dict) -> dict:
+        return {
+            "npi": data.get("nationalProviderId"),
+            "first_name": data.get("firstName"),
+            # ... map carrier-specific fields
+        }
+
+mapper = FloridaBlueMapper(carrier_name="FloridaBlue")
+result = run_carrier_normalize(
+    raw_dir=Path("audiobee_florida_blue/20251227/raw"),
+    output_file=Path("audiobee_florida_blue/20251227/processed/providers.jsonl"),
+    mapper=mapper,
+)
+```
+
+**Features**:
+
+- HealthSparqMapper: v2 format for 23 HealthSparq projects
+- CarrierMapper: Base class for custom API structures (subclass per carrier)
+- Normalization: ZIP code (5 digits), phone, gender, address strings
+- Deduplication: NPI-based with network/address/specialty merging
+- Schema validation: Against `core/data/output_json_schema.json`
+- Record merging: Combines duplicate NPIs across networks
+
 **Logging** (`core/logging/`):
 
 ```python
 from core.logging import logger, setup_logging, set_trace_id
 
-# Setup at startup
-setup_logging(project_name="audiobee_bcbs_il", run_id="20251227", level="INFO")
+# Setup at startup with enhanced features
+setup_logging(
+    project_name="audiobee_bcbs_il",
+    run_id="20251227",
+    log_dir="logs",
+    level="INFO",
+    enable_json_output=True,   # JSON .jsonl file for machine parsing
+    enable_error_file=True,    # Separate error-only log for debugging
+)
 
 # Structured logging with trace_id correlation
 set_trace_id(f"provider_{npi}")
 logger.bind(npi=npi, phase=3).info("Processing provider")
+
+# Log levels guide
+logger.debug("Pagination details", page=5, total=100)
+logger.info("Phase completed", providers=1234, elapsed="5.2s")
+logger.warning("Rate limited", retry_after=60, status_code=429)
+logger.error("API failure", endpoint="/search", error=str(e))
+logger.critical("Session failure", reason="browser crashed")
 ```
 
 **File I/O** (`core/io/`):
@@ -811,6 +879,104 @@ See **docs/extra/PLAN.md** for full implementation details, code samples, AMI se
 ---
 
 ## Recent Enhancements
+
+### Provider Data Mapper Module (Completed - Dec 2025)
+
+**From commit bddc142**: Added unified mapper module to core package for provider data normalization.
+
+**What Changed**:
+
+- **core/mapper/**: New module for converting raw scraper output to schema-compliant JSONL
+- **HealthSparqMapper**: Handles v2 format for 23 HealthSparq projects with network/address extraction
+- **CarrierMapper**: Abstract base class for custom carrier API structures (subclass per carrier)
+- **Normalization utilities**: ZIP code (5 digits), phone, gender, address string building
+- **NPI deduplication**: Merges duplicate records across networks with network/address/specialty merging
+- **Schema validation**: Against `core/data/output_json_schema.json` using jsonschema library
+- **healthsparq/phases/normalize.py**: Fixed ZIP code format (5 digits) and uszips.xlsx path (commit 45566dc)
+
+**Mapper Types**:
+
+| Mapper Type         | Use Case                                | Projects |
+| ------------------- | --------------------------------------- | -------- |
+| `HealthSparqMapper` | HealthSparq platform scrapers           | 23       |
+| `CarrierMapper`     | Direct API scrapers (custom structures) | 35+      |
+| `HTMLCarrierMapper` | Legacy HTML scrapers (BeautifulSoup)    | TBD      |
+
+**Key Benefits**:
+
+- Consistent normalization across all projects (ZIP always 5 digits, phone/address format)
+- Reusable base classes reduce code duplication in individual scrapers
+- Schema validation catches format issues before output generation
+- Proper NPI-based deduplication with record merging logic
+- HealthSparq projects now output correct format matching schema requirements
+
+**Usage Pattern**:
+
+```python
+# HealthSparq projects (automatic)
+from core.mapper import run_normalize
+
+result = run_normalize(
+    raw_dir=Path("20251227/raw/provider_details"),
+    output_file=Path("20251227/processed/providers.jsonl"),
+    validate=True,
+)
+
+# Carrier projects (custom mapper)
+class MyCarrierMapper(CarrierMapper):
+    def extract_provider(self, data: dict) -> dict:
+        # Map carrier-specific fields
+        ...
+
+result = run_carrier_normalize(raw_dir, output_file, mapper=MyCarrierMapper("MyCarrier"))
+```
+
+**See**: `core/mapper/README.md` for implementation guide and examples.
+
+---
+
+### Comprehensive Logging Enhancement (Completed - Dec 2025)
+
+**From commit 8193314**: Added structured logging to core and healthsparq packages to enable proper debugging and monitoring.
+
+**What Changed**:
+
+- **core/logging/logger.py**: Enhanced loguru-based logging with JSON output support and error-only log files
+- **core session modules**: Replaced all `print()` statements with `logger` calls (browser_session.py, http_session.py, resilient_session.py)
+- **core I/O modules**: Added logging to sqlite_fs.py and jsonl.py for I/O visibility
+- **core config modules**: Added logging to factory.py and base.py for configuration debugging
+- **healthsparq modules**: Added comprehensive logging to session.py, healthspark.py, file_writer.py, search.py, and details.py
+
+**Logging Features**:
+
+- Structured logging with project_name, run_id, trace_id correlation
+- JSON structured output for machine parsing (`.jsonl` log files)
+- Error-only log files for quick debugging (`logs/{date}/{project}_error.log`)
+- Async-safe context propagation via ContextVar
+- InterceptHandler for third-party library integration
+- Automatic log rotation (100 MB files, 30 day retention)
+
+**Import Pattern** (all modules use this for backwards compatibility):
+
+```python
+try:
+    from core.logging import logger
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
+```
+
+**Key Benefits**:
+
+- Visibility into browser lifecycle, session management, and API operations
+- Structured error tracking with context preservation
+- Performance monitoring via elapsed time tracking
+- Request/response debugging with trace_id correlation
+- Silent I/O operations now logged (SQLiteFS writes, JSONL deduplication)
+
+**See**: `plans/feat-comprehensive-logging-enhancement.md` for full implementation details.
+
+---
 
 ### HealthSparq Library Transformation (v2.0.0 - Completed)
 
