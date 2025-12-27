@@ -94,6 +94,29 @@ scraping/
 │   ├── ANTHEM_IMPROVEMENT.md           # Architectural analysis
 │   └── SINGLE_PROCESS_PLAN.md          # Single-process implementation plan
 │
+├── healthsparq/             # Unified HealthSparq scraper package (replaces 23 audiobee_* projects)
+│   ├── __init__.py          # Package entry point with public API
+│   ├── __main__.py          # CLI entry point (python -m healthsparq)
+│   ├── cli.py               # Typer-based CLI commands (list, validate, run, doctor)
+│   ├── config/              # Configuration system
+│   │   ├── schema.py        # Pydantic models for project configuration
+│   │   └── loader.py        # YAML configuration loading with validation
+│   ├── configs/             # Project YAML files (23 HealthSparq projects)
+│   │   ├── _base.yaml       # Shared defaults for all projects
+│   │   ├── christus_health_plan.yaml
+│   │   ├── medica_sg.yaml
+│   │   └── ...              # 20+ additional project configs
+│   ├── core/                # Core scraping logic
+│   │   ├── __init__.py      # Core module exports
+│   │   ├── healthspark.py   # HealthSpark API wrapper (async context manager)
+│   │   ├── session.py       # Session management (browser auth + HTTP)
+│   │   ├── exceptions.py    # Custom exception hierarchy
+│   │   └── file_writer.py   # Async file writing with worker pool
+│   ├── phases/              # Execution phases (search, details, normalize)
+│   ├── tests/               # Test suite (99+ tests)
+│   ├── README.md            # Package documentation
+│   └── pyproject.toml       # Python package metadata
+│
 ├── healthsparq-server/      # Shared browser automation server
 │   ├── server.js            # Node.js/Puppeteer server (port 1018)
 │   └── CLAUDE.md            # Server documentation
@@ -206,6 +229,23 @@ Tech:     Puppeteer + stealth, session management, anti-detection
 - Rate limiting with delays
 - Cookie/header passthrough to API calls
 
+**Unified Package**: 23 HealthSparq projects consolidated into `healthsparq/` package:
+
+```bash
+# CLI-based execution with YAML configuration
+python -m healthsparq list                          # List available projects
+python -m healthsparq validate christus_health_plan # Validate config
+python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
+```
+
+**Architecture**:
+
+- `healthsparq/core/`: Shared HealthSpark API wrapper with async session management
+- `healthsparq/configs/`: Per-project YAML configs (domain, insurer_code, product_code)
+- `healthsparq/core/session.py`: Browser auth → cookie extraction → fast HTTP requests
+- `healthsparq/core/exceptions.py`: Structured exception hierarchy (AuthenticationError, APIError, SearchError, etc.)
+- Configuration-driven with no hardcoded domains or plan codes
+
 ### 3. Sapphire (15 projects)
 
 **ProviderFinderOnline Platform** - Standardized API structure
@@ -277,6 +317,8 @@ python tools/run_parallel.py --pattern "audiobee_bcbs*" --workers 8 --curr 20251
 
 ### For Healthsparq Projects
 
+**Legacy (individual audiobee\_\* projects)**:
+
 ```bash
 # 1. Start browser server first
 cd healthsparq-server && npm start
@@ -284,6 +326,23 @@ cd healthsparq-server && npm start
 # 2. Run scraper (in separate terminal)
 cd audiobee_mvp_health
 python run_all.py
+```
+
+**Unified Package (recommended)**:
+
+```bash
+# 1. Start browser server first
+cd healthsparq-server && PORT=1018 npm start
+
+# 2. Run unified scraper
+python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
+
+# Run specific phase only
+python -m healthsparq run medica_sg --curr 20251226 --phase 1 # Search only
+python -m healthsparq run medica_sg --curr 20251226 --phase 2 # Details only
+
+# Dry-run mode
+python -m healthsparq run excellus --curr 20251226 --dry-run
 ```
 
 ### Validating Output
@@ -445,13 +504,46 @@ async def fetch_data():
 
 ## Shared Utilities
 
+### healthsparq/ - Unified Scraper Package
+
+Consolidated package for 23 HealthSparq projects with CLI-based execution:
+
+```bash
+# List available projects
+python -m healthsparq list
+
+# Validate configuration
+python -m healthsparq validate christus_health_plan
+
+# Run scraper (requires healthsparq-server on port 1018)
+python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
+
+# Health checks
+python -m healthsparq doctor
+```
+
+**Key Features**:
+
+- **Configuration-driven**: YAML configs in `healthsparq/configs/` (no hardcoded domains/plans)
+- **Async session management**: Browser login → cookie extraction → fast HTTP requests
+- **Structured exceptions**: Custom hierarchy (AuthenticationError, APIError, SearchError, etc.)
+- **Context managers**: Proper resource cleanup with `async with` pattern
+- **99+ tests**: Comprehensive test suite with fixtures and integration tests
+
+**Architecture**:
+
+- `healthsparq/core/healthspark.py`: HealthSpark API wrapper (search, profile, geocode endpoints)
+- `healthsparq/core/session.py`: HealthSparqSession with ResilientBrowserSession for auth
+- `healthsparq/config/schema.py`: Pydantic models for configuration validation
+- `healthsparq/phases/`: Phase 1 (search), Phase 2 (details), Phase 3 (normalize)
+
 ### healthsparq-server (Port 1018)
 
 Browser automation server for protected Healthsparq sites:
 
 ```bash
 # Start server
-cd healthsparq-server && npm start
+cd healthsparq-server && PORT=1018 npm start
 
 # Server handles:
 # - Session management
@@ -586,6 +678,7 @@ See **docs/extra/PLAN.md** for full implementation details, code samples, AMI se
 9. **Issue Tracking**: Use `bd` (Beads) for issue tracking - see AGENTS.md for workflow details
 10. **SQLite Storage**: `core/io/sqlite_fs.py` provides 15x faster writes vs filesystem - see `docs/restructuring/SQLITE_STORAGE_STRATEGY.md` for migration rationale
 11. **Performance Fixes**: P1 issues completed - SQLiteFS write buffering, async I/O wrappers, JSONLReader context manager (see `todos/` directory)
+12. **HealthSparq Unified Package**: Use `python -m healthsparq` CLI for HealthSparq projects instead of individual audiobee\_\* projects - provides configuration validation, phase control, and better error handling
 
 ## External References
 
