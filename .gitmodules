@@ -7,3 +7,6 @@
 [submodule "healthsparq"]
 	path = healthsparq
 	url = https://noskid7049@bitbucket.org/productaudiobee/healthsparq.git
+[submodule "core"]
+	path = core
+	url = https://bitbucket.org/productaudiobee/shared_package.git
