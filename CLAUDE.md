@@ -238,11 +238,11 @@ python -m healthsparq validate christus_health_plan # Validate config
 python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
 ```
 
-**Architecture**:
+**Architecture** (standalone Python, no external server):
 
 - `healthsparq/core/`: Shared HealthSpark API wrapper with async session management
 - `healthsparq/configs/`: Per-project YAML configs (domain, insurer_code, product_code)
-- `healthsparq/core/session.py`: Browser auth → cookie extraction → fast HTTP requests
+- `healthsparq/core/session.py`: Uses `core/session/` (ResilientBrowserSession) for browser auth → cookie extraction → fast HTTP
 - `healthsparq/core/exceptions.py`: Structured exception hierarchy (AuthenticationError, APIError, SearchError, etc.)
 - Configuration-driven with no hardcoded domains or plan codes
 
@@ -328,13 +328,10 @@ cd audiobee_mvp_health
 python run_all.py
 ```
 
-**Unified Package (recommended)**:
+**Unified Package (recommended)** - Standalone Python, no external server needed:
 
 ```bash
-# 1. Start browser server first
-cd healthsparq-server && PORT=1018 npm start
-
-# 2. Run unified scraper
+# Run unified scraper (uses core/session for browser automation)
 python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
 
 # Run specific phase only
@@ -515,7 +512,7 @@ python -m healthsparq list
 # Validate configuration
 python -m healthsparq validate christus_health_plan
 
-# Run scraper (requires healthsparq-server on port 1018)
+# Run scraper (standalone - uses core/session for browser automation)
 python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
 
 # Health checks
@@ -537,12 +534,12 @@ python -m healthsparq doctor
 - `healthsparq/config/schema.py`: Pydantic models for configuration validation
 - `healthsparq/phases/`: Phase 1 (search), Phase 2 (details), Phase 3 (normalize)
 
-### healthsparq-server (Port 1018)
+### healthsparq-server (Port 1018) - Legacy Only
 
-Browser automation server for protected Healthsparq sites:
+Browser automation server for legacy audiobee\_\* HealthSparq projects (NOT needed for unified `healthsparq/` package):
 
 ```bash
-# Start server
+# Start server (only for legacy audiobee_* projects)
 cd healthsparq-server && PORT=1018 npm start
 
 # Server handles:
@@ -551,6 +548,8 @@ cd healthsparq-server && PORT=1018 npm start
 # - Stealth browser automation
 # - Token refresh
 ```
+
+**Note**: The unified `healthsparq/` package is standalone Python and uses `core/session/` (ResilientBrowserSession) for browser automation.
 
 ### output_generator
 
