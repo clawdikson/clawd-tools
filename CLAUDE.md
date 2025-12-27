@@ -2,7 +2,50 @@
 
 ## AI Helpers
 
-Use 'bd' for task tracking
+**Issue Tracking**: This project uses **Beads** (bd) - AI-native issue tracking that lives in the repo.
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --status in_progress  # Claim work
+bd close <id>         # Complete work
+bd sync               # Sync with git
+```
+
+See [AGENTS.md](AGENTS.md) for landing-the-plane checklist and session completion workflow.
+
+**Git Commits**: Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+| Type       | Description                         |
+| ---------- | ----------------------------------- |
+| `feat`     | New feature                         |
+| `fix`      | Bug fix                             |
+| `docs`     | Documentation only                  |
+| `style`    | Formatting (no code change)         |
+| `refactor` | Code restructuring (no feature/fix) |
+| `perf`     | Performance improvement             |
+| `test`     | Adding/fixing tests                 |
+| `build`    | Build system or dependencies        |
+| `ci`       | CI configuration                    |
+| `chore`    | Maintenance (no src/test change)    |
+
+**Examples**:
+
+```bash
+feat(scraper): add retry logic for rate-limited requests
+fix(index_2): handle missing NPI in provider response
+docs: update CLAUDE.md with conventional commits guide
+refactor(config): extract URL building to helper function
+perf(sqlite): implement buffered writes for 15x speedup
+```
 
 <!-- AUTO-MANAGED: project-description -->
 
@@ -68,7 +111,7 @@ scraping/
 ├── projects/                # Project categorization for parallel execution
 │   └── api.txt              # API-type scrapers (37 Carrier projects)
 │
-├── core/                    # Shared package v3.0 (config, io, logging, validation)
+├── core/                    # Shared package v3.0 (git submodule, formerly shared_package/)
 │   ├── config/              # Pydantic Settings-based configuration
 │   ├── io/                  # SQLiteFS + JSONL utilities with async support
 │   │   ├── sqlite_fs.py     # SQLite-backed virtual filesystem (buffered writes, 15x faster)
@@ -81,24 +124,29 @@ scraping/
 │   └── CLAUDE.md            # Package documentation
 │
 ├── docs/                    # Project documentation
+│   ├── onboarding/          # Core technical guides
+│   │   ├── INDEX.md         # Documentation navigation hub
+│   │   ├── ARCHITECTURE.md  # Complete system architecture
+│   │   ├── PIPELINE.md      # Pipeline phase specifications
+│   │   ├── SITE_TYPES_REFERENCE.md  # Platform-specific patterns
+│   │   ├── DEVELOPER_GUIDE.md       # Onboarding guide
+│   │   ├── TROUBLESHOOTING.md       # Diagnostic procedures
+│   │   ├── GLOSSARY.md      # Healthcare/technical terminology
+│   │   └── IMPROVEMENTS.md  # Code improvement recommendations (P0-P3)
+│   ├── extra/               # Advanced reference docs
+│   │   ├── EXPERT_REVIEW.md # 27-expert review summary
+│   │   ├── PLAN.md          # Infrastructure scaling plan
+│   │   ├── SCALABILITY_BEST_PRACTICES.md  # Parallel execution patterns
+│   │   └── SHARED_UTILS_IMPLEMENTATION.md # Shared utilities design
+│   ├── implementation_research/  # Shared utilities research (see below)
+│   ├── restructuring/       # SQLite migration documentation
+│   │   └── SQLITE_STORAGE_STRATEGY.md     # SQLite technical rationale
+│   ├── CLAUDE-arch_improvements-Pramod-20251227.md  # Architectural review (markdown)
 │   ├── README.md            # Main documentation hub
 │   ├── site-type-mapping.md # Projects by infrastructure type
-│   ├── quick-reference.md   # Common operations guide
-│   ├── IMPROVEMENTS.md      # Prioritized enhancement recommendations (P0-P3)
-│   ├── SCALABILITY_BEST_PRACTICES.md  # Scalability patterns for 100+ scrapers
-│   ├── architecture/        # Detailed architecture docs
-│   └── restructuring/       # SQLite migration documentation
-│       └── SQLITE_STORAGE_STRATEGY.md  # SQLite vs filesystem technical rationale
+│   └── quick-reference.md   # Common operations guide
 │
-├── implementation_research/ # Shared utilities implementation research
-│   ├── 00_EXECUTIVE_SUMMARY.md        # Research overview and findings
-│   ├── 01_CODING_FRAMEWORK.md         # Architecture patterns, file organization
-│   ├── 02_CONFIG_SYSTEM.md            # Pydantic Settings implementation
-│   ├── 03_FILE_UTILITIES.md           # JSON/JSONL I/O classes
-│   ├── 04_LOGGING.md                  # Logger design with loguru
-│   ├── 05_VALIDATION.md               # Raw file + schema validation
-│   ├── 06_REPORT_GENERATION.md        # Integration plan
-│   └── 07_IMPLEMENTATION_PLAN.md      # Phased rollout strategy
+├── docs/implementation_research/ # (Moved under docs/ - see above)
 │
 ├── data/                    # Shared reference data
 │   ├── specialties.json     # Specialty code mappings
@@ -110,11 +158,14 @@ scraping/
 │   ├── 007-completed-p1-sync-io-in-async.md             # Async I/O wrapper implementation
 │   └── 008-completed-p1-missing-context-manager.md      # JSONLReader context manager fix
 │
-├── .beads/                  # Beads AI tracking
-│   ├── interactions.jsonl   # Conversation tracking
-│   └── issues.jsonl         # Issue tracking
+├── .beads/                  # Beads issue tracking (AI-native, git-synced)
+│   ├── README.md            # Beads introduction and quick start
+│   ├── config.yaml          # Beads configuration
+│   ├── issues.jsonl         # Issue database (git-tracked with custom merge driver)
+│   └── .gitignore           # Beads-specific ignores
 │
-└── PLAN.md                  # Infrastructure scaling implementation plan
+├── AGENTS.md                # Agent workflow instructions (landing-the-plane checklist)
+└── .gitattributes           # Custom merge driver for .beads/issues.jsonl
 ```
 
 ## Site Type Architecture
@@ -329,9 +380,18 @@ All scrapers produce normalized JSONL with consistent fields:
 }
 ```
 
-### Shared Package Pattern (Local)
+### Shared Package Pattern (Local vs Root)
 
-Some projects include a local `shared_package/` for reusable session management:
+**Root-level shared package**: `core/` submodule (formerly `shared_package`) provides v3.0 utilities:
+
+- Config management (Pydantic Settings)
+- SQLiteFS and JSONL I/O with async support
+- Loguru-based logging
+- Validation models
+- Proxy orchestration
+- Browser/HTTP session management
+
+**Project-level shared package**: Some individual scrapers include local `shared_package/` directories for project-specific session management:
 
 ```python
 # Import pattern (from project root)
@@ -347,6 +407,8 @@ async def fetch_data():
         response = await session.get(url, params=params, headers=headers)
         return response.json()
 ```
+
+**Migration note**: Root `shared_package/` submodule renamed to `core/` (Dec 2025) to clarify it as the central shared utilities package.
 
 <!-- END AUTO-MANAGED -->
 
@@ -420,44 +482,58 @@ python output_generator/report_generator.py audiobee_*/
 
 ## Documentation
 
-### Comprehensive Documentation Suite
+### Documentation Organization
 
-The project now includes extensive technical documentation covering all aspects of the infrastructure:
+Documentation is organized by audience and complexity level:
 
-#### Core Technical Guides
+#### Core Technical Guides (docs/onboarding/)
 
-- **docs/INDEX.md** - Documentation navigation hub with role-based guidance
-- **docs/ARCHITECTURE.md** - Complete system architecture with diagrams for all 7 platform types
-- **docs/PIPELINE.md** - Detailed pipeline phase specifications and data flow patterns
-- **docs/SITE_TYPES_REFERENCE.md** - Platform-specific implementation patterns with code examples
-- **docs/DEVELOPER_GUIDE.md** - Complete onboarding guide for new developers
-- **docs/TROUBLESHOOTING.md** - Diagnostic flowcharts and problem resolution procedures
+Start here for essential project knowledge:
 
-#### Reference Documentation
+- **INDEX.md** - Documentation navigation hub with role-based guidance
+- **ARCHITECTURE.md** - Complete system architecture with diagrams for all 7 platform types
+- **PIPELINE.md** - Detailed pipeline phase specifications and data flow patterns
+- **SITE_TYPES_REFERENCE.md** - Platform-specific implementation patterns with code examples
+- **DEVELOPER_GUIDE.md** - Complete onboarding guide for new developers
+- **TROUBLESHOOTING.md** - Diagnostic flowcharts and problem resolution procedures
+- **GLOSSARY.md** - Healthcare and technical terminology reference
+- **IMPROVEMENTS.md** - Prioritized code improvement recommendations (P0-P3)
 
-- **docs/GLOSSARY.md** - Healthcare and technical terminology reference
-- **docs/IMPROVEMENTS.md** - Prioritized code improvement recommendations (P0-P3: security, logging, error recovery, testing, monitoring)
-- **docs/SCALABILITY_BEST_PRACTICES.md** - Industry best practices for parallel execution (asyncio, ProcessPoolExecutor), memory management, rate limiting patterns for 100+ scrapers
-- **docs/EXPERT_REVIEW.md** - Review summary from 27 domain experts with quality scores
-- **docs/restructuring/SQLITE_STORAGE_STRATEGY.md** - SQLite storage technical rationale (15x faster writes, ACID transactions, zero filesystem limits)
+#### Advanced Reference (docs/extra/)
 
-#### Implementation Research
+For experienced developers and technical leadership:
 
-- **implementation_research/00_EXECUTIVE_SUMMARY.md** - Shared utilities framework research overview
-- **implementation_research/01_CODING_FRAMEWORK.md** - Directory structure standards and module responsibilities
-- **implementation_research/02_CONFIG_SYSTEM.md** - Pydantic Settings implementation with site-type inheritance
-- **implementation_research/03_FILE_UTILITIES.md** - Thread-safe JSON/JSONL utilities with orjson
-- **implementation_research/04_LOGGING.md** - Centralized logging with loguru (print() replacement)
-- **implementation_research/05_VALIDATION.md** - Raw file integrity and schema validation with Pydantic
-- **implementation_research/06_REPORT_GENERATION.md** - Integration with output_generator QA tools
-- **implementation_research/07_IMPLEMENTATION_PLAN.md** - Phased rollout strategy (P0-P3 priorities)
+- **EXPERT_REVIEW.md** - Review summary from 27 domain experts with quality scores
+- **PLAN.md** - Infrastructure scaling plan (95→190 scrapers, PC + AWS EC2)
+- **SCALABILITY_BEST_PRACTICES.md** - Parallel execution patterns, memory management, rate limiting
+- **SHARED_UTILS_IMPLEMENTATION.md** - Shared utilities framework design
+
+#### Implementation Research (docs/implementation_research/)
+
+Detailed technical research for shared utilities v3.0:
+
+- **00_EXECUTIVE_SUMMARY.md** - Research overview and findings
+- **01_CODING_FRAMEWORK.md** - Directory structure standards and module responsibilities
+- **02_CONFIG_SYSTEM.md** - Pydantic Settings implementation with site-type inheritance
+- **03_FILE_UTILITIES.md** - Thread-safe JSON/JSONL utilities with orjson
+- **04_LOGGING.md** - Centralized logging with loguru (print() replacement)
+- **05_VALIDATION.md** - Raw file integrity and schema validation with Pydantic
+- **06_REPORT_GENERATION.md** - Integration with output_generator QA tools
+- **07_IMPLEMENTATION_PLAN.md** - Phased rollout strategy (P0-P3 priorities)
+- **PC_STORAGE_SERVER_PLAN.md** - PC storage and server architecture
+
+#### Other Documentation
+
+- **docs/restructuring/SQLITE_STORAGE_STRATEGY.md** - SQLite storage technical rationale (15x faster writes)
+- **docs/CLAUDE-arch_improvements-Pramod-20251227.md** - External architectural review (markdown version)
+- **docs/README.md**, **docs/site-type-mapping.md**, **docs/quick-reference.md** - Quick reference materials
 
 #### Documentation by Role
 
-- **New Developers**: Start with GLOSSARY.md → ARCHITECTURE.md → DEVELOPER_GUIDE.md → TROUBLESHOOTING.md
-- **Experienced Developers**: Focus on PIPELINE.md → SITE_TYPES_REFERENCE.md → IMPROVEMENTS.md → SCALABILITY_BEST_PRACTICES.md
-- **Technical Leadership**: Review ARCHITECTURE.md → EXPERT_REVIEW.md → IMPROVEMENTS.md → implementation_research/ → PLAN.md
-- **Operations**: Use TROUBLESHOOTING.md → DEVELOPER_GUIDE.md → quick-reference.md
+- **New Developers**: onboarding/GLOSSARY.md → ARCHITECTURE.md → DEVELOPER_GUIDE.md → TROUBLESHOOTING.md
+- **Experienced Developers**: onboarding/PIPELINE.md → SITE_TYPES_REFERENCE.md → IMPROVEMENTS.md → extra/SCALABILITY_BEST_PRACTICES.md
+- **Technical Leadership**: onboarding/ARCHITECTURE.md → extra/EXPERT_REVIEW.md → implementation_research/ → extra/PLAN.md
+- **Operations**: onboarding/TROUBLESHOOTING.md → DEVELOPER_GUIDE.md → quick-reference.md
 
 ---
 
@@ -493,7 +569,7 @@ The project now includes extensive technical documentation covering all aspects 
 | API (bulk)   | t3.large  | 2     | 8 GB  | $0.083  | 10       |
 | Browser      | t3.xlarge | 4     | 16 GB | $0.166  | 3        |
 
-See **PLAN.md** for full implementation details, code samples, AMI setup, and troubleshooting guide.
+See **docs/extra/PLAN.md** for full implementation details, code samples, AMI setup, and troubleshooting guide.
 
 ---
 
@@ -506,9 +582,10 @@ See **PLAN.md** for full implementation details, code samples, AMI setup, and tr
 5. **Error Handling**: Check `{date}/raw/` for cached responses if runs fail mid-process; run_parallel.py saves error logs to `logs/{date}/`
 6. **Browser Projects**: Ensure healthsparq-server is running for Healthsparq-type projects
 7. **Output Validation**: Always run type_check.py before considering a run complete
-8. **Code Quality**: See `docs/IMPROVEMENTS.md` for prioritized enhancement recommendations (security, logging, error recovery)
-9. **SQLite Storage**: `core/io/sqlite_fs.py` provides 15x faster writes vs filesystem - see `docs/restructuring/SQLITE_STORAGE_STRATEGY.md` for migration rationale
-10. **Performance Fixes**: P1 issues completed - SQLiteFS write buffering, async I/O wrappers, JSONLReader context manager (see `todos/` directory)
+8. **Code Quality**: See `docs/onboarding/IMPROVEMENTS.md` for prioritized enhancement recommendations (security, logging, error recovery)
+9. **Issue Tracking**: Use `bd` (Beads) for issue tracking - see AGENTS.md for workflow details
+10. **SQLite Storage**: `core/io/sqlite_fs.py` provides 15x faster writes vs filesystem - see `docs/restructuring/SQLITE_STORAGE_STRATEGY.md` for migration rationale
+11. **Performance Fixes**: P1 issues completed - SQLiteFS write buffering, async I/O wrappers, JSONLReader context manager (see `todos/` directory)
 
 ## External References
 
