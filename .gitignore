@@ -20,3 +20,8 @@ audiobee_*/
 *.egg-info/
 .coverage
 *.7z
+# Continuous Claude cache (local only)
+.claude/cache/
+
+# Claude Code auto-memory
+.claude/auto-memory/dirty-files
