@@ -1,9 +1,6 @@
 [submodule "output_generator"]
 	path = output_generator
 	url = https://noskid7049@bitbucket.org/productaudiobee/output-generator.git
-[submodule "shared_package"]
-	path = shared_package
-	url = https://noskid7049@bitbucket.org/productaudiobee/shared_package.git
 [submodule "healthsparq"]
 	path = healthsparq
 	url = https://noskid7049@bitbucket.org/productaudiobee/healthsparq.git
