@@ -5,6 +5,7 @@
 Use 'bd' for task tracking
 
 <!-- AUTO-MANAGED: project-description -->
+
 ## Overview
 
 This repository contains **95+ web scrapers** for extracting provider directory data from insurance carrier websites. Each scraper targets a specific insurance plan/carrier and extracts provider information (NPIs, names, specialties, locations, network affiliations) for healthcare data aggregation.
@@ -12,11 +13,13 @@ This repository contains **95+ web scrapers** for extracting provider directory 
 **Purpose**: Collect and standardize provider network data from insurance carrier directories for downstream analytics and compliance reporting.
 
 **Execution Model**: Manual runs as needed (not automated/scheduled).
+
 <!-- END AUTO-MANAGED -->
 
 ---
 
 <!-- AUTO-MANAGED: architecture -->
+
 ## Project Structure
 
 ```
@@ -68,6 +71,9 @@ scraping/
 ├── core/                    # Shared package v3.0 (config, io, logging, validation)
 │   ├── config/              # Pydantic Settings-based configuration
 │   ├── io/                  # SQLiteFS + JSONL utilities with async support
+│   │   ├── sqlite_fs.py     # SQLite-backed virtual filesystem (buffered writes, 15x faster)
+│   │   ├── jsonl.py         # JSONL I/O with async support, BoundedSet deduplication
+│   │   └── SQLITE_FS.md     # SQLiteFS usage documentation
 │   ├── logging/             # Loguru-based logging
 │   ├── validation/          # Pydantic models for provider data
 │   ├── proxy/               # Multi-provider proxy orchestration
@@ -80,7 +86,9 @@ scraping/
 │   ├── quick-reference.md   # Common operations guide
 │   ├── IMPROVEMENTS.md      # Prioritized enhancement recommendations (P0-P3)
 │   ├── SCALABILITY_BEST_PRACTICES.md  # Scalability patterns for 100+ scrapers
-│   └── architecture/        # Detailed architecture docs
+│   ├── architecture/        # Detailed architecture docs
+│   └── restructuring/       # SQLite migration documentation
+│       └── SQLITE_STORAGE_STRATEGY.md  # SQLite vs filesystem technical rationale
 │
 ├── implementation_research/ # Shared utilities implementation research
 │   ├── 00_EXECUTIVE_SUMMARY.md        # Research overview and findings
@@ -97,6 +105,14 @@ scraping/
 │   └── us_zip_fips_county.xlsx  # Geographic reference
 │
 ├── todos/                   # Task tracking (P1 issues completed)
+│   ├── 003-completed-p1-sqlite-commit-per-write.md      # SQLiteFS write buffer optimization
+│   ├── 006-completed-p1-jsonl-append-quadratic.md       # JSONL append performance analysis
+│   ├── 007-completed-p1-sync-io-in-async.md             # Async I/O wrapper implementation
+│   └── 008-completed-p1-missing-context-manager.md      # JSONLReader context manager fix
+│
+├── .beads/                  # Beads AI tracking
+│   ├── interactions.jsonl   # Conversation tracking
+│   └── issues.jsonl         # Issue tracking
 │
 └── PLAN.md                  # Infrastructure scaling implementation plan
 ```
@@ -106,6 +122,7 @@ scraping/
 Projects are categorized by the underlying provider directory platform:
 
 ### 1. Carrier (35 projects)
+
 **Direct API Integration** - REST APIs with minimal browser automation
 
 ```
@@ -115,12 +132,14 @@ Tech:     httpx/requests, async pagination, NPI-based deduplication
 ```
 
 **Characteristics**:
+
 - Direct REST API calls (JSON responses)
 - API keys/headers in config.py
 - Geographic grid search (lat/lng + radius)
 - Network ID-based plan filtering
 
 ### 2. Healthsparq (24 projects)
+
 **Browser Automation Required** - Protected sites using healthsparq-server
 
 ```
@@ -130,12 +149,14 @@ Tech:     Puppeteer + stealth, session management, anti-detection
 ```
 
 **Characteristics**:
+
 - Requires `healthsparq-server` running on port 1018
 - Session token extraction via browser
 - Rate limiting with delays
 - Cookie/header passthrough to API calls
 
 ### 3. Sapphire (15 projects)
+
 **ProviderFinderOnline Platform** - Standardized API structure
 
 ```
@@ -145,6 +166,7 @@ Tech:     providerfinderonline.com API, network_id filtering
 ```
 
 ### 4. Anthem (4 projects)
+
 **Wellpoint Infrastructure** - Multi-phase with intelligent filtering
 
 ```
@@ -154,18 +176,23 @@ Tech:     Brand-specific URLs, complex network hierarchies
 ```
 
 ### 5. HealthTrioConnect (2 projects)
+
 **Node.js + Python Hybrid** - Browser automation with Python processing
 
 ### 6. Werally (3 projects)
+
 **UHC Platform** - Grid-based geographic search
 
 ### 7. Provider Lenz (1 project)
+
 **Anti-Bot Protected** - Requires captcha solving
+
 <!-- END AUTO-MANAGED -->
 
 ---
 
 <!-- AUTO-MANAGED: build-commands -->
+
 ## Build & Development Commands
 
 ### Running a Scraper
@@ -179,9 +206,9 @@ PREV_DATE = "20251010"
 CURR_DATE = "20251210"
 
 # 3. Run phases sequentially
-python index_1.py    # Discovery
-python index_2.py    # Details
-python index_3.py    # Normalization
+python index_1.py # Discovery
+python index_2.py # Details
+python index_3.py # Normalization
 
 # Or use orchestrator
 python run_all.py
@@ -217,11 +244,13 @@ python output_generator/type_check.py audiobee_bcbs_il/
 # Generate diff report vs previous run
 python output_generator/comparison_creator.py audiobee_bcbs_il/
 ```
+
 <!-- END AUTO-MANAGED -->
 
 ---
 
 <!-- AUTO-MANAGED: conventions -->
+
 ## Code Conventions
 
 ### Pipeline Architecture (3-4 Phases)
@@ -318,36 +347,40 @@ async def fetch_data():
         response = await session.get(url, params=params, headers=headers)
         return response.json()
 ```
+
 <!-- END AUTO-MANAGED -->
 
 ---
 
 <!-- AUTO-MANAGED: patterns -->
+
 ## Key Files Reference
 
-| File | Purpose |
-|------|---------|
-| `config.py` | Project configuration (URLs, params, dates) |
-| `index_1.py` | Phase 1: Search/discovery |
-| `index_2.py` | Phase 2: Detail extraction |
-| `index_3.py` | Phase 3: Data normalization |
-| `run_all.py` | Pipeline orchestrator |
-| `PLAN.md` | Infrastructure scaling implementation plan |
-| `CLAUDE.md` | Project metadata (site type, coverage, approval) |
+| File         | Purpose                                          |
+| ------------ | ------------------------------------------------ |
+| `config.py`  | Project configuration (URLs, params, dates)      |
+| `index_1.py` | Phase 1: Search/discovery                        |
+| `index_2.py` | Phase 2: Detail extraction                       |
+| `index_3.py` | Phase 3: Data normalization                      |
+| `run_all.py` | Pipeline orchestrator                            |
+| `PLAN.md`    | Infrastructure scaling implementation plan       |
+| `CLAUDE.md`  | Project metadata (site type, coverage, approval) |
 
 ## Coverage Types
 
-| Type | Description | Example Projects |
-|------|-------------|------------------|
-| **Medicare Advantage** | Senior plans (65+) | audiobee_anthem, audiobee_humana |
-| **Medicaid** | State-funded programs | audiobee_uhc_medicaid, audiobee_amerigroup |
-| **ACA** | Marketplace plans | audiobee_florida_blue, audiobee_bcbs_il |
-| **Large Group** | Employer plans | audiobee_multiplan |
+| Type                   | Description           | Example Projects                           |
+| ---------------------- | --------------------- | ------------------------------------------ |
+| **Medicare Advantage** | Senior plans (65+)    | audiobee_anthem, audiobee_humana           |
+| **Medicaid**           | State-funded programs | audiobee_uhc_medicaid, audiobee_amerigroup |
+| **ACA**                | Marketplace plans     | audiobee_florida_blue, audiobee_bcbs_il    |
+| **Large Group**        | Employer plans        | audiobee_multiplan                         |
+
 <!-- END AUTO-MANAGED -->
 
 ---
 
 <!-- MANUAL -->
+
 ## Shared Utilities
 
 ### healthsparq-server (Port 1018)
@@ -392,6 +425,7 @@ python output_generator/report_generator.py audiobee_*/
 The project now includes extensive technical documentation covering all aspects of the infrastructure:
 
 #### Core Technical Guides
+
 - **docs/INDEX.md** - Documentation navigation hub with role-based guidance
 - **docs/ARCHITECTURE.md** - Complete system architecture with diagrams for all 7 platform types
 - **docs/PIPELINE.md** - Detailed pipeline phase specifications and data flow patterns
@@ -400,12 +434,15 @@ The project now includes extensive technical documentation covering all aspects 
 - **docs/TROUBLESHOOTING.md** - Diagnostic flowcharts and problem resolution procedures
 
 #### Reference Documentation
+
 - **docs/GLOSSARY.md** - Healthcare and technical terminology reference
 - **docs/IMPROVEMENTS.md** - Prioritized code improvement recommendations (P0-P3: security, logging, error recovery, testing, monitoring)
 - **docs/SCALABILITY_BEST_PRACTICES.md** - Industry best practices for parallel execution (asyncio, ProcessPoolExecutor), memory management, rate limiting patterns for 100+ scrapers
 - **docs/EXPERT_REVIEW.md** - Review summary from 27 domain experts with quality scores
+- **docs/restructuring/SQLITE_STORAGE_STRATEGY.md** - SQLite storage technical rationale (15x faster writes, ACID transactions, zero filesystem limits)
 
 #### Implementation Research
+
 - **implementation_research/00_EXECUTIVE_SUMMARY.md** - Shared utilities framework research overview
 - **implementation_research/01_CODING_FRAMEWORK.md** - Directory structure standards and module responsibilities
 - **implementation_research/02_CONFIG_SYSTEM.md** - Pydantic Settings implementation with site-type inheritance
@@ -416,6 +453,7 @@ The project now includes extensive technical documentation covering all aspects 
 - **implementation_research/07_IMPLEMENTATION_PLAN.md** - Phased rollout strategy (P0-P3 priorities)
 
 #### Documentation by Role
+
 - **New Developers**: Start with GLOSSARY.md → ARCHITECTURE.md → DEVELOPER_GUIDE.md → TROUBLESHOOTING.md
 - **Experienced Developers**: Focus on PIPELINE.md → SITE_TYPES_REFERENCE.md → IMPROVEMENTS.md → SCALABILITY_BEST_PRACTICES.md
 - **Technical Leadership**: Review ARCHITECTURE.md → EXPERT_REVIEW.md → IMPROVEMENTS.md → implementation_research/ → PLAN.md
@@ -428,28 +466,32 @@ The project now includes extensive technical documentation covering all aspects 
 **Simplified approach**: Scale from 95 to 190 scrapers using parallel execution on 3 Windows PCs + AWS EC2 burst capacity.
 
 ### Architecture Overview
+
 - **Local (Primary)**: 3 Windows PCs running 8-10 API scrapers in parallel (8-10x speedup)
 - **Cloud (Burst)**: AWS EC2 on-demand instances when local capacity insufficient
 - **Philosophy**: Simple scripts, static configuration, cloud when needed
 
 ### Current State vs Target
+
 - **Current**: 95 scrapers, 3 Windows PCs, manual sequential execution (~4-8 hours per run cycle)
 - **Target**: 190 scrapers, 8-10 parallel per PC for API scrapers, 3-4 parallel for browser scrapers (~6-8 hours)
 - **Cost**: ~$50-150/month (S3 backup + Slack alerts, existing PCs owned)
 
 ### Resource Limits by Scraper Type
+
 | PC RAM | API Scrapers | Browser Scrapers | Anti-bot |
-|--------|-------------|------------------|----------|
-| 8 GB   | 5-6         | 2                | 1        |
-| 16 GB  | 8-10        | 3-4              | 1-2      |
-| 32 GB  | 15-20       | 6-8              | 2-3      |
+| ------ | ------------ | ---------------- | -------- |
+| 8 GB   | 5-6          | 2                | 1        |
+| 16 GB  | 8-10         | 3-4              | 1-2      |
+| 32 GB  | 15-20        | 6-8              | 2-3      |
 
 ### EC2 Instance Types
-| Scraper Type | Instance   | vCPUs | RAM   | Cost/hr | Parallel |
-|--------------|------------|-------|-------|---------|----------|
-| API          | t3.medium  | 2     | 4 GB  | $0.042  | 5        |
-| API (bulk)   | t3.large   | 2     | 8 GB  | $0.083  | 10       |
-| Browser      | t3.xlarge  | 4     | 16 GB | $0.166  | 3        |
+
+| Scraper Type | Instance  | vCPUs | RAM   | Cost/hr | Parallel |
+| ------------ | --------- | ----- | ----- | ------- | -------- |
+| API          | t3.medium | 2     | 4 GB  | $0.042  | 5        |
+| API (bulk)   | t3.large  | 2     | 8 GB  | $0.083  | 10       |
+| Browser      | t3.xlarge | 4     | 16 GB | $0.166  | 3        |
 
 See **PLAN.md** for full implementation details, code samples, AMI setup, and troubleshooting guide.
 
@@ -465,7 +507,10 @@ See **PLAN.md** for full implementation details, code samples, AMI setup, and tr
 6. **Browser Projects**: Ensure healthsparq-server is running for Healthsparq-type projects
 7. **Output Validation**: Always run type_check.py before considering a run complete
 8. **Code Quality**: See `docs/IMPROVEMENTS.md` for prioritized enhancement recommendations (security, logging, error recovery)
+9. **SQLite Storage**: `core/io/sqlite_fs.py` provides 15x faster writes vs filesystem - see `docs/restructuring/SQLITE_STORAGE_STRATEGY.md` for migration rationale
+10. **Performance Fixes**: P1 issues completed - SQLiteFS write buffering, async I/O wrappers, JSONLReader context manager (see `todos/` directory)
 
 ## External References
+
 1. **AGENTS.md**: Use [AGENTS.md](AGENTS.md) for AGENTS level details and additional instructions.
 <!-- END MANUAL -->

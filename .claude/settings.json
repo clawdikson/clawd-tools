@@ -46,6 +46,7 @@
     "claude-mem@thedotmack": true,
     "serena@claude-plugins-official": true,
     "compound-engineering@every-marketplace": true,
-    "playwright-skill@playwright-skill": true
+    "playwright-skill@playwright-skill": true,
+    "auto-memory@severity1-marketplace": true
   }
 }
