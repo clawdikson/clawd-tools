@@ -268,8 +268,9 @@ Tech:     ResilientBrowserSession (core/session), async HealthSpark API wrapper
 python -m healthsparq list                          # List 23 available projects
 python -m healthsparq validate christus_health_plan # Validate config
 python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
-python -m healthsparq run medica_sg --curr 20251226 --phase 1 # Run specific phase
-python -m healthsparq doctor                                  # Validate all configs
+python -m healthsparq run medica_sg --curr 20251226 --phase 1  # Run specific phase
+python -m healthsparq run medica_sg --curr 20251226 --validate # Enable schema validation
+python -m healthsparq doctor                                   # Validate all configs
 ```
 
 **Library Usage**:
@@ -288,6 +289,10 @@ def my_mapper(raw: dict) -> dict:
     return result
 
 result = run_scraper_sync(config, "20251227", mapper=my_mapper)
+
+# Enable JSON schema validation (validates against core/data/output_json_schema.json)
+result = run_scraper_sync(config, "20251227", validate=True)
+validation_errors = result.phase_results[3].data.get("validation_errors", 0)
 ```
 
 ### 3. Sapphire (14 projects)
