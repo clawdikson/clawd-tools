@@ -1250,6 +1250,60 @@ The `healthsparq/` package has been transformed from a CLI-only tool into an imp
 
 ---
 
+### HTTP Retry Logic Consolidation (Completed - Dec 2025)
+
+**From commits f1d0dea, cabeb5d**: Consolidated duplicate HTTP retry logic from healthsparq to core package.
+
+**Problem Solved**: The `healthsparq/core/session.py` contained ~40 lines of duplicate HTTP retry logic (exponential backoff, auth error handling) that should have been in `core/session/http_session.py`. This created:
+
+- Code duplication (retry logic in two places)
+- Inconsistent retry behavior across projects
+- Maintenance burden (bug fixes needed in multiple locations)
+
+**Changes Implemented** (3 phases - Dec 28, 2025):
+
+**Phase 1** - Add Retry Logic to `core/session/http_session.py`:
+
+- Added `RetryConfig` dataclass with configurable parameters (max_retries, backoff_factor, retry_on_status)
+- Added `_request_with_retry()` method with exponential backoff
+- Added `on_auth_error` callback hook for session invalidation on 401/403
+- Updated `get()` and `post()` to use retry wrapper
+- Exported `RetryConfig` from `core/session/__init__.py`
+
+**Phase 2** - Simplify `healthsparq/core/session.py`:
+
+- Removed duplicate `_request_with_retry()` method (~40 LOC)
+- Added `_invalidate_session()` callback for auth error handling
+- Updated `login()` to pass `RetryConfig` and `on_auth_error` to HttpSession
+- Simplified `get()` and `post()` to delegate directly to HttpSession
+- Added fallback handling for legacy environments without RetryConfig
+
+**Phase 3** - Testing (Pending):
+
+- Test coverage for retry logic in core/tests/test_session.py
+- Updated healthsparq tests for simplified session
+
+**Key Features**:
+
+- **Exponential backoff**: Configurable backoff_factor (default 2.0) with max_backoff cap (30s)
+- **Configurable retries**: Default 5 retries for 429/500-504 status codes
+- **Auth error callbacks**: Session invalidation on 401/403 via `on_auth_error` hook
+- **Backward compatible**: All parameters optional with sensible defaults
+
+**Impact**:
+
+- All projects using `HttpSession` now get retry logic automatically
+- ~40 LOC removed from healthsparq (single source of truth in core)
+- No behavior changes for existing scrapers
+- Consistent retry configuration across all projects
+
+**See**:
+
+- `plans/refactor-healthsparq-retry-consolidation.md` - Master plan
+- `plans/context/http-retry-consolidation-phase*.md` - Detailed phase documentation
+
+---
+
 ## External References
 
 1. **AGENTS.md**: Use [AGENTS.md](AGENTS.md) for AGENTS level details and additional instructions.
