@@ -147,9 +147,12 @@ scraping/
 │
 ├── core/                    # Shared package v3.0 (git submodule, formerly shared_package/)
 │   ├── config/              # Pydantic Settings-based configuration
-│   ├── io/                  # SQLiteFS + JSONL utilities with async support
-│   │   ├── sqlite_fs.py     # SQLite-backed virtual filesystem (buffered writes, 15x faster)
-│   │   ├── jsonl.py         # JSONL I/O with async support, BoundedSet deduplication
+│   ├── io/                  # DataStore abstraction + SQLiteFS/JSONL utilities
+│   │   ├── base.py          # DataStore Protocol + BackendType enum
+│   │   ├── factory.py       # create_store() factory with auto-detection
+│   │   ├── json_files.py    # JSONFileStore - individual JSON files
+│   │   ├── jsonl.py         # JSONLStore wrapper + JSONL I/O with BoundedSet deduplication
+│   │   ├── sqlite_fs.py     # SQLiteStore wrapper + SQLiteFS virtual filesystem (15x faster)
 │   │   └── SQLITE_FS.md     # SQLiteFS usage documentation
 │   ├── logging/             # Loguru-based logging
 │   ├── validation/          # Pydantic models for provider data
@@ -724,8 +727,32 @@ logger.critical("Session failure", reason="browser crashed")
 **File I/O** (`core/io/`):
 
 ```python
-from core.io import JSONLWriter, JSONLReader, SQLiteFS, BoundedSet
+from core.io import create_store, BackendType, JSONLWriter, JSONLReader, SQLiteFS, BoundedSet
 
+# DataStore abstraction (unified interface for JSONL, SQLite, JSON files)
+# Auto-detect backend from file extension
+store = create_store("raw_data.jsonl")  # JSONL backend
+store = create_store("raw_data.db")     # SQLite backend
+store = create_store("raw_data/")       # JSON Files backend
+
+# Unified API across all backends (filepath-keyed storage)
+store.put("provider_details/1234567890.json", {"npi": "1234567890", ...})
+store.put("search_results/TX/Dallas/page_1.json", {"results": [...]})
+data = store.get("provider_details/1234567890.json")
+
+# Check existence (optimized per backend)
+if store.exists("provider_details/1234567890.json"):
+    print("Provider exists")
+
+# Iterate all records
+for path, record in store:
+    print(f"{path}: {record}")
+
+# Pattern matching (glob-style)
+for path in store.keys("provider_details/*.json"):
+    print(path)
+
+# Legacy direct usage (still supported)
 # JSONL with auto-deduplication
 with JSONLWriter("providers.jsonl", dedup_key="npi") as writer:
     writer.write(provider)  # Skips duplicates
@@ -884,6 +911,64 @@ See **docs/extra/PLAN.md** for full implementation details, code samples, AMI se
 ---
 
 ## Recent Enhancements
+
+### DataStore Abstraction Layer (Completed - Dec 2025)
+
+**From commit e4e4250**: Added unified DataStore abstraction to core/io module for consistent interface across storage backends.
+
+**What Changed**:
+
+- **core/io/base.py**: DataStore Protocol with put/get/exists/keys/iter operations
+- **core/io/factory.py**: create_store() factory function with auto-detection from file extension
+- **core/io/json_files.py**: JSONFileStore implementation for individual JSON files
+- **core/io/jsonl.py**: JSONLStore wrapper around existing JSONLWriter/JSONLReader
+- **core/io/sqlite_fs.py**: SQLiteStore wrapper around existing SQLiteFS
+- **Filepath-keyed storage**: Keys are logical paths like "provider_details/1234567890.json"
+- **Backend selection**: Auto-detects from extension (.jsonl, .db) or path (directory → JSON files)
+
+**Backend Types**:
+
+| Backend    | Best For                        | Extension | Pros                                  | Cons                     |
+| ---------- | ------------------------------- | --------- | ------------------------------------- | ------------------------ |
+| JSONL      | Streaming, append-only          | .jsonl    | Fast writes, human-readable           | No random access by path |
+| JSON Files | Debugging, small datasets       | /         | Easy inspection, no DB overhead       | Slow with 100k+ files    |
+| SQLite     | Large datasets, exists() checks | .db       | 15x faster writes, ACID, no FS limits | Binary format            |
+
+**Key Benefits**:
+
+- Unified API across JSONL, SQLite, and JSON files (no more switching between different APIs)
+- Configuration-driven backend selection via create_store()
+- Filepath-keyed interface matches existing scraper organization patterns
+- Protocol-based design allows easy addition of new backends
+- Backward compatibility: legacy JSONLWriter/SQLiteFS still work directly
+
+**Usage Pattern**:
+
+```python
+from core.io import create_store, BackendType
+
+# Auto-detect backend from extension
+store = create_store("raw_data.jsonl")  # JSONL backend
+store = create_store("raw_data.db")     # SQLite backend
+store = create_store("raw_data/")       # JSON Files backend
+
+# Explicit backend selection
+store = create_store("raw_data", backend=BackendType.SQLITE)
+
+# Unified API across all backends
+store.put("provider_details/1234567890.json", provider_data)
+data = store.get("provider_details/1234567890.json")
+if store.exists("provider_details/1234567890.json"):
+    print("Found provider")
+
+# Iterate all records
+for path, record in store:
+    process(record)
+```
+
+**See**: `plans/feat-datastore-abstraction.md` for complete implementation details.
+
+---
 
 ### Provider Data Mapper Module (Completed - Dec 2025)
 
