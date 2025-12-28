@@ -167,6 +167,16 @@ scraping/
 │   │   ├── healthsparq.py   # HealthSparq mapper (v2 format, 23 projects)
 │   │   ├── carrier.py       # Carrier mapper base (custom API structures)
 │   │   └── README.md        # Mapper usage documentation
+│   ├── qa/                  # QA utilities (validation, comparison, sampling, reporting)
+│   │   ├── __init__.py      # Public API: validate, compare, sample, report
+│   │   ├── base.py          # QAResult, QAOutcome, exceptions
+│   │   ├── config.py        # QASettings (Pydantic)
+│   │   ├── validator.py     # Schema validation with fastjsonschema
+│   │   ├── comparison.py    # Cross-run diff with Polars
+│   │   ├── sampler.py       # Reservoir sampling
+│   │   ├── reporter.py      # Excel state reports
+│   │   ├── statistics.py    # State-level statistics
+│   │   └── cli.py           # Typer CLI (python -m core.qa)
 │   ├── data/                # Shared reference data
 │   │   └── output_json_schema.json  # Provider output schema
 │   ├── tests/test_mapper.py # Mapper test suite
@@ -798,6 +808,42 @@ except ImportError:
 ```
 
 See `core/CLAUDE.md` for complete documentation.
+
+### core/qa - QA Utilities
+
+Migrated from output_generator with performance improvements:
+
+**CLI Usage**:
+
+```bash
+python -m core.qa validate providers.jsonl
+python -m core.qa compare --curr 20251227 --prev 20251126
+python -m core.qa sample providers.jsonl --count 10
+python -m core.qa report project_name --curr 20251227
+```
+
+**Python API**:
+
+```python
+from core.qa import validate, compare, sample, report
+
+# Validate output schema
+result = validate("providers.jsonl")
+if result.is_success:
+    print(f"Valid: {result.metrics.valid_records}")
+
+# Compare runs
+result = compare(curr_path, prev_path)
+print(f"Added: {result.metrics.added}")
+```
+
+**Key Features**:
+
+- fastjsonschema for 100x faster validation
+- Polars for 10x faster comparison
+- Memory-bounded deduplication (BoundedSet)
+- Timeout protection (default 5 minutes)
+- Streaming Excel generation
 
 ---
 
