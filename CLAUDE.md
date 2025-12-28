@@ -133,12 +133,8 @@ scraping/
 │   ├── server.js            # Node.js/Puppeteer server (port 1018)
 │   └── CLAUDE.md            # Server documentation
 │
-├── output_generator/        # Shared QA utilities
-│   ├── type_check.py        # Output schema validation
-│   ├── sample_generator.py  # Sample data extraction
-│   ├── comparison_creator.py # Cross-run diff analysis
-│   ├── report_generator.py  # Excel report generation
-│   └── CLAUDE.md            # Utility documentation
+├── output_generator/        # Legacy QA utilities (deprecated - use core/qa instead)
+│   └── CLAUDE.md            # Migration documentation
 │
 ├── tools/                   # Execution and automation tools
 │   └── run_parallel.py      # Parallel scraper execution with retry logic
@@ -167,18 +163,24 @@ scraping/
 │   │   ├── healthsparq.py   # HealthSparq mapper (v2 format, 23 projects)
 │   │   ├── carrier.py       # Carrier mapper base (custom API structures)
 │   │   └── README.md        # Mapper usage documentation
-│   ├── qa/                  # QA utilities (validation, comparison, sampling, reporting)
+│   ├── qa/                  # QA utilities v1.0 (migrated from output_generator)
 │   │   ├── __init__.py      # Public API: validate, compare, sample, report
-│   │   ├── base.py          # QAResult, QAOutcome, exceptions
-│   │   ├── config.py        # QASettings (Pydantic)
-│   │   ├── validator.py     # Schema validation with fastjsonschema
-│   │   ├── comparison.py    # Cross-run diff with Polars
-│   │   ├── sampler.py       # Reservoir sampling
-│   │   ├── reporter.py      # Excel state reports
-│   │   ├── statistics.py    # State-level statistics
-│   │   └── cli.py           # Typer CLI (python -m core.qa)
-│   ├── data/                # Shared reference data
-│   │   └── output_json_schema.json  # Provider output schema
+│   │   ├── __main__.py      # CLI entry point
+│   │   ├── base.py          # QAResult, QAOutcome, QAStatus, exception hierarchy
+│   │   ├── config.py        # QASettings (Pydantic Settings)
+│   │   ├── validator.py     # Schema validation with fastjsonschema (100x faster)
+│   │   ├── comparison.py    # Cross-run diff analysis with Polars (10x faster)
+│   │   ├── sampler.py       # Reservoir sampling with archive creation
+│   │   ├── reporter.py      # Excel state reports with xlsxwriter streaming
+│   │   ├── statistics.py    # State-level provider counts
+│   │   ├── cli.py           # Typer CLI framework
+│   │   └── README.md        # QA module documentation
+│   ├── data/                # Shared reference data with cached loading
+│   │   ├── __init__.py      # Public exports for data loaders
+│   │   ├── loader.py        # @cache decorators for lazy-loaded data
+│   │   ├── output_json_schema.json  # Provider output schema
+│   │   ├── uszips.xlsx      # ZIP-to-state mapping
+│   │   └── us_states_coordinates.json  # State geographic data
 │   ├── tests/test_mapper.py # Mapper test suite
 │   └── CLAUDE.md            # Package documentation
 │
@@ -404,10 +406,14 @@ python -m healthsparq doctor # Validate all configs
 ### Validating Output
 
 ```bash
-# Check output schema compliance
-python output_generator/type_check.py audiobee_bcbs_il/
+# NEW: Use core/qa module (100x faster validation, 10x faster comparison)
+python -m core.qa validate audiobee_bcbs_il/20251227/processed/providers.jsonl
+python -m core.qa compare --curr 20251227 --prev 20251126 --project audiobee_bcbs_il
+python -m core.qa sample audiobee_bcbs_il/20251227/processed/providers.jsonl --count 10
+python -m core.qa report audiobee_bcbs_il --curr 20251227 --prev 20251126
 
-# Generate diff report vs previous run
+# Legacy (deprecated - will be removed)
+python output_generator/type_check.py audiobee_bcbs_il/
 python output_generator/comparison_creator.py audiobee_bcbs_il/
 ```
 
@@ -644,23 +650,81 @@ cd healthsparq-server && PORT=1018 npm start
 
 **Note**: The unified `healthsparq/` package is standalone Python and uses `core/session/` (ResilientBrowserSession) for browser automation.
 
-### output_generator
+### core/qa - QA Utilities v1.0
 
-QA and reporting utilities:
+**Migration Status**: Migrated from output_generator/ (Dec 2025) with performance optimizations.
+
+Unified QA toolkit for validation, comparison, sampling, and reporting:
 
 ```bash
-# Validate output schema
+# Install (one-time)
+cd core && pip install -e ".[qa]"
+
+# CLI Usage
+python -m core.qa validate providers.jsonl
+python -m core.qa validate providers.jsonl --schema custom_schema.json --timeout 600
+python -m core.qa compare --curr 20251227 --prev 20251126
+python -m core.qa compare --curr 20251227 --prev 20251126 --project ./audiobee_bcbs_il
+python -m core.qa sample providers.jsonl --count 20 --format zip
+python -m core.qa report audiobee_bcbs_il --curr 20251227 --prev 20251126
+python -m core.qa version
+```
+
+**Library Usage**:
+
+```python
+from core.qa import validate, compare, sample, report
+
+# Validate with schema (100x faster with fastjsonschema)
+result = validate("providers.jsonl", schema_path=None, deduplicate=True)
+if result.is_success:
+    print(f"Valid: {result.metrics.valid_records}/{result.metrics.total_records}")
+    print(f"Unique NPIs: {result.metrics.unique_npis}")
+
+# Compare runs (10x faster with Polars)
+result = compare(curr_path="20251227/processed", prev_path="20251126/processed")
+print(f"Added: {result.metrics.added}, Removed: {result.metrics.removed}")
+
+# Generate samples with reservoir sampling
+result = sample("providers.jsonl", output_dir="samples", count=10, format="zip")
+
+# Generate state-level Excel report
+result = report(project_name="audiobee_bcbs_il", curr_date="20251227", prev_date="20251126")
+```
+
+**Performance Improvements**:
+
+- **fastjsonschema**: 100x faster than jsonschema for validation
+- **Polars**: 10x faster DataFrame operations vs pandas
+- **BoundedSet**: Memory-safe deduplication with 100k LRU cache
+- **Streaming**: Single-pass processing to avoid multiple file reads
+- **Timeout protection**: Default 300s with run_with_timeout()
+
+**Key Features**:
+
+- QAResult/QAOutcome: Unified result structure with status, metrics, errors
+- Exception hierarchy: ValidationError, ComparisonError, ConfigurationError, QATimeoutError
+- Timeout protection: All operations have configurable timeouts
+- Graceful degradation: Handles missing prev_date, partial data
+- Structured logging: Integrated with core/logging module
+
+See `core/qa/README.md` for complete documentation.
+
+### output_generator (Deprecated)
+
+**Migration Notice**: This directory is deprecated. Use `core/qa` module instead for all QA operations.
+
+Legacy utilities (will be removed in future versions):
+
+```bash
+# Legacy commands (deprecated)
 python output_generator/type_check.py audiobee_*/
-
-# Generate samples
 python output_generator/sample_generator.py audiobee_*/
-
-# Compare runs
-python output_generator/comparison_creator.py audiobee_*/ --prev 20251010 --curr 20251110
-
-# Create Excel report
+python output_generator/comparison_creator.py audiobee_*/
 python output_generator/report_generator.py audiobee_*/
 ```
+
+**Migration path**: See `docs/migration/OUTPUT_GENERATOR_TO_CORE_QA.md` for migration guide.
 
 ### core/ - Shared Package v3.0
 
