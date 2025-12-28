@@ -1214,44 +1214,34 @@ The `healthsparq/` package has been transformed from a CLI-only tool into an imp
 
 ---
 
-### HealthSparq-Core Consolidation (In Progress - Dec 2025)
+### HealthSparq-Core Consolidation (Completed - Dec 2025)
 
-**Status**: Phased implementation with reviewer feedback incorporated. Phase 1 approved for execution.
+**From commit 03bd525**: Successfully consolidated duplicate normalization utilities from healthsparq to core package.
 
-**Problem**: The `healthsparq/` package duplicates ~75 lines of normalization/deduplication utilities from `core/` package, including `normalize_zip_code`, `deduplicate_by_npi`, `merge_provider_data`, and the `MapperFunc` type alias. This creates maintenance burden (bug fixes in two places) and drift risk (implementations may diverge).
+**Problem Solved**: The `healthsparq/` package was duplicating ~75 lines of normalization/deduplication utilities from `core/` package, including `normalize_zip_code`, `deduplicate_by_npi`, `merge_provider_data`, and the `MapperFunc` type alias. This created maintenance burden (bug fixes in two places) and drift risk.
 
-**Consolidation Plan** (Simplified after review):
+**Changes Implemented** (Phase 1 - Dec 28, 2025):
 
-- **Phase 1 - APPROVED**: Import normalization utilities from core (~75 LOC reduction)
-  - Import `normalize_zip_code` from `core/mapper/normalize.py`
-  - Import `deduplicate_by_npi`, `merge_provider_records` from `core/mapper/dedup.py`
-  - Import `MapperFunc` type from `core/mapper/base.py`
-  - Keep `clean_network_name()` local (7 LOC, project-specific logic)
-  - **Files**: `healthsparq/phases/normalize.py` only
-  - **Effort**: 1-2 hours implementation, 1 hour testing
-  - **See**: `plans/context/healthsparq-core-consolidation-phase1.md`
+- **Import normalization utilities from core** (~75 LOC reduction)
+  - `MapperFunc` type from `core/mapper/base.py`
+  - `normalize_zip_code` from `core/mapper/normalize.py`
+  - `deduplicate_by_npi`, `merge_provider_records` from `core/mapper/dedup.py`
+  - **Kept local**: `clean_network_name()` (7 LOC, project-specific "medica_sg" → "medica" replacement)
+  - **File modified**: `healthsparq/phases/normalize.py` only
 
-- **Phase 2 - REJECTED**: Exception hierarchy unification (no practical value)
-  - Reviewer consensus: "inheritance for inheritance's sake"
-  - No code catches `SharedPackageError` expecting `HealthSparqError`
-  - **Decision**: Keep exception hierarchies separate
-  - **See**: `plans/context/healthsparq-core-consolidation-phase2.md`
+**Impact**: All 23 HealthSparq projects now use single source of truth from core package. Output remains byte-identical. No API changes for library users.
 
-- **Phase 3 - REJECTED**: Retry logic consolidation (intentionally different)
-  - healthsparq: HTTP-level retry (~38 LOC, simple)
-  - core: Browser session-level retry with recreation/proxy rotation (~50 LOC, complex)
-  - **Decision**: Keep both implementations (serve different abstraction levels)
-  - **Alternative**: Add 429 handling to healthsparq retry (3 lines) if needed
-  - **See**: `plans/context/healthsparq-core-consolidation-phase3.md`
+**Rejected Phases** (Reviewer consensus - DHH & Kieran):
 
-- **Phase 4 - REJECTED**: Deprecation warnings (unnecessary for internal code)
-  - healthsparq is not published to PyPI, no external consumers
-  - **Decision**: Just change imports and fix breakage in same PR
-  - **See**: `plans/context/healthsparq-core-consolidation-phase4.md`
+- **Phase 2**: Exception hierarchy unification (no practical value - "inheritance for inheritance's sake")
+- **Phase 3**: Retry logic consolidation (intentionally different - HTTP vs browser session levels)
+- **Phase 4**: Deprecation warnings (unnecessary for internal code)
 
-**Impact**: Minimal. Only Phase 1 affects production code (23 HealthSparq projects). Output will be byte-identical before/after. No API changes for library users.
+**Verification**:
 
-**Reviewer Feedback**: DHH and Kieran emphasized simplicity over abstraction. "Just change the imports, delete the duplicates, commit. One PR. One hour."
+- All import-related tests pass
+- Output byte-identical before/after
+- No runtime behavior changes
 
 **See**:
 
