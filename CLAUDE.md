@@ -1214,6 +1214,52 @@ The `healthsparq/` package has been transformed from a CLI-only tool into an imp
 
 ---
 
+### HealthSparq-Core Consolidation (In Progress - Dec 2025)
+
+**Status**: Phased implementation with reviewer feedback incorporated. Phase 1 approved for execution.
+
+**Problem**: The `healthsparq/` package duplicates ~75 lines of normalization/deduplication utilities from `core/` package, including `normalize_zip_code`, `deduplicate_by_npi`, `merge_provider_data`, and the `MapperFunc` type alias. This creates maintenance burden (bug fixes in two places) and drift risk (implementations may diverge).
+
+**Consolidation Plan** (Simplified after review):
+
+- **Phase 1 - APPROVED**: Import normalization utilities from core (~75 LOC reduction)
+  - Import `normalize_zip_code` from `core/mapper/normalize.py`
+  - Import `deduplicate_by_npi`, `merge_provider_records` from `core/mapper/dedup.py`
+  - Import `MapperFunc` type from `core/mapper/base.py`
+  - Keep `clean_network_name()` local (7 LOC, project-specific logic)
+  - **Files**: `healthsparq/phases/normalize.py` only
+  - **Effort**: 1-2 hours implementation, 1 hour testing
+  - **See**: `plans/context/healthsparq-core-consolidation-phase1.md`
+
+- **Phase 2 - REJECTED**: Exception hierarchy unification (no practical value)
+  - Reviewer consensus: "inheritance for inheritance's sake"
+  - No code catches `SharedPackageError` expecting `HealthSparqError`
+  - **Decision**: Keep exception hierarchies separate
+  - **See**: `plans/context/healthsparq-core-consolidation-phase2.md`
+
+- **Phase 3 - REJECTED**: Retry logic consolidation (intentionally different)
+  - healthsparq: HTTP-level retry (~38 LOC, simple)
+  - core: Browser session-level retry with recreation/proxy rotation (~50 LOC, complex)
+  - **Decision**: Keep both implementations (serve different abstraction levels)
+  - **Alternative**: Add 429 handling to healthsparq retry (3 lines) if needed
+  - **See**: `plans/context/healthsparq-core-consolidation-phase3.md`
+
+- **Phase 4 - REJECTED**: Deprecation warnings (unnecessary for internal code)
+  - healthsparq is not published to PyPI, no external consumers
+  - **Decision**: Just change imports and fix breakage in same PR
+  - **See**: `plans/context/healthsparq-core-consolidation-phase4.md`
+
+**Impact**: Minimal. Only Phase 1 affects production code (23 HealthSparq projects). Output will be byte-identical before/after. No API changes for library users.
+
+**Reviewer Feedback**: DHH and Kieran emphasized simplicity over abstraction. "Just change the imports, delete the duplicates, commit. One PR. One hour."
+
+**See**:
+
+- `plans/feat-healthsparq-core-consolidation.md` - Master plan
+- `plans/context/healthsparq-core-consolidation-phase*.md` - Detailed phase documentation with reviewer rationale
+
+---
+
 ## External References
 
 1. **AGENTS.md**: Use [AGENTS.md](AGENTS.md) for AGENTS level details and additional instructions.
