@@ -49,10 +49,9 @@ api:
   common_params:
     locale: en
     data_language: en
-    search_specialty_id: "980000012"
 
 concurrency:
-  max_workers: 25
+  max_workers: 1
   max_pages: 2
   batch_size: 1000
   retry_attempts: 5

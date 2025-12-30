@@ -154,7 +154,6 @@ class SapphireAPI:
         )
 
     async def _ensure_initialized(self) -> None:
-        """Ensure browser queue is initialized."""
         async with self._init_lock:
             if self._initialized:
                 return
@@ -163,6 +162,10 @@ class SapphireAPI:
                 self._browser_queue = SapphireBrowserQueue(self._session_config)
                 await self._browser_queue.start()
                 self._owns_queue = True
+
+            if self._browser_queue.captured_api_key:
+                self._api_config.api_key = self._browser_queue.captured_api_key
+                logger.info(f"SapphireAPI: using captured x-api-key")
 
             self._initialized = True
             logger.info(f"SapphireAPI: ready (domain={self._api_config.domain})")

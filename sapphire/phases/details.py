@@ -292,20 +292,14 @@ def _build_detail_url(
     return f"{base_url}?{urlencode(params)}"
 
 
-def _get_headers(config: SapphireProjectConfig) -> dict[str, str]:
-    """Generate request headers for Sapphire API.
-
-    Args:
-        config: Project configuration
-
-    Returns:
-        Headers dictionary with API key and nonce
-    """
-    return {
+def _get_headers(api_key: str | None = None) -> dict[str, str]:
+    headers = {
         "accept": "application/json, text/plain, */*",
-        "x-api-key": "03220e47-16eb-44d3-b1ca-4e3641973a97",
         "x-nonce": str(uuid.uuid4()),
     }
+    if api_key:
+        headers["x-api-key"] = api_key
+    return headers
 
 
 async def _fetch_with_retry(
@@ -377,22 +371,8 @@ async def _process_summary(
     store: "DataStore",
     geo_location: str | None = None,
     is_missing: bool = False,
+    api_key: str | None = None,
 ) -> dict[str, Any] | None:
-    """Fetch and cache provider summary.
-
-    Args:
-        config: Project configuration
-        provider_id: Provider ID to fetch
-        network_id: Network ID
-        browser_request: Browser request function
-        details_config: Details phase configuration
-        store: DataStore for caching
-        geo_location: Optional geo coordinates
-        is_missing: Whether this is a missing provider (for tagging)
-
-    Returns:
-        Summary response data or None if already cached
-    """
     tag = "_missing" if is_missing else ""
     cache_key = f"provider_details/{provider_id}{tag}.json"
     cache_key_alt = f"provider_details/{provider_id}.json"
@@ -407,9 +387,8 @@ async def _process_summary(
             # Invalid cache entry - will re-fetch
             logger.warning(f"Invalid cache entry {key}, re-fetching")
 
-    # Fetch from API
     url = _build_summary_url(config, provider_id, network_id, geo_location)
-    headers = _get_headers(config)
+    headers = _get_headers(api_key)
     logger.debug(f"Fetching summary: {provider_id}")
 
     try:
@@ -440,33 +419,16 @@ async def _process_detail_endpoint(
     store: "DataStore",
     geo_location: str | None = None,
     expected_key: str | None = None,
+    api_key: str | None = None,
 ) -> dict[str, Any] | None:
-    """Fetch and cache a detail endpoint (locations, affiliations, networks).
-
-    Args:
-        config: Project configuration
-        endpoint: Endpoint name
-        provider_id: Provider ID
-        location_id: Location ID
-        browser_request: Browser request function
-        details_config: Details phase configuration
-        store: DataStore for caching
-        geo_location: Optional geo coordinates
-        expected_key: Expected key in response for validation
-
-    Returns:
-        Endpoint response data or None if already cached
-    """
     cache_key = f"{endpoint}/{provider_id}_{location_id}.json"
 
-    # Check cache
     if store.exists(cache_key):
         logger.debug(f"Cached {endpoint} found: {provider_id}_{location_id}")
-        return None  # Already cached, no need to return data
+        return None
 
-    # Fetch from API
     url = _build_detail_url(config, endpoint, provider_id, location_id, geo_location)
-    headers = _get_headers(config)
+    headers = _get_headers(api_key)
     logger.debug(f"Fetching {endpoint}: {provider_id}_{location_id}")
 
     try:
@@ -497,25 +459,9 @@ async def _process_provider(
     geo_location: str | None = None,
     is_missing: bool = False,
     fetch_networks: bool = False,
+    api_key: str | None = None,
 ) -> tuple[bool, str | None]:
-    """Process a single provider - fetch all endpoints.
-
-    Args:
-        config: Project configuration
-        provider_id: Provider ID to process
-        network_id: Network ID
-        browser_request: Browser request function
-        details_config: Details phase configuration
-        store: DataStore for caching
-        geo_location: Optional geo coordinates
-        is_missing: Whether this is a missing provider
-        fetch_networks: Whether to fetch networks endpoint (for missing providers)
-
-    Returns:
-        Tuple of (success, error_message)
-    """
     try:
-        # Step 1: Fetch summary to get location_id
         summary = await _process_summary(
             config,
             provider_id,
@@ -525,6 +471,7 @@ async def _process_provider(
             store,
             geo_location,
             is_missing,
+            api_key,
         )
 
         if summary is None:
@@ -556,10 +503,8 @@ async def _process_provider(
         }
 
         async def safe_fetch(endpoint: str) -> None:
-            """Safely fetch an endpoint, logging errors."""
             if endpoint not in details_config.endpoints:
                 return
-            # Only fetch networks for missing providers
             if endpoint == "networks" and not fetch_networks and not is_missing:
                 return
             try:
@@ -573,6 +518,7 @@ async def _process_provider(
                     store,
                     geo_location,
                     expected_key=endpoint_keys.get(endpoint),
+                    api_key=api_key,
                 )
             except Exception as e:
                 logger.warning(f"Error fetching {endpoint} for {provider_id}: {e}")
@@ -679,24 +625,8 @@ async def _process_batch(
     geo_location: str | None = None,
     missing_provider_ids: set[str] | None = None,
     semaphore: asyncio.Semaphore | None = None,
+    api_key: str | None = None,
 ) -> tuple[int, int, list[tuple[str, str]]]:
-    """Process a batch of providers.
-
-    Args:
-        config: Project configuration
-        batch: List of (provider_id, network_id) tuples
-        batch_num: Current batch number
-        total_providers: Total number of providers
-        browser_request: Browser request function
-        details_config: Details phase configuration
-        store: DataStore for caching
-        geo_location: Optional geo coordinates
-        missing_provider_ids: Set of provider IDs marked as missing
-        semaphore: Semaphore for concurrency control
-
-    Returns:
-        Tuple of (successful_count, failed_count, errors_list)
-    """
     batch_start = batch_num * details_config.batch_size
     batch_end = min(batch_start + len(batch), total_providers)
 
@@ -714,9 +644,8 @@ async def _process_batch(
     async def process_with_semaphore(
         provider_id: str, network_id: str
     ) -> tuple[bool, str | None]:
-        """Process provider with concurrency control."""
         async with semaphore:
-            is_missing = missing_provider_ids and provider_id in missing_provider_ids
+            is_missing = bool(missing_provider_ids and provider_id in missing_provider_ids)
             return await _process_provider(
                 config,
                 provider_id,
@@ -727,6 +656,7 @@ async def _process_batch(
                 geo_location,
                 is_missing=is_missing,
                 fetch_networks=is_missing,
+                api_key=api_key,
             )
 
     # Create tasks for all providers in batch
@@ -760,42 +690,8 @@ async def run_details(
     geo_location: str | None = None,
     missing_provider_ids: set[str] | None = None,
     resume: bool = True,
+    api_key: str | None = None,
 ) -> DetailsResult:
-    """Run Phase 2: Provider Detail Extraction.
-
-    Fetches detailed information for all provider IDs discovered in Phase 1.
-    Uses batch processing with configurable concurrency and retry logic.
-    Supports checkpointing for resumption after failures.
-
-    Args:
-        config: Sapphire project configuration
-        curr_date: Current date string (YYYYMMDD)
-        provider_ids: Optional dict mapping provider_id to list of network_ids.
-                     If None, loads from Phase 1 output.
-        browser_request: Async function to make browser requests.
-                        Signature: (url, headers, timeout_ms) -> response
-        details_config: Phase configuration (uses defaults if None)
-        base_dir: Base output directory (default: current directory)
-        geo_location: Optional geo coordinates for requests (lat,lon string)
-        missing_provider_ids: Set of provider IDs to tag as missing
-        resume: If True, resume from checkpoint if available
-
-    Returns:
-        DetailsResult with processing statistics
-
-    Raises:
-        StorageError: If Phase 1 output not found
-        ValueError: If browser_request not provided
-
-    Example:
-        async with SapphireBrowserQueue(session_config) as browser:
-            result = await run_details(
-                config=project_config,
-                curr_date="20251230",
-                browser_request=browser.async_request,
-            )
-            print(f"Processed {result.successful} providers")
-    """
     if browser_request is None:
         raise ValueError("browser_request function is required")
 
@@ -943,6 +839,7 @@ async def run_details(
                             geo_location,
                             missing_provider_ids,
                             semaphore,
+                            api_key,
                         )
 
                         successful += batch_success
@@ -993,23 +890,8 @@ def run_details_sync(
     geo_location: str | None = None,
     missing_provider_ids: set[str] | None = None,
     resume: bool = True,
+    api_key: str | None = None,
 ) -> DetailsResult:
-    """Synchronous wrapper for run_details.
-
-    Args:
-        config: Sapphire project configuration
-        curr_date: Current date string (YYYYMMDD)
-        provider_ids: Optional dict mapping provider_id to list of network_ids
-        browser_request: Async function to make browser requests
-        details_config: Phase configuration (uses defaults if None)
-        base_dir: Base output directory
-        geo_location: Optional geo coordinates for requests
-        missing_provider_ids: Set of provider IDs to tag as missing
-        resume: If True, resume from checkpoint if available
-
-    Returns:
-        DetailsResult with processing statistics
-    """
     return asyncio.run(
         run_details(
             config=config,
@@ -1021,6 +903,7 @@ def run_details_sync(
             geo_location=geo_location,
             missing_provider_ids=missing_provider_ids,
             resume=resume,
+            api_key=api_key,
         )
     )
 

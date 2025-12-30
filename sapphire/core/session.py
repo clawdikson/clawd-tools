@@ -174,20 +174,21 @@ class SapphireBrowserQueue:
                     browser_type=browser_type,
                 )
 
-                # Initialize and navigate to base URL
                 await self._browser_session._ensure_initialized()
+                self._page = self._browser_session._page
 
-                # Navigate to establish session
+                await self._setup_api_key_capture()
+
                 initial_url = self._build_initial_url()
                 logger.info(f"SapphireBrowserQueue: navigating to {initial_url}")
 
                 await self._browser_session.login(initial_url)
-
-                # Wait for page to fully load
                 await asyncio.sleep(5)
 
-                # Store page reference for direct evaluate calls
-                self._page = self._browser_session._page
+                if self._captured_api_key:
+                    logger.info(f"SapphireBrowserQueue: captured x-api-key: {self._captured_api_key[:8]}...")
+                else:
+                    logger.warning("SapphireBrowserQueue: x-api-key not captured during login")
 
                 self._initialized = True
                 self._request_count = 0
@@ -200,7 +201,6 @@ class SapphireBrowserQueue:
                 raise SessionError(f"Failed to initialize browser session: {e}")
 
     def _build_initial_url(self) -> str:
-        """Build the initial page URL for session establishment."""
         params = {
             "ci": self.config.ci,
             "network_id": self.config.network_id,
@@ -211,6 +211,20 @@ class SapphireBrowserQueue:
 
         param_str = "&".join(f"{k}={v}" for k, v in params.items())
         return f"{self.config.base_url}/?{param_str}"
+
+    async def _setup_api_key_capture(self) -> None:
+        if not self._page:
+            return
+
+        async def handle_route(route):
+            request = route.request
+            headers = request.headers
+            api_key = headers.get("x-api-key")
+            if api_key and not self._captured_api_key:
+                self._captured_api_key = api_key
+            await route.continue_()
+
+        await self._page.route("**/api/**", handle_route)
 
     async def _refresh_page(self) -> None:
         """Refresh the page to prevent memory leaks."""
@@ -494,29 +508,11 @@ class SapphireBrowserQueue:
 
     @property
     def is_running(self) -> bool:
-        """Check if queue is running."""
         return self._running and not self._shutting_down
 
+    @property
+    def captured_api_key(self) -> Optional[str]:
+        return self._captured_api_key
 
-# Convenience factory function
-async def create_browser_queue(
-    config: SapphireProjectConfig,
-    network_id: str,
-    geo_location: str,
-) -> SapphireBrowserQueue:
-    """Create and start a browser queue from project configuration.
 
-    Args:
-        config: Sapphire project configuration
-        network_id: Network ID for this session
-        geo_location: Geo coordinates (lat,lng format)
 
-    Returns:
-        Started SapphireBrowserQueue instance
-    """
-    session_config = SapphireSessionConfig.from_project_config(
-        config, network_id, geo_location
-    )
-    queue = SapphireBrowserQueue(session_config)
-    await queue.start()
-    return queue

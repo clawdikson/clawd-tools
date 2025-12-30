@@ -12,18 +12,11 @@ from sapphire.core.exceptions import (
 from sapphire.core.session import (
     SapphireBrowserQueue,
     SapphireSessionConfig,
-    APIRequest,
-    create_browser_queue,
 )
 from sapphire.core.sapphire_api import (
     SapphireAPI,
     SapphireAPIConfig,
     create_sapphire_api,
-)
-from sapphire.core.sapphire_session import (
-    SapphireSession,
-    SessionConfig,
-    create_session,
 )
 
 __all__ = [
@@ -38,12 +31,6 @@ __all__ = [
     # Browser Queue Session
     "SapphireBrowserQueue",
     "SapphireSessionConfig",
-    "APIRequest",
-    "create_browser_queue",
-    # HTTP Session (HealthSparq-aligned pattern)
-    "SapphireSession",
-    "SessionConfig",
-    "create_session",
     # API
     "SapphireAPI",
     "SapphireAPIConfig",

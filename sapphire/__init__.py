@@ -22,8 +22,6 @@ from sapphire.api import run_scraper_sync, run_scraper_async, ScraperResult, Pha
 from sapphire.core import (
     SapphireAPI,
     SapphireAPIConfig,
-    SapphireSession,
-    SessionConfig,
 )
 from sapphire.mappers import MapperFunc
 from sapphire.phases.normalize import default_sapphire_mapper
@@ -46,8 +44,6 @@ __all__ = [
     # Core
     "SapphireAPI",
     "SapphireAPIConfig",
-    "SapphireSession",
-    "SessionConfig",
     # Normalization
     "MapperFunc",
     "default_sapphire_mapper",

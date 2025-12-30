@@ -99,37 +99,4 @@ def get_output_path(
     return output_dir / filename
 
 
-class PhaseStore:
-    """Convenience wrapper for phase-specific storage operations.
 
-    Provides simplified interface for common phase operations while
-    delegating core functionality to the underlying DataStore.
-    """
-
-    def __init__(self, store: DataStore, phase_name: str):
-        self._store = store
-        self._phase_name = phase_name
-
-    def save_result(self, key: str, data: dict) -> None:
-        """Save a result to the store."""
-        self._store.put(key, data)
-
-    def get_result(self, key: str) -> Optional[dict]:
-        """Get a result from the store."""
-        return self._store.get(key)
-
-    def exists(self, key: str) -> bool:
-        """Check if a key exists in the store."""
-        return self._store.exists(key)
-
-    def iter_results(self) -> Iterator[tuple[str, dict]]:
-        """Iterate over all results."""
-        return iter(self._store)
-
-    def count(self) -> int:
-        """Get the number of results."""
-        return len(self._store)
-
-    def flush(self) -> None:
-        """Flush any pending writes."""
-        self._store.flush()
