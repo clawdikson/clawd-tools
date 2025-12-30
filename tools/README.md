@@ -361,3 +361,122 @@ echo "✓ Environment validation passed"
 - **shared_package/CLAUDE.md**: v3.0 architecture documentation
 - **docs/restructuring/SHARED_PACKAGE_IMPLEMENTATION_PLAN.md**: Full implementation plan
 - **docs/restructuring/RALPH_EXECUTOR_PROMPT.md**: Phase-by-phase execution guide
+
+---
+
+## upload_to_drive.py
+
+Upload 7z archives to Google Drive.
+
+### Setup
+
+#### Step 1: Create Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or select existing)
+3. Enable the **Google Drive API**:
+   - Go to APIs & Services -> Library
+   - Search for "Google Drive API"
+   - Click Enable
+
+#### Step 2: Create Service Account
+
+1. Go to APIs & Services -> Credentials
+2. Click "Create Credentials" -> "Service Account"
+3. Name it (e.g., "scraper-drive-uploader")
+4. Skip optional steps (no roles needed, no users)
+5. Click on the created service account
+6. Go to "Keys" tab -> "Add Key" -> "Create new key"
+7. Select JSON format and download
+8. Save as `tools/google_drive_credentials.json`
+
+**Important**: The service account email looks like `name@project.iam.gserviceaccount.com`. You'll need this to share folders.
+
+#### Step 3: Share Drive Folders
+
+For each project folder in Google Drive:
+
+1. Right-click folder -> "Share"
+2. Paste the service account email
+3. Set permission to "Editor"
+4. Uncheck "Notify people"
+5. Click "Share"
+
+#### Step 4: Create Folder Mapping
+
+Edit `tools/drive_folder_mapping.json`:
+
+```json
+{
+  "projects": {
+    "audiobee_bcbs_il": "1AbCdEfGhIjKlMnOpQrStUvWxYz",
+    "audiobee_excellus": "1BcDeFgHiJkLmNoPqRsTuVwXyZ0",
+    "christus_health_plan": "1CdEfGhIjKlMnOpQrStUvWxYz12"
+  }
+}
+```
+
+**Getting Folder IDs**: Open the folder in Google Drive. The URL will be:
+```
+https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                        This is the folder ID
+```
+
+### Usage
+
+```bash
+# Audiobee project (reads CURR_DATE from config.py)
+python tools/upload_to_drive.py audiobee_bcbs_il
+
+# HealthSparq project (requires --date since no config.py)
+python tools/upload_to_drive.py christus_health_plan --date 20251227
+
+# Override date for any project
+python tools/upload_to_drive.py audiobee_bcbs_il --date 20251210
+
+# Validate without uploading
+python tools/upload_to_drive.py audiobee_bcbs_il --dry-run
+
+# List configured projects
+python tools/upload_to_drive.py list-projects
+
+# Validate project configuration
+python tools/upload_to_drive.py validate audiobee_bcbs_il
+```
+
+### Example Output
+
+```
+Project: audiobee_bcbs_il (audiobee)
+Date: 20251110
+Archive: audiobee_bcbs_il/20251110/20251110.7z
+Drive folder ID: 1AbCdEfGhIjKlMnOpQrStUvWxYz
+Uploading: 100%|████████████████████████████| 00:45<00:00
+
+Upload successful!
+File ID: 1XyZaBcDeFgHiJkLmNoPqRs
+View: https://drive.google.com/file/d/1XyZaBcDeFgHiJkLmNoPqRs/view
+```
+
+### Troubleshooting
+
+**Error**: "Google Drive credentials not found"
+- **Fix**: Download service account JSON from Google Cloud Console
+- **Location**: Save to `tools/google_drive_credentials.json`
+
+**Error**: "No Drive folder mapping for project 'X'"
+- **Fix**: Add project to `tools/drive_folder_mapping.json`
+- **Get folder ID**: From Google Drive folder URL
+
+**Error**: "The user does not have sufficient permissions for this file"
+- **Fix**: Share the Google Drive folder with the service account email
+- **Find email**: In `tools/google_drive_credentials.json` under `client_email`
+
+**Error**: "File not found: {project}/{date}/{date}.7z"
+- **Fix**: Create the 7z archive first
+- **Command**: `cd {project}/{date} && 7z a {date}.7z processed/`
+
+**Error**: "Upload session expired"
+- **Cause**: Network interruption during upload
+- **Fix**: Re-run the command (uploads are resumable)

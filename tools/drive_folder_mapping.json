@@ -1,0 +1,13 @@
+{
+  "_comment": "Map project names to Google Drive folder IDs",
+  "_setup_instructions": [
+    "1. Open the target folder in Google Drive",
+    "2. Copy folder ID from URL: https://drive.google.com/drive/folders/[FOLDER_ID]",
+    "3. Share folder with service account email (from google_drive_credentials.json)",
+    "4. Add mapping below: \"project_name\": \"folder_id\""
+  ],
+  "projects": {
+    "audiobee_bcbs_il": "REPLACE_WITH_ACTUAL_FOLDER_ID",
+    "audiobee_excellus": "REPLACE_WITH_ACTUAL_FOLDER_ID"
+  }
+}

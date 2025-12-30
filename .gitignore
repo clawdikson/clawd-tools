@@ -28,3 +28,9 @@ audiobee_*/
 
 # bv (beads viewer) local config and caches
 .bv/
+
+# Google Drive credentials (NEVER commit these)
+tools/google_drive_credentials.json
+google_drive_credentials.json
+**/service-account*.json
+**/credentials*.json
