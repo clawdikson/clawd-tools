@@ -665,6 +665,8 @@ class SapphireAPI:
             request_headers.update(headers)
 
         # Make request through browser queue
+        logger.debug(f"SapphireAPI: making request to {url}")
+        logger.debug(f"SapphireAPI: headers: {request_headers}")
         return await self._browser_queue.make_request(url, request_headers)
 
     @property

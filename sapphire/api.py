@@ -170,9 +170,13 @@ async def run_scraper_async(
             try:
                 from sapphire.phases.details import run_details
 
+                async def browser_request_adapter(url: str, headers: dict, timeout_ms: int):
+                    return await api.request(url, headers)
+
                 result = await run_details(
                     config=config,
                     curr_date=curr_date,
+                    browser_request=browser_request_adapter,
                 )
                 phase_results[2] = PhaseResult(
                     phase=2,

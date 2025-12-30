@@ -24,22 +24,9 @@ from uuid import uuid4
 from sapphire.config.schema import SapphireProjectConfig
 from sapphire.core.exceptions import SessionError, APIError
 
-# Use core.logging if available, fallback to stdlib
-try:
-    from core.logging import logger
-except ImportError:
-    import logging
-    logger = logging.getLogger(__name__)
-
-# Import browser session from core
-try:
-    from core.session import BrowserSession, BrowserType
-    from core.proxy import ProxyType
-except ImportError:
-    # Fallback for environments without core package
-    from shared_package.session import BrowserSession
-    from shared_package.proxy import ProxyType
-    BrowserType = None
+from core.logging import logger
+from core.session import BrowserSession, BrowserType
+from core.proxy import ProxyType
 
 
 @dataclass
@@ -170,15 +157,15 @@ class SapphireBrowserQueue:
             try:
                 logger.info(f"SapphireBrowserQueue: initializing browser ({self.config.browser_type})")
 
-                # Build proxy configuration - use Decodo DC proxies (managed by core)
-                proxy_types = [ProxyType.DECODO_DC_STATIC]
+                # Build proxy configuration - use DataImpulse residential proxies
+                proxy_types = [ProxyType.DATAIMPULSE_SESSION]
 
                 # Create browser session with appropriate backend
-                browser_type = BrowserType.CAMOUFOX if BrowserType else None
+                browser_type: BrowserType = BrowserType.CAMOUFOX
                 if self.config.browser_type == "playwright":
-                    browser_type = BrowserType.PLAYWRIGHT if BrowserType else None
+                    browser_type = BrowserType.PLAYWRIGHT
                 elif self.config.browser_type == "patchright":
-                    browser_type = BrowserType.PATCHRIGHT if BrowserType else None
+                    browser_type = BrowserType.PATCHRIGHT
 
                 self._browser_session = BrowserSession(
                     proxy_types=proxy_types,

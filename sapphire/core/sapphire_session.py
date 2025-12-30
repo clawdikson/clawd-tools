@@ -1,7 +1,7 @@
 """Session wrapper for Sapphire API requests.
 
-Uses core package for browser-based authentication and fast HTTP requests.
-Follows HealthSparqSession architecture.
+Uses ResilientBrowserSession for all requests - no HTTP session fallback.
+All requests go through browser's page.request API.
 """
 
 import asyncio
@@ -16,7 +16,7 @@ if _core_path.exists() and str(_core_path.parent) not in sys.path:
 
 from core.logging import logger
 from core.proxy import ProxyType
-from core.session import HttpSession, ResilientBrowserSession, RetryConfig
+from core.session import ResilientBrowserSession
 from core.session.backend import BrowserType
 
 from sapphire.core.exceptions import SessionError
@@ -24,7 +24,7 @@ from sapphire.core.exceptions import SessionError
 
 @dataclass
 class SessionConfig:
-    """Configuration for Sapphire HTTP session."""
+    """Configuration for Sapphire browser session."""
 
     timeout: float = 30.0
     max_retries: int = 5
@@ -40,17 +40,16 @@ class SessionConfig:
 
 
 class SapphireSession:
-    """Async HTTP session for Sapphire API requests."""
+    """Browser-based session for Sapphire API requests.
+
+    All requests use ResilientBrowserSession.get/post which go through
+    the browser's page.request API - no curl_cffi/httpx fallback.
+    """
 
     def __init__(self, config: SessionConfig):
         self.config = config
         self._browser_session: Optional[ResilientBrowserSession] = None
-        self._http_session: Optional[HttpSession] = None
         self._lock = asyncio.Lock()
-        self._initialized = False
-
-    async def _invalidate_session(self) -> None:
-        logger.warning("SapphireSession: session invalidated due to auth error")
         self._initialized = False
 
     async def initialize(self, auth_url: str) -> None:
@@ -58,42 +57,23 @@ class SapphireSession:
             if self._initialized:
                 return
 
-            logger.info(f"SapphireSession: initializing with {auth_url}")
+            logger.info(f"SapphireSession: initializing browser with {auth_url}")
 
             self._browser_session = ResilientBrowserSession(
+                login_url=auth_url,
                 proxy_types=self.config.proxy_types,
                 browser_type=self.config.browser_type,
             )
             await self._browser_session.login(auth_url)
-            logger.debug("SapphireSession: browser login complete")
-
-            cookies = await self._browser_session.get_cookies()
-            user_agent = await self._browser_session.get_user_agent()
-            logger.debug(f"SapphireSession: extracted {len(cookies)} cookies")
-
-            retry_config = None
-            if RetryConfig is not None:
-                retry_config = RetryConfig(
-                    max_retries=self.config.max_retries,
-                    backoff_factor=self.config.backoff_factor,
-                    max_backoff=self.config.max_backoff,
-                )
-            self._http_session = HttpSession(
-                retry_config=retry_config,
-                on_auth_error=self._invalidate_session,
-            )
-            await self._http_session.initialize_from_browser(cookies, user_agent)
-            logger.info("SapphireSession: HTTP session created from browser")
-
-            await self._browser_session.close()
-            self._browser_session = None
 
             self._initialized = True
+            logger.info("SapphireSession: browser session ready")
 
     async def request(self, url: str, **kwargs: Any) -> Any:
-        if not self._initialized or self._http_session is None:
+        if not self._initialized or self._browser_session is None:
             raise SessionError("Session not initialized. Call initialize() first.")
-        return await self._http_session.get(url, **kwargs)
+        response = await self._browser_session.get(url, **kwargs)
+        return response.json() if hasattr(response, 'json') else response
 
     async def get(
         self,
@@ -101,9 +81,10 @@ class SapphireSession:
         params: Optional[dict[str, Any]] = None,
         headers: Optional[dict[str, str]] = None,
     ) -> Any:
-        if not self._initialized or self._http_session is None:
+        if not self._initialized or self._browser_session is None:
             raise SessionError("Session not initialized")
-        return await self._http_session.get(url, params=params, headers=headers or {})
+        response = await self._browser_session.get(url, params=params, headers=headers)
+        return response.json() if hasattr(response, 'json') else response
 
     async def post(
         self,
@@ -111,18 +92,26 @@ class SapphireSession:
         json_data: Optional[dict[str, Any]] = None,
         headers: Optional[dict[str, str]] = None,
     ) -> Any:
-        if not self._initialized or self._http_session is None:
+        if not self._initialized or self._browser_session is None:
             raise SessionError("Session not initialized")
-        return await self._http_session.post(url, json_data=json_data, headers=headers or {})
+        response = await self._browser_session.post(url, json_data=json_data or {}, headers=headers)
+        return response.json() if hasattr(response, 'json') else response
+
+    async def get_cookies(self) -> list[dict]:
+        if not self._browser_session:
+            raise SessionError("Session not initialized")
+        return await self._browser_session.get_cookies()
+
+    async def get_user_agent(self) -> str:
+        if not self._browser_session:
+            raise SessionError("Session not initialized")
+        return await self._browser_session.get_user_agent()
 
     async def close(self) -> None:
         logger.debug("SapphireSession: closing")
         if self._browser_session:
             await self._browser_session.close()
             self._browser_session = None
-        if self._http_session:
-            await self._http_session.close()
-            self._http_session = None
         self._initialized = False
 
     async def __aenter__(self) -> "SapphireSession":
