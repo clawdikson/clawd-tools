@@ -14,12 +14,40 @@ import os
 import random
 import time
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional, Callable, TYPE_CHECKING
 
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from googleapiclient.errors import HttpError
+# Lazy imports for Google libraries (only required when actually uploading)
+# This allows importing drive_uploader without google-auth installed
+_google_libs_loaded = False
+service_account = None
+build = None
+MediaFileUpload = None
+HttpError = None
+
+
+def _load_google_libs():
+    """Lazy-load Google libraries on first use."""
+    global _google_libs_loaded, service_account, build, MediaFileUpload, HttpError
+    if _google_libs_loaded:
+        return
+    try:
+        from google.oauth2 import service_account as sa
+        from googleapiclient.discovery import build as bld
+        from googleapiclient.http import MediaFileUpload as mfu
+        from googleapiclient.errors import HttpError as he
+        service_account = sa
+        build = bld
+        MediaFileUpload = mfu
+        HttpError = he
+        _google_libs_loaded = True
+    except ImportError as e:
+        raise ImportError(
+            "Google Drive dependencies not installed. Run:\n"
+            "  pip install google-api-python-client google-auth\n"
+            "Or:\n"
+            "  pip install -r tools/requirements.txt"
+        ) from e
+
 
 try:
     from core.logging import logger
@@ -49,12 +77,15 @@ class DriveUploader:
             mapping_path: Path to folder mapping JSON. Defaults to
                 tools/drive_folder_mapping.json.
         """
+        # Resolve paths relative to tools/ directory (where this file lives)
+        tools_dir = Path(__file__).parent
+
         self.credentials_path = Path(
             credentials_path
             or os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE")
-            or "tools/google_drive_credentials.json"
+            or (tools_dir / "google_drive_credentials.json")
         )
-        self.mapping_path = Path(mapping_path or "tools/drive_folder_mapping.json")
+        self.mapping_path = Path(mapping_path or (tools_dir / "drive_folder_mapping.json"))
 
         self._service = None
         self._folder_mapping: dict[str, str] = {}
@@ -71,6 +102,7 @@ class DriveUploader:
     def service(self):
         """Lazy-load authenticated Drive API service."""
         if self._service is None:
+            _load_google_libs()  # Load Google libraries on first use
             self._validate_credentials()
             credentials = service_account.Credentials.from_service_account_file(
                 str(self.credentials_path),
