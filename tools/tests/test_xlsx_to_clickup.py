@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from xlsx_to_clickup import (
     ClickUpClient,
+    EmailClient,
     generate_screenshot,
     resolve_xlsx_path,
 )
@@ -253,3 +254,128 @@ class TestClickUpClient:
             assert files["attachment"][0] == "custom-report.png"
         finally:
             file_path.unlink()
+
+
+class TestEmailClient:
+    """Tests for Email client."""
+
+    @patch("xlsx_to_clickup.smtplib.SMTP")
+    def test_send_email_basic(self, mock_smtp_class):
+        """Should send email with correct parameters."""
+        mock_smtp = Mock()
+        mock_smtp_class.return_value.__enter__ = Mock(return_value=mock_smtp)
+        mock_smtp_class.return_value.__exit__ = Mock(return_value=False)
+
+        client = EmailClient(
+            smtp_host="smtp.test.com",
+            smtp_port=587,
+            username="user@test.com",
+            password="password123",
+        )
+
+        client.send_email(
+            to=["recipient@test.com"],
+            subject="Test Subject",
+            body="Test body",
+        )
+
+        # Verify SMTP connection
+        mock_smtp_class.assert_called_once_with("smtp.test.com", 587)
+        mock_smtp.starttls.assert_called_once()
+        mock_smtp.login.assert_called_once_with("user@test.com", "password123")
+        mock_smtp.sendmail.assert_called_once()
+
+        # Verify recipients
+        call_args = mock_smtp.sendmail.call_args
+        assert call_args.args[0] == "user@test.com"
+        assert call_args.args[1] == ["recipient@test.com"]
+
+    @patch("xlsx_to_clickup.smtplib.SMTP")
+    def test_send_email_with_attachment(self, mock_smtp_class):
+        """Should include attachment in email."""
+        mock_smtp = Mock()
+        mock_smtp_class.return_value.__enter__ = Mock(return_value=mock_smtp)
+        mock_smtp_class.return_value.__exit__ = Mock(return_value=False)
+
+        client = EmailClient(
+            smtp_host="smtp.test.com",
+            smtp_port=587,
+            username="user@test.com",
+            password="password123",
+        )
+
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            f.write(b"fake image data")
+            file_path = Path(f.name)
+
+        try:
+            client.send_email(
+                to=["recipient@test.com"],
+                subject="Test Subject",
+                body="Test body",
+                attachment_path=file_path,
+                attachment_name="report.png",
+            )
+
+            # Verify email was sent
+            mock_smtp.sendmail.assert_called_once()
+
+            # Check that attachment is in the message
+            call_args = mock_smtp.sendmail.call_args
+            message_content = call_args.args[2]
+            assert "report.png" in message_content
+        finally:
+            file_path.unlink()
+
+    @patch("xlsx_to_clickup.smtplib.SMTP")
+    def test_send_email_with_cc(self, mock_smtp_class):
+        """Should include CC recipients."""
+        mock_smtp = Mock()
+        mock_smtp_class.return_value.__enter__ = Mock(return_value=mock_smtp)
+        mock_smtp_class.return_value.__exit__ = Mock(return_value=False)
+
+        client = EmailClient(
+            smtp_host="smtp.test.com",
+            smtp_port=587,
+            username="user@test.com",
+            password="password123",
+        )
+
+        client.send_email(
+            to=["recipient@test.com"],
+            subject="Test Subject",
+            body="Test body",
+            cc=["cc1@test.com", "cc2@test.com"],
+        )
+
+        # Verify all recipients received the email
+        call_args = mock_smtp.sendmail.call_args
+        all_recipients = call_args.args[1]
+        assert "recipient@test.com" in all_recipients
+        assert "cc1@test.com" in all_recipients
+        assert "cc2@test.com" in all_recipients
+
+    @patch("xlsx_to_clickup.smtplib.SMTP")
+    def test_send_email_multiple_recipients(self, mock_smtp_class):
+        """Should send to multiple TO recipients."""
+        mock_smtp = Mock()
+        mock_smtp_class.return_value.__enter__ = Mock(return_value=mock_smtp)
+        mock_smtp_class.return_value.__exit__ = Mock(return_value=False)
+
+        client = EmailClient(
+            smtp_host="smtp.test.com",
+            smtp_port=587,
+            username="user@test.com",
+            password="password123",
+        )
+
+        client.send_email(
+            to=["r1@test.com", "r2@test.com"],
+            subject="Test Subject",
+            body="Test body",
+        )
+
+        call_args = mock_smtp.sendmail.call_args
+        all_recipients = call_args.args[1]
+        assert "r1@test.com" in all_recipients
+        assert "r2@test.com" in all_recipients

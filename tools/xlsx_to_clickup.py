@@ -1,28 +1,39 @@
 #!/usr/bin/env python3
-"""Generate screenshots from XLSX state reports and upload to ClickUp.
+"""Generate screenshots from XLSX state reports and send via email or upload to ClickUp.
 
 Usage:
-    # Full workflow: generate + upload
+    # Send screenshot via email
+    python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to recipient@example.com
+
+    # Full workflow: generate + upload to ClickUp
     python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345
 
     # Generate screenshot only
     python tools/xlsx_to_clickup.py generate audiobee_bcbs_il --output report.png
 
-    # Upload existing image
+    # Upload existing image to ClickUp
     python tools/xlsx_to_clickup.py upload report.png --task CU12345
 
 Environment Variables:
+    SMTP_HOST: SMTP server hostname (default: smtp.gmail.com)
+    SMTP_PORT: SMTP server port (default: 587)
+    SMTP_USER: SMTP username/email
+    SMTP_PASSWORD: SMTP password or app password
     CLICKUP_API_TOKEN: ClickUp API token (required for upload)
 """
 
 from __future__ import annotations
 
 import os
-import re
+import smtplib
 import tempfile
 import time
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email import encoders
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, Optional, List
 
 import pandas as pd
 import requests
@@ -305,6 +316,91 @@ class ClickUpClient:
 
 
 # =============================================================================
+# Email Client
+# =============================================================================
+
+
+class EmailClient:
+    """SMTP email client for sending screenshots as attachments."""
+
+    def __init__(
+        self,
+        smtp_host: str = "smtp.gmail.com",
+        smtp_port: int = 587,
+        username: str = "",
+        password: str = "",
+    ):
+        """Initialize email client.
+
+        Args:
+            smtp_host: SMTP server hostname
+            smtp_port: SMTP server port
+            username: SMTP username/email
+            password: SMTP password or app password
+        """
+        self.smtp_host = smtp_host
+        self.smtp_port = smtp_port
+        self.username = username
+        self.password = password
+
+    def send_email(
+        self,
+        to: List[str],
+        subject: str,
+        body: str,
+        attachment_path: Optional[Path] = None,
+        attachment_name: Optional[str] = None,
+        cc: Optional[List[str]] = None,
+    ) -> None:
+        """Send an email with optional attachment.
+
+        Args:
+            to: List of recipient email addresses
+            subject: Email subject
+            body: Email body (plain text)
+            attachment_path: Path to file to attach
+            attachment_name: Custom filename for attachment
+            cc: List of CC email addresses
+
+        Raises:
+            smtplib.SMTPException: If email fails to send
+        """
+        # Create message
+        msg = MIMEMultipart()
+        msg["From"] = self.username
+        msg["To"] = ", ".join(to)
+        msg["Subject"] = subject
+
+        if cc:
+            msg["Cc"] = ", ".join(cc)
+
+        # Add body
+        msg.attach(MIMEText(body, "plain"))
+
+        # Add attachment if provided
+        if attachment_path and attachment_path.exists():
+            with open(attachment_path, "rb") as f:
+                part = MIMEBase("application", "octet-stream")
+                part.set_payload(f.read())
+                encoders.encode_base64(part)
+
+                filename = attachment_name or attachment_path.name
+                part.add_header(
+                    "Content-Disposition",
+                    f"attachment; filename={filename}",
+                )
+                msg.attach(part)
+
+        # Send email
+        all_recipients = to + (cc or [])
+
+        with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+            server.starttls()
+            server.login(self.username, self.password)
+            server.sendmail(self.username, all_recipients, msg.as_string())
+
+
+# =============================================================================
 # CLI Commands
 # =============================================================================
 
@@ -502,6 +598,145 @@ def upload(
             client.add_comment(task_id, comment)
             typer.echo("Comment added")
 
+    except Exception as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(2)
+
+
+@app.command()
+def email(
+    project: Annotated[
+        str, typer.Argument(help="Project name (e.g., audiobee_bcbs_il)")
+    ],
+    to: Annotated[
+        List[str], typer.Option("--to", "-t", help="Recipient email address(es)")
+    ],
+    curr_date: Annotated[
+        Optional[str],
+        typer.Option("--curr", "-c", help="Override CURR_DATE (YYYYMMDD)"),
+    ] = None,
+    cc: Annotated[
+        Optional[List[str]], typer.Option("--cc", help="CC email address(es)")
+    ] = None,
+    subject: Annotated[
+        Optional[str], typer.Option("--subject", "-s", help="Email subject")
+    ] = None,
+    body: Annotated[
+        Optional[str], typer.Option("--body", "-b", help="Email body text")
+    ] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Validate without sending")
+    ] = False,
+    dpi: Annotated[int, typer.Option("--dpi", help="Screenshot resolution")] = 150,
+) -> None:
+    """Generate screenshot and send via email."""
+    # Load SMTP config from environment
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_password = os.environ.get("SMTP_PASSWORD", "")
+
+    if not smtp_user and not dry_run:
+        typer.echo("Error: SMTP_USER environment variable not set", err=True)
+        typer.echo("\nTo set SMTP credentials:", err=True)
+        typer.echo("  export SMTP_USER='your-email@gmail.com'", err=True)
+        typer.echo("  export SMTP_PASSWORD='your-app-password'", err=True)
+        raise typer.Exit(1)
+
+    if not smtp_password and not dry_run:
+        typer.echo("Error: SMTP_PASSWORD environment variable not set", err=True)
+        raise typer.Exit(1)
+
+    if not to:
+        typer.echo("Error: --to/-t is required", err=True)
+        raise typer.Exit(1)
+
+    try:
+        # Load config using existing project_config module
+        typer.echo(f"Loading config for {project}...")
+        config = load_project_config(project, date_override=curr_date)
+
+        date = config.curr_date
+        if not date:
+            typer.echo(
+                "Error: CURR_DATE not found in config and --curr not provided",
+                err=True,
+            )
+            raise typer.Exit(1)
+
+        typer.echo(f"Using date: {date}")
+
+        # Resolve XLSX path
+        xlsx_path = resolve_xlsx_path(project, date, config.base_path)
+        typer.echo(f"Found: {xlsx_path}")
+
+        # Build email content
+        email_subject = subject or f"State Counts Report: {project} ({date})"
+        email_body = body or (
+            f"State counts report attached.\n\n"
+            f"Project: {project}\n"
+            f"Date: {date}\n"
+            f"Source: {xlsx_path.name}"
+        )
+
+        if dry_run:
+            typer.echo("\n[DRY RUN] Would generate screenshot and send email")
+            typer.echo(f"  Source: {xlsx_path}")
+            typer.echo(f"  To: {', '.join(to)}")
+            if cc:
+                typer.echo(f"  CC: {', '.join(cc)}")
+            typer.echo(f"  Subject: {email_subject}")
+            typer.echo(f"  SMTP: {smtp_host}:{smtp_port}")
+            return
+
+        # Generate screenshot
+        typer.echo("Generating screenshot...")
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            output_path = Path(tmp.name)
+
+        try:
+            generate_screenshot(xlsx_path, output_path, dpi=dpi)
+            typer.echo(f"Screenshot saved: {output_path}")
+
+            # Send email
+            typer.echo(f"Sending email to {', '.join(to)}...")
+            client = EmailClient(
+                smtp_host=smtp_host,
+                smtp_port=smtp_port,
+                username=smtp_user,
+                password=smtp_password,
+            )
+
+            attachment_name = f"{project}-{date}-state-counts.png"
+            client.send_email(
+                to=to,
+                subject=email_subject,
+                body=email_body,
+                attachment_path=output_path,
+                attachment_name=attachment_name,
+                cc=cc,
+            )
+
+            typer.echo(typer.style("Email sent successfully!", fg=typer.colors.GREEN))
+
+        finally:
+            # Cleanup temp file
+            if output_path.exists():
+                output_path.unlink()
+
+    except FileNotFoundError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    except ImportError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    except smtplib.SMTPAuthenticationError:
+        typer.echo("Error: SMTP authentication failed", err=True)
+        typer.echo("\nFor Gmail, use an App Password:", err=True)
+        typer.echo("  1. Enable 2FA on your Google account", err=True)
+        typer.echo("  2. Go to: https://myaccount.google.com/apppasswords", err=True)
+        typer.echo("  3. Create an app password for 'Mail'", err=True)
+        raise typer.Exit(1)
     except Exception as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(2)

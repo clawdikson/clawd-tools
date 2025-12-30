@@ -485,7 +485,7 @@ View: https://drive.google.com/file/d/1XyZaBcDeFgHiJkLmNoPqRs/view
 
 ## xlsx_to_clickup.py
 
-Generate screenshots from XLSX state reports and upload to ClickUp.
+Generate screenshots from XLSX state reports and send via email or upload to ClickUp.
 
 ### Dependencies
 
@@ -496,6 +496,21 @@ pip install dataframe-image matplotlib openpyxl
 
 ### Setup
 
+#### For Email
+
+Set SMTP credentials (Gmail example):
+
+```bash
+export SMTP_HOST='smtp.gmail.com'      # Default
+export SMTP_PORT='587'                  # Default
+export SMTP_USER='your-email@gmail.com'
+export SMTP_PASSWORD='your-app-password'
+```
+
+**Gmail App Password**: Enable 2FA, then create at https://myaccount.google.com/apppasswords
+
+#### For ClickUp
+
 1. Get your ClickUp API token from Settings > Apps > API Token
 2. Set environment variable:
    ```bash
@@ -505,16 +520,26 @@ pip install dataframe-image matplotlib openpyxl
 ### Usage
 
 ```bash
+# Send screenshot via email
+uv run python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to recipient@example.com
+
+# Send to multiple recipients with CC
+uv run python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to r1@example.com --to r2@example.com --cc manager@example.com
+
+# Custom subject and body
+uv run python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to recipient@example.com --subject "Weekly Report" --body "Please review attached"
+
 # Full workflow: generate screenshot + upload to ClickUp
 uv run python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345
 
 # Override date (instead of reading from config.py)
 uv run python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345 --curr 20251227
 
-# Dry run (validate paths without uploading)
+# Dry run (validate paths without sending/uploading)
+uv run python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to test@example.com --dry-run
 uv run python tools/xlsx_to_clickup.py run audiobee_bcbs_il --dry-run
 
-# Generate screenshot only (no upload)
+# Generate screenshot only (no send/upload)
 uv run python tools/xlsx_to_clickup.py generate audiobee_bcbs_il --output report.png
 
 # Upload existing image to ClickUp
@@ -525,11 +550,26 @@ uv run python tools/xlsx_to_clickup.py upload report.png --task CU12345 --commen
 
 | Command | Description |
 |---------|-------------|
+| `email` | Generate screenshot and send via email |
 | `run` | Generate screenshot and upload to ClickUp in one step |
-| `generate` | Generate screenshot only (no upload) |
+| `generate` | Generate screenshot only (no send/upload) |
 | `upload` | Upload existing image to ClickUp |
 
 ### Options
+
+#### Email Command
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--to` | `-t` | Recipient email address (can repeat for multiple) |
+| `--cc` | | CC email address (can repeat for multiple) |
+| `--subject` | `-s` | Email subject (default: auto-generated) |
+| `--body` | `-b` | Email body text (default: auto-generated) |
+| `--curr` | `-c` | Override CURR_DATE (YYYYMMDD format) |
+| `--dry-run` | | Validate without sending |
+| `--dpi` | | Screenshot resolution (default: 150) |
+
+#### ClickUp Commands (run/upload)
 
 | Option | Short | Description |
 |--------|-------|-------------|
@@ -580,3 +620,15 @@ Comment added
 **Error**: "Max retries exceeded"
 - **Cause**: ClickUp API rate limiting
 - **Fix**: Wait a few minutes and retry
+
+**Error**: "SMTP_USER environment variable not set"
+- **Fix**: Set your email: `export SMTP_USER='your-email@gmail.com'`
+- **Also set**: `export SMTP_PASSWORD='your-app-password'`
+
+**Error**: "SMTP authentication failed"
+- **Cause**: Wrong credentials or using regular password instead of app password
+- **Fix for Gmail**:
+  1. Enable 2FA on your Google account
+  2. Go to https://myaccount.google.com/apppasswords
+  3. Create an app password for 'Mail'
+  4. Use that 16-character password as SMTP_PASSWORD
