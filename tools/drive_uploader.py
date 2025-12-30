@@ -214,3 +214,84 @@ class DriveUploader:
 
         logger.info(f"Upload complete! File ID: {response.get('id')}")
         return response
+
+
+# ============================================================================
+# High-level API for use in run_all.py
+# ============================================================================
+
+
+def upload_archive(
+    project_name: str,
+    curr_date: str,
+    base_path: Optional[str | Path] = None,
+    progress_callback: Optional[Callable[[float], None]] = None,
+    dry_run: bool = False,
+) -> dict:
+    """Upload a project's 7z archive to Google Drive.
+
+    This is the main entry point for integration with run_all.py.
+
+    Args:
+        project_name: Project name (e.g., "audiobee_bcbs_il")
+        curr_date: Date string in YYYYMMDD format
+        base_path: Base directory containing the archive. Defaults to project_name/.
+        progress_callback: Optional callback(progress: float) for progress updates
+        dry_run: If True, validate configuration without uploading
+
+    Returns:
+        dict with:
+            - id: Google Drive file ID
+            - name: Filename
+            - webViewLink: URL to view the file
+            - archive_path: Local path to the uploaded file
+
+    Raises:
+        FileNotFoundError: If archive or credentials not found
+        KeyError: If project has no folder mapping
+        HttpError: If upload fails
+
+    Example:
+        # In run_all.py:
+        from tools.drive_uploader import upload_archive
+        result = upload_archive(config.PROJECT_NAME, config.CURR_DATE)
+        print(f"Uploaded: {result['webViewLink']}")
+    """
+    # Construct archive path: {base_path}/{curr_date}/{curr_date}.7z
+    if base_path is None:
+        base_path = Path(project_name)
+    else:
+        base_path = Path(base_path)
+
+    archive_path = base_path / curr_date / f"{curr_date}.7z"
+
+    if not archive_path.exists():
+        raise FileNotFoundError(
+            f"Archive not found at {archive_path}. "
+            f"Run compress_folder_to_7z() first."
+        )
+
+    # Initialize uploader
+    uploader = DriveUploader()
+
+    # Get folder ID
+    folder_id = uploader.get_folder_id(project_name)
+    logger.info(f"Project: {project_name}, Folder ID: {folder_id}")
+
+    if dry_run:
+        logger.info(f"Dry run - would upload {archive_path} to folder {folder_id}")
+        return {
+            "id": "dry-run",
+            "name": archive_path.name,
+            "webViewLink": "dry-run",
+            "archive_path": str(archive_path),
+        }
+
+    # Upload
+    result = uploader.upload_file(
+        file_path=archive_path,
+        folder_id=folder_id,
+        progress_callback=progress_callback,
+    )
+    result["archive_path"] = str(archive_path)
+    return result

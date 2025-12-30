@@ -138,7 +138,16 @@ scraping/
 │   └── CLAUDE.md            # Migration documentation
 │
 ├── tools/                   # Execution and automation tools
-│   └── run_parallel.py      # Parallel scraper execution with retry logic
+│   ├── run_parallel.py      # Parallel scraper execution with retry logic
+│   ├── upload_to_drive.py   # Google Drive 7z archive uploader (CLI)
+│   ├── drive_uploader.py    # DriveUploader class with resumable upload support
+│   ├── project_config.py    # Project config loader (Audiobee config.py + HealthSparq YAML)
+│   ├── drive_folder_mapping.json  # Project -> Google Drive folder ID mapping
+│   ├── requirements.txt     # Dependencies (google-api-python-client, typer, tqdm)
+│   ├── tests/               # Test suite for tools
+│   │   ├── test_project_config.py    # Unit tests for config detection/parsing
+│   │   └── test_drive_integration.py # Integration tests for Drive uploads
+│   └── README.md            # Tools documentation (validation, migration, upload)
 │
 ├── scripts/                 # Development and setup scripts
 │   └── clone-submodules.sh  # Submodule management (init/update/fresh/shallow/standalone)
@@ -469,6 +478,38 @@ python -m core.qa report audiobee_bcbs_il --curr 20251227 --prev 20251126
 python output_generator/type_check.py audiobee_bcbs_il/
 python output_generator/comparison_creator.py audiobee_bcbs_il/
 ```
+
+### Uploading to Google Drive
+
+```bash
+# Upload 7z archive to Google Drive (requires setup - see tools/README.md)
+# Audiobee project (reads CURR_DATE from config.py)
+python tools/upload_to_drive.py audiobee_bcbs_il
+
+# HealthSparq project (requires --date since no config.py)
+python tools/upload_to_drive.py christus_health_plan --date 20251227
+
+# Override date for any project
+python tools/upload_to_drive.py audiobee_bcbs_il --date 20251210
+
+# Dry run (validate without uploading)
+python tools/upload_to_drive.py audiobee_bcbs_il --dry-run
+
+# List configured projects
+python tools/upload_to_drive.py list-projects
+
+# Validate project configuration
+python tools/upload_to_drive.py validate audiobee_bcbs_il
+```
+
+**Setup Requirements**:
+1. Create Google Cloud project and enable Drive API
+2. Create service account and download JSON credentials
+3. Save credentials to `tools/google_drive_credentials.json`
+4. Share Drive folders with service account email
+5. Add folder mappings to `tools/drive_folder_mapping.json`
+
+See `tools/README.md` for detailed setup instructions.
 
 <!-- END AUTO-MANAGED -->
 
@@ -1093,6 +1134,8 @@ See **docs/extra/PLAN.md** for full implementation details, code samples, AMI se
 10. **SQLite Storage**: `core/io/sqlite_fs.py` provides 15x faster writes vs filesystem - see `docs/restructuring/SQLITE_STORAGE_STRATEGY.md` for migration rationale
 11. **Performance Fixes**: P1 issues completed - SQLiteFS write buffering, async I/O wrappers, JSONLReader context manager (see `todos/` directory)
 12. **HealthSparq Unified Package**: Use `python -m healthsparq` CLI for HealthSparq projects instead of individual audiobee\_\* projects - provides configuration validation, phase control, and better error handling
+13. **Google Drive Uploads**: Use `tools/upload_to_drive.py` to upload 7z archives - auto-detects project type and loads dates from config - see `tools/README.md` for setup
+14. **Credentials Security**: Never commit `tools/google_drive_credentials.json` or service account files - already excluded in .gitignore
 
 ---
 
