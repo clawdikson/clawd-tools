@@ -47,6 +47,7 @@
     "serena@claude-plugins-official": true,
     "compound-engineering@every-marketplace": true,
     "playwright-skill@playwright-skill": true,
-    "auto-memory@severity1-marketplace": true
+    "auto-memory@severity1-marketplace": true,
+    "superpowers@superpowers-marketplace": true
   }
 }
