@@ -480,3 +480,103 @@ View: https://drive.google.com/file/d/1XyZaBcDeFgHiJkLmNoPqRs/view
 **Error**: "Upload session expired"
 - **Cause**: Network interruption during upload
 - **Fix**: Re-run the command (uploads are resumable)
+
+---
+
+## xlsx_to_clickup.py
+
+Generate screenshots from XLSX state reports and upload to ClickUp.
+
+### Dependencies
+
+```bash
+pip install dataframe-image matplotlib openpyxl
+# Or use uv sync (dependencies in pyproject.toml)
+```
+
+### Setup
+
+1. Get your ClickUp API token from Settings > Apps > API Token
+2. Set environment variable:
+   ```bash
+   export CLICKUP_API_TOKEN='pk_12345678_ABCDEFGH...'
+   ```
+
+### Usage
+
+```bash
+# Full workflow: generate screenshot + upload to ClickUp
+uv run python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345
+
+# Override date (instead of reading from config.py)
+uv run python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345 --curr 20251227
+
+# Dry run (validate paths without uploading)
+uv run python tools/xlsx_to_clickup.py run audiobee_bcbs_il --dry-run
+
+# Generate screenshot only (no upload)
+uv run python tools/xlsx_to_clickup.py generate audiobee_bcbs_il --output report.png
+
+# Upload existing image to ClickUp
+uv run python tools/xlsx_to_clickup.py upload report.png --task CU12345 --comment "Weekly report"
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `run` | Generate screenshot and upload to ClickUp in one step |
+| `generate` | Generate screenshot only (no upload) |
+| `upload` | Upload existing image to ClickUp |
+
+### Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--task` | `-t` | ClickUp task ID (required for upload) |
+| `--curr` | `-c` | Override CURR_DATE (YYYYMMDD format) |
+| `--dry-run` | | Validate paths without uploading |
+| `--dpi` | | Screenshot resolution (default: 150) |
+| `--comment` | `-m` | Comment to add with attachment |
+| `--output` | `-o` | Output path for generate command |
+
+### File Resolution
+
+The tool looks for XLSX files in this order:
+1. `{project}/{date}/processed/{project}-{date}-state_with_surrounding-counts.xlsx`
+2. `{project}/{date}/processed/{project}-{date}-state_only-counts.xlsx`
+
+### Example Output
+
+```
+Loading config for audiobee_bcbs_il...
+Using date: 20251210
+Found: audiobee_bcbs_il/20251210/processed/audiobee_bcbs_il-20251210-state_with_surrounding-counts.xlsx
+Generating screenshot...
+Screenshot saved: /tmp/tmpXXXXXX.png
+Uploading to ClickUp task CU12345...
+Upload successful!
+Comment added
+```
+
+### Troubleshooting
+
+**Error**: "CLICKUP_API_TOKEN environment variable not set"
+- **Fix**: Set the token: `export CLICKUP_API_TOKEN='pk_...'`
+- **Get token**: ClickUp Settings > Apps > API Token
+
+**Error**: "dataframe-image is required for screenshot generation"
+- **Fix**: Install dependency: `pip install dataframe-image`
+- **Or**: Run `uv sync` to install all project dependencies
+
+**Error**: "No state counts file found"
+- **Fix**: Ensure the XLSX file exists in `{project}/{date}/processed/`
+- **Check**: File naming follows `{project}-{date}-state_*-counts.xlsx` pattern
+
+**Error**: "Processed directory not found"
+- **Fix**: Verify the date is correct and scraper has been run for that date
+- **Check**: Directory `{project}/{date}/processed/` exists
+
+**Error**: "Max retries exceeded"
+- **Cause**: ClickUp API rate limiting
+- **Fix**: Wait a few minutes and retry
