@@ -1,0 +1,22 @@
+{
+  "geo_codes": [
+    {
+      "state": "IL",
+      "coords": [41.3822817, -88.8627677],
+      "radius": 130,
+      "geo_num": 1
+    },
+    {
+      "state": "IL",
+      "coords": [38.5633933, -88.7287027],
+      "radius": 115,
+      "geo_num": 2
+    },
+    {
+      "state": "IL",
+      "coords": [39.9422756, -90.8817172],
+      "radius": 60,
+      "geo_num": 3
+    }
+  ]
+}
