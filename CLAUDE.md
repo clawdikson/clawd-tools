@@ -139,6 +139,9 @@ scraping/
 ├── tools/                   # Execution and automation tools
 │   └── run_parallel.py      # Parallel scraper execution with retry logic
 │
+├── scripts/                 # Development and setup scripts
+│   └── clone-submodules.sh  # Submodule management (init/update/fresh/shallow/standalone)
+│
 ├── projects/                # Project categorization for parallel execution
 │   └── api.txt              # API-type scrapers (37 Carrier projects)
 │
@@ -350,6 +353,34 @@ Tech:     Brand-specific URLs, complex network hierarchies
 <!-- AUTO-MANAGED: build-commands -->
 
 ## Build & Development Commands
+
+### Submodule Setup
+
+This project uses git submodules for shared utilities (core, healthsparq, output_generator). Use the helper script to manage them:
+
+```bash
+# Standard submodule init/update
+./scripts/clone-submodules.sh
+
+# Fresh clone (removes existing directories first)
+./scripts/clone-submodules.sh --fresh
+
+# Shallow clone (faster, depth=1)
+./scripts/clone-submodules.sh --shallow
+
+# Clone as standalone repos (not submodules)
+./scripts/clone-submodules.sh --standalone
+
+# Show help
+./scripts/clone-submodules.sh --help
+```
+
+**Features**:
+
+- Dynamically parses `.gitmodules` (no hardcoded paths)
+- Supports fresh clone, shallow clone, and standalone mode
+- Auto-detects and processes all submodules
+- Verifies successful clone/update
 
 ### Running a Scraper
 
