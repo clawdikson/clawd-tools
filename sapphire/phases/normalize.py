@@ -191,6 +191,15 @@ class NormalizeResult:
     error: Optional[str] = None
     """Error message if normalization failed."""
 
+    duration_seconds: float = 0.0
+    """Elapsed time in seconds."""
+
+    started_at: Optional[str] = None
+    """ISO timestamp when phase started."""
+
+    completed_at: Optional[str] = None
+    """ISO timestamp when phase completed."""
+
 
 # -----------------------------------------------------------------------------
 # Default Sapphire Mapper

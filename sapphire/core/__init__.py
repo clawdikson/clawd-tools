@@ -20,6 +20,11 @@ from sapphire.core.sapphire_api import (
     SapphireAPIConfig,
     create_sapphire_api,
 )
+from sapphire.core.sapphire_session import (
+    SapphireSession,
+    SessionConfig,
+    create_session,
+)
 
 __all__ = [
     # Exceptions
@@ -30,11 +35,15 @@ __all__ = [
     "SessionError",
     "StorageError",
     "ValidationError",
-    # Session
+    # Browser Queue Session
     "SapphireBrowserQueue",
     "SapphireSessionConfig",
     "APIRequest",
     "create_browser_queue",
+    # HTTP Session (HealthSparq-aligned pattern)
+    "SapphireSession",
+    "SessionConfig",
+    "create_session",
     # API
     "SapphireAPI",
     "SapphireAPIConfig",

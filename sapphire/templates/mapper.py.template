@@ -1,0 +1,56 @@
+"""{{PROJECT_NAME}} custom mapper.
+
+Customize this file for project-specific data transformations.
+Delete this file to use the default Sapphire mapper.
+"""
+from sapphire import default_sapphire_mapper
+
+# Example: Network code translation
+# NETWORK_MAP = {
+#     "NETWORK_123": "Blue Cross Blue Shield IL PPO",
+#     "NETWORK_456": "Blue Cross Blue Shield IL HMO",
+# }
+
+
+def map_provider(raw: dict) -> dict:
+    """Transform raw provider data to normalized format.
+
+    This function is called for each provider during Phase 3 (Normalize).
+    It receives raw provider data and returns the normalized output.
+
+    Args:
+        raw: Raw provider data from Phase 2
+
+    Returns:
+        Normalized provider dict
+
+    Example customizations:
+        - Network name translation
+        - Field renaming
+        - Conditional field mapping
+        - Data cleaning/validation
+    """
+    # Start with default mapping
+    result = default_sapphire_mapper(raw)
+
+    # Example: Translate network codes to human-readable names
+    # network_id = raw.get("network_id", "")
+    # if network_id in NETWORK_MAP:
+    #     result["network_name"] = NETWORK_MAP[network_id]
+
+    # Example: Add project-specific prefix to network name
+    # if result.get("network_name"):
+    #     result["network_name"] = f"{{PROJECT_NAME}} - {result['network_name']}"
+
+    # Example: Clean up phone numbers
+    # phone = result.get("phone", "")
+    # if phone:
+    #     result["phone"] = phone.replace("-", "").replace(" ", "")
+
+    # Example: Conditional field mapping
+    # if raw.get("is_accepting_patients") == "Yes":
+    #     result["accepting_new_patients"] = True
+    # elif raw.get("is_accepting_patients") == "No":
+    #     result["accepting_new_patients"] = False
+
+    return result

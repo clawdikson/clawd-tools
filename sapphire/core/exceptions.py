@@ -28,13 +28,17 @@ class APIError(SapphireError):
     def __init__(
         self,
         message: str,
-        status_code: int | None = None,
-        endpoint: str | None = None,
+        url: str = "",
+        status_code: int = 0,
+        response_text: str = "",
         details: dict | None = None,
+        endpoint: str = "",
     ):
         super().__init__(message, details)
+        self.url = url or endpoint
         self.status_code = status_code
-        self.endpoint = endpoint
+        self.response_text = response_text
+        self.endpoint = self.url
 
 
 class SessionError(SapphireError):

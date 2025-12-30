@@ -113,12 +113,12 @@ def run(
     curr: str = typer.Option(..., "--curr", help="Current date (YYYYMMDD)"),
     prev: Optional[str] = typer.Option(None, "--prev", help="Previous date for comparison"),
     phase: Optional[int] = typer.Option(
-        None, "--phase", help="Run specific phase (1-5), or all if not specified"
+        None, "--phase", "-p", help="Run specific phase (1-5), or all if not specified"
     ),
     storage: Optional[str] = typer.Option(
-        None, "--storage", help="Storage backend: sqlite, json_files, jsonl"
+        None, "--storage", "-s", help="Storage backend: sqlite, json_files, jsonl"
     ),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Validate without executing"),
+    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Validate without executing"),
     # Phase 4 (QA) flags
     qa: bool = typer.Option(False, "--qa", help="Run full QA phase (validation + comparison)"),
     validate_only: bool = typer.Option(

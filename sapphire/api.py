@@ -203,14 +203,14 @@ async def run_scraper_async(
         if 3 in phases_to_run:
             phase_start = datetime.now()
             try:
-                from sapphire.phases.normalize import run_normalize
+                from sapphire.phases.normalize import run_normalize, NormalizeConfig
 
+                normalize_config = NormalizeConfig(validate=validate)
                 result = await run_normalize(
                     config=config,
                     curr_date=curr_date,
                     mapper=mapper,
-                    validate=validate,
-                    storage_backend=backend,
+                    normalize_config=normalize_config,
                 )
                 providers_count = result.unique_npis
                 phase_results[3] = PhaseResult(

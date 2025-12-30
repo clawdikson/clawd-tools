@@ -65,12 +65,19 @@ class DiscoveryConfig:
             - "complete": State-wide coverage circles only
             - "dual": Both small and complete circles (recommended)
         output_dir: Base output directory (e.g., Path("20251230"))
+        max_workers: Maximum concurrent workers (follows HealthSparq pattern)
         storage_backend: Storage backend for raw results
     """
 
     geo_strategy: Literal["small", "complete", "dual"] = "dual"
-    output_dir: Path = field(default_factory=lambda: Path("."))
+    output_dir: Optional[Path] = None
+    max_workers: Optional[int] = None
     storage_backend: StorageBackend = StorageBackend.SQLITE
+
+    def __post_init__(self) -> None:
+        """Set defaults after initialization (HealthSparq pattern)."""
+        if self.output_dir is None:
+            self.output_dir = Path(".")
 
 
 @dataclass
@@ -84,6 +91,8 @@ class DiscoveryResult:
         geo_circles_queried: Number of geographic circles processed
         output_file: Path to the provider_ids_network_map output
         duration_seconds: Elapsed time in seconds
+        started_at: ISO timestamp when phase started
+        completed_at: ISO timestamp when phase completed
     """
 
     total_providers: int
@@ -92,6 +101,8 @@ class DiscoveryResult:
     geo_circles_queried: int
     output_file: Path
     duration_seconds: float = 0.0
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
 
 
 # =============================================================================

@@ -89,6 +89,9 @@ class DetailsResult:
         skipped_cached: Number of providers skipped (already cached)
         checkpoint_file: Path to checkpoint file for resumption
         errors: List of (provider_id, error_message) tuples
+        duration_seconds: Elapsed time in seconds
+        started_at: ISO timestamp when phase started
+        completed_at: ISO timestamp when phase completed
     """
 
     total_providers: int
@@ -97,6 +100,9 @@ class DetailsResult:
     skipped_cached: int
     checkpoint_file: Path | None = None
     errors: list[tuple[str, str]] = field(default_factory=list)
+    duration_seconds: float = 0.0
+    started_at: str | None = None
+    completed_at: str | None = None
 
     @property
     def success_rate(self) -> float:

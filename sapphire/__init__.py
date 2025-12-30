@@ -15,17 +15,42 @@ Usage:
         result = run_scraper_sync(config, curr_date="20251230")
 """
 
-from sapphire.config.loader import load_config
-from sapphire.config.schema import SapphireProjectConfig
-from sapphire.api import run_scraper_sync, run_scraper_async, ScraperResult
+from sapphire.config.loader import load_config, list_projects
+from sapphire.config.schema import SapphireProjectConfig, StorageBackend
+from sapphire.api import run_scraper_sync, run_scraper_async, ScraperResult, PhaseResult
+
+from sapphire.core import (
+    SapphireAPI,
+    SapphireAPIConfig,
+    SapphireSession,
+    SessionConfig,
+)
+from sapphire.mappers import MapperFunc
+from sapphire.phases.normalize import default_sapphire_mapper
+
+run_scraper = run_scraper_async
 
 __version__ = "1.0.0"
 __all__ = [
     # Configuration
     "load_config",
+    "list_projects",
     "SapphireProjectConfig",
+    "StorageBackend",
     # API
+    "run_scraper",
     "run_scraper_sync",
     "run_scraper_async",
     "ScraperResult",
+    "PhaseResult",
+    # Core
+    "SapphireAPI",
+    "SapphireAPIConfig",
+    "SapphireSession",
+    "SessionConfig",
+    # Normalization
+    "MapperFunc",
+    "default_sapphire_mapper",
+    # Version
+    "__version__",
 ]
