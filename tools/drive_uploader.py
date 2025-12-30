@@ -174,6 +174,8 @@ class DriveUploader:
             FileNotFoundError: If file doesn't exist
             HttpError: If upload fails after retries
         """
+        _load_google_libs()  # Ensure Google libs are loaded before using MediaFileUpload
+
         file_path = Path(file_path)
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
