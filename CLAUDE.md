@@ -120,10 +120,11 @@ scraping/
 │   ├── templates/           # Project scaffolding templates
 │   │   ├── run.py.template          # Typer CLI importing healthsparq library
 │   │   ├── mapper.py.template       # Custom mapper extending default_mapper()
+│   │   ├── pyproject.toml.template  # Python packaging with uv editable dependency support
+│   │   ├── requirements.txt.template # Pip-based dependency management
 │   │   ├── .env.example             # Environment config template
 │   │   ├── .gitignore.template      # Output directory ignores
-│   │   ├── README.md.template       # Usage instructions
-│   │   └── requirements.txt.template # Just healthsparq dependency
+│   │   └── README.md.template       # Usage instructions with uv installation guide
 │   ├── tests/               # Test suite (99+ tests)
 │   ├── CLAUDE.md            # Package documentation and conventions
 │   ├── README.md            # Package documentation
@@ -167,7 +168,7 @@ scraping/
 │   │   ├── carrier.py       # Carrier mapper base (custom API structures)
 │   │   └── README.md        # Mapper usage documentation
 │   ├── qa/                  # QA utilities v1.0 (migrated from output_generator)
-│   │   ├── __init__.py      # Public API: validate, compare, sample, report
+│   │   ├── __init__.py      # Public API: validate, compare, sample, report, generate_debug_reports
 │   │   ├── __main__.py      # CLI entry point
 │   │   ├── base.py          # QAResult, QAOutcome, QAStatus, exception hierarchy
 │   │   ├── config.py        # QASettings (Pydantic Settings)
@@ -176,6 +177,7 @@ scraping/
 │   │   ├── sampler.py       # Reservoir sampling with archive creation
 │   │   ├── reporter.py      # Excel state reports with xlsxwriter streaming
 │   │   ├── statistics.py    # State-level provider counts
+│   │   ├── debug_reports.py # Debug Excel report generation (12 sheets + specialty pivot)
 │   │   ├── cli.py           # Typer CLI framework
 │   │   └── README.md        # QA module documentation
 │   ├── data/                # Shared reference data with cached loading
@@ -270,16 +272,16 @@ Tech:     ResilientBrowserSession (core/session), async HealthSpark API wrapper
 - Uses `core/session.ResilientBrowserSession` for authentication
 - Two-step session pattern: browser auth → fast HTTP API calls
 - Configuration-driven via YAML files in `healthsparq/configs/`
-- Three-phase pipeline: search → details → normalize (customizable via MapperFunc)
+- Five-phase pipeline: search → details → normalize → qa → report (phases 4-5 optional)
 - Project scaffolding templates in `healthsparq/templates/`
 
 **Architecture**:
 
-- `healthsparq/api.py`: High-level API (`run_scraper_sync`, `ScraperResult`)
-- `healthsparq/phases/normalize.py`: Supports custom mapper injection (`MapperFunc`)
+- `healthsparq/api.py`: High-level API (`run_scraper_sync`, `ScraperResult`, `PhaseResult`)
+- `healthsparq/phases/`: Search, Details, Normalize, QA, Report phases
 - `healthsparq/templates/`: Project scaffolding (run.py, mapper.py, .env.example)
 - `healthsparq/core/exceptions.py`: Structured exception hierarchy (AuthenticationError, APIError, SearchError, etc.)
-- Public API exports: `run_scraper`, `default_mapper`, `load_config`, `MapperFunc`
+- Public API exports: `run_scraper_sync`, `default_mapper`, `load_config`, `MapperFunc`, `run_qa_sync`, `run_report_sync`
 
 **CLI Usage**:
 
@@ -287,9 +289,10 @@ Tech:     ResilientBrowserSession (core/session), async HealthSpark API wrapper
 python -m healthsparq list                          # List 23 available projects
 python -m healthsparq validate christus_health_plan # Validate config
 python -m healthsparq run christus_health_plan --curr 20251226 --prev 20251126
-python -m healthsparq run medica_sg --curr 20251226 --phase 1  # Run specific phase
-python -m healthsparq run medica_sg --curr 20251226 --validate # Enable schema validation
-python -m healthsparq doctor                                   # Validate all configs
+python -m healthsparq run medica_sg --curr 20251226 --phase 1 # Run specific phase (1-5)
+python -m healthsparq run medica_sg --curr 20251226 --qa      # Run QA phase
+python -m healthsparq run medica_sg --curr 20251226 --report  # Run Report phase
+python -m healthsparq doctor                                  # Validate all configs
 ```
 
 **Library Usage**:
@@ -312,6 +315,12 @@ result = run_scraper_sync(config, "20251227", mapper=my_mapper)
 # Enable JSON schema validation (validates against core/data/output_json_schema.json)
 result = run_scraper_sync(config, "20251227", validate=True)
 validation_errors = result.phase_results[3].data.get("validation_errors", 0)
+
+# Run QA phase (Phase 4) - validation + comparison
+result = run_scraper_sync(config, "20251227", prev_date="20251127", run_qa=True)
+
+# Run Report phase (Phase 5) - Excel + samples
+result = run_scraper_sync(config, "20251227", run_report=True, sample_count=20)
 ```
 
 ### 3. Sapphire (14 projects)
@@ -414,9 +423,10 @@ python tools/run_parallel.py --pattern "audiobee_bcbs*" --workers 8 --curr 20251
 ### For Healthsparq Projects
 
 ```bash
-# Install package (one-time setup)
+# Install package (one-time setup, choose one)
 cd healthsparq
-pip install -e .
+uv pip install -e . # Recommended (fastest with uv)
+pip install -e .    # Standard pip
 
 # List available projects
 python -m healthsparq list
@@ -428,6 +438,18 @@ python -m healthsparq run medica_sg --curr 20251226 --prev 20251110
 python -m healthsparq run medica_sg --curr 20251226 --phase 1 # Search
 python -m healthsparq run medica_sg --curr 20251226 --phase 2 # Details
 python -m healthsparq run medica_sg --curr 20251226 --phase 3 # Normalize
+python -m healthsparq run medica_sg --curr 20251226 --phase 4 # QA (validation + comparison)
+python -m healthsparq run medica_sg --curr 20251226 --phase 5 # Report (Excel + samples)
+
+# QA phase with granular control
+python -m healthsparq run medica_sg --curr 20251226 --qa                      # Full QA
+python -m healthsparq run medica_sg --curr 20251226 --validate                # Validation only (4a)
+python -m healthsparq run medica_sg --curr 20251226 --prev 20251126 --compare # Comparison only (4b)
+
+# Report phase with granular control
+python -m healthsparq run medica_sg --curr 20251226 --report                         # Full report
+python -m healthsparq run medica_sg --curr 20251226 --excel                          # Excel only (5a)
+python -m healthsparq run medica_sg --curr 20251226 --samples-only --sample-count 20 # Samples only (5b)
 
 # Validate configuration
 python -m healthsparq validate christus_health_plan
@@ -642,8 +664,10 @@ Use templates in `healthsparq/templates/` to create library-based projects:
 
 - `run.py.template`: Typer CLI importing from healthsparq library
 - `mapper.py.template`: Custom mapper extending `default_mapper()`
+- `pyproject.toml.template`: Python packaging with uv support (recommended)
+- `requirements.txt.template`: Pip-based dependency management (alternative)
 - `.env.example`: Environment config (proxy, browser settings)
-- `requirements.txt.template`: Single dependency: `healthsparq`
+- `README.md.template`: Usage instructions and project documentation
 
 **Key Features**:
 
@@ -698,13 +722,14 @@ python -m core.qa compare --curr 20251227 --prev 20251126
 python -m core.qa compare --curr 20251227 --prev 20251126 --project ./audiobee_bcbs_il
 python -m core.qa sample providers.jsonl --count 20 --format zip
 python -m core.qa report audiobee_bcbs_il --curr 20251227 --prev 20251126
+python -m core.qa debug providers.jsonl --curr 20251227 --output processed
 python -m core.qa version
 ```
 
 **Library Usage**:
 
 ```python
-from core.qa import validate, compare, sample, report
+from core.qa import validate, compare, sample, report, generate_debug_reports
 
 # Validate with schema (100x faster with fastjsonschema)
 result = validate("providers.jsonl", schema_path=None, deduplicate=True)
@@ -721,6 +746,14 @@ result = sample("providers.jsonl", output_dir="samples", count=10, format="zip")
 
 # Generate state-level Excel report
 result = report(project_name="audiobee_bcbs_il", curr_date="20251227", prev_date="20251126")
+
+# Generate debug Excel reports (12 detail sheets + specialty pivot)
+result = generate_debug_reports(
+    input_file="providers.jsonl",
+    output_dir="processed",
+    curr_date="20251227",
+)
+print(f"Generated {len(result.data['files'])} debug files")
 ```
 
 **Performance Improvements**:
@@ -738,6 +771,17 @@ result = report(project_name="audiobee_bcbs_il", curr_date="20251227", prev_date
 - Timeout protection: All operations have configurable timeouts
 - Graceful degradation: Handles missing prev_date, partial data
 - Structured logging: Integrated with core/logging module
+
+**Debug Reports** (NEW):
+
+Generate detailed Excel reports for data analysis and QA:
+
+- `debug_data-{date}.xlsx`: 12 sheets with unique value analysis (Networks, Provider Names, NPI, Zip Code Network, Zip Codes, Titles, Addresses, Phones, Languages, Groups, Hospitals, Specialties)
+- `debug_specialty_network-{date}.xlsx`: Pivot table of Specialty+ZIP × Network combinations
+- Matches output format from legacy `output_generator/type_check.py`
+- Use via CLI: `python -m core.qa debug providers.jsonl --curr 20251227`
+- Use via library: `generate_debug_reports(input_file, output_dir, curr_date)`
+- Integrated into healthsparq project templates via `debug` command
 
 See `core/qa/README.md` for complete documentation.
 
@@ -1332,6 +1376,53 @@ The `healthsparq/` package has been transformed from a CLI-only tool into an imp
 
 - `plans/refactor-healthsparq-retry-consolidation.md` - Master plan
 - `plans/context/http-retry-consolidation-phase*.md` - Detailed phase documentation
+
+---
+
+### BrowserSession Backend Selection (Planned - Dec 2025)
+
+**Implementation plan**: `plans/feat-browser-session-camoufox.md` - Add selectable browser backend to `core/session/BrowserSession` enabling choice between Patchright, Playwright, and Camoufox.
+
+**Planned Architecture**:
+
+- **BrowserType enum**: `PATCHRIGHT` (default), `PLAYWRIGHT`, `CAMOUFOX`
+- **Backend selection**: Via `browser_type` parameter (enum or string)
+- **Lazy imports**: Backend libraries loaded only when selected
+- **Concurrency preservation**: Existing patterns unchanged (\_init_lock, \_request_semaphore, \_active_cond)
+- **Backward compatibility**: Default to PATCHRIGHT (current behavior)
+
+**New Dependencies** (when implemented):
+
+- `playwright>=1.55.0` - Standard Playwright library
+- `camoufox[geoip]>=0.4.11` - Firefox-based anti-detection browser
+
+**Backend Comparison**:
+
+| Backend    | Engine   | Anti-Detection | Use Case                 |
+| ---------- | -------- | -------------- | ------------------------ |
+| PATCHRIGHT | Chromium | Medium         | Default, most sites      |
+| PLAYWRIGHT | Chromium | Low            | Sites without detection  |
+| CAMOUFOX   | Firefox  | High           | Anti-bot protected sites |
+
+**Implementation Tasks** (8 total):
+
+1. Add BrowserType enum and dependencies to `core/session/backend.py`
+2. Add browser_type parameter to BrowserSession `__init__`
+3. Implement backend-specific initialization (\_init_playwright, \_init_camoufox)
+4. Implement backend-specific cleanup (Camoufox uses `__aexit__` pattern)
+5. Update ResilientBrowserSession to pass through browser_type
+6. Update HealthSparqSession with browser_type support (optional)
+7. Write unit tests for backend selection and initialization
+8. Update `core/CLAUDE.md` documentation
+
+**Key Features**:
+
+- Unified async interface across all backends
+- Camoufox uses AsyncCamoufox context manager (different from Playwright/Patchright)
+- Backend-specific proxy configuration handling
+- Preserves existing session lifecycle and error handling
+
+**See**: `plans/feat-browser-session-camoufox.md` for complete 8-task implementation plan with code snippets.
 
 ---
 

@@ -497,15 +497,17 @@ store = create_store(
 
 ## Implementation Tasks
 
-- [ ] Phase 1: Create `base.py` with Protocol and Enum (~50 LOC)
-- [ ] Phase 2: Create `factory.py` with create_store() (~60 LOC)
-- [ ] Phase 3: Add JSONLStore to `jsonl.py` (~100 LOC)
-- [ ] Phase 4: Add SQLiteStore to `sqlite_fs.py` (~80 LOC)
-- [ ] Phase 5: Create `json_files.py` with JSONFileStore (~100 LOC)
-- [ ] Phase 6: Add async variants for all stores (~100 LOC)
-- [ ] Phase 7: Create `test_datastore.py` with parametrized tests (~200 LOC)
-- [ ] Phase 8: Update `__init__.py` exports
-- [ ] Phase 9: Update documentation
+- [x] Phase 1: Create `base.py` with Protocol and Enum (~50 LOC) ✅
+- [x] Phase 2: Create `factory.py` with create_store() (~60 LOC) ✅
+- [x] Phase 3: Add JSONLStore to `jsonl.py` (~100 LOC) ✅
+- [x] Phase 4: Add SQLiteStore to `sqlite_fs.py` (~80 LOC) ✅
+- [x] Phase 5: Create `json_files.py` with JSONFileStore (~100 LOC) ✅
+- [x] Phase 6: Add async variants for all stores (~100 LOC) ✅
+- [x] Phase 7: Create `test_datastore.py` with parametrized tests (~200 LOC) ✅
+- [x] Phase 8: Update `__init__.py` exports ✅
+- [x] Phase 9: Update documentation ✅
+
+**Status: COMPLETE** - All phases implemented and tested (56 tests passing)
 
 ## Backward Compatibility
 
