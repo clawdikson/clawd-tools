@@ -2,7 +2,7 @@
 """Generate screenshots from XLSX state reports and send via email or upload to ClickUp.
 
 Usage:
-    # Send screenshot via email
+    # Send screenshot via email (Gmail OAuth - uses same credentials as Drive upload)
     python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to recipient@example.com
 
     # Full workflow: generate + upload to ClickUp
@@ -14,18 +14,18 @@ Usage:
     # Upload existing image to ClickUp
     python tools/xlsx_to_clickup.py upload report.png --task CU12345
 
+Authentication:
+    Email: Uses Gmail OAuth (tools/oauth_credentials.json, same as Google Drive)
+           First run opens browser for login. Token saved to tools/gmail_token.json
+
 Environment Variables:
-    SMTP_HOST: SMTP server hostname (default: smtp.gmail.com)
-    SMTP_PORT: SMTP server port (default: 587)
-    SMTP_USER: SMTP username/email
-    SMTP_PASSWORD: SMTP password or app password
     CLICKUP_API_TOKEN: ClickUp API token (required for upload)
 """
 
 from __future__ import annotations
 
+import base64
 import os
-import smtplib
 import tempfile
 import time
 from email.mime.base import MIMEBase
@@ -316,32 +316,116 @@ class ClickUpClient:
 
 
 # =============================================================================
-# Email Client
+# Email Client (Gmail API with OAuth)
 # =============================================================================
+
+# Gmail API scope
+GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
+
+# Lazy-loaded Google libraries
+_gmail_libs_loaded = False
+GmailCredentials = None
+GmailInstalledAppFlow = None
+gmail_build = None
+
+
+def _load_gmail_libs():
+    """Lazy-load Google Gmail libraries on first use."""
+    global _gmail_libs_loaded, GmailCredentials, GmailInstalledAppFlow, gmail_build
+    if _gmail_libs_loaded:
+        return
+    try:
+        from google.oauth2.credentials import Credentials
+        from googleapiclient.discovery import build
+        GmailCredentials = Credentials
+        gmail_build = build
+        _gmail_libs_loaded = True
+    except ImportError as e:
+        raise ImportError(
+            "Gmail API dependencies not installed. Run:\n"
+            "  pip install google-api-python-client google-auth google-auth-oauthlib"
+        ) from e
+
+    try:
+        from google_auth_oauthlib.flow import InstalledAppFlow
+        GmailInstalledAppFlow = InstalledAppFlow
+    except ImportError:
+        GmailInstalledAppFlow = None
 
 
 class EmailClient:
-    """SMTP email client for sending screenshots as attachments."""
+    """Gmail API client for sending emails with OAuth authentication."""
 
     def __init__(
         self,
-        smtp_host: str = "smtp.gmail.com",
-        smtp_port: int = 587,
-        username: str = "",
-        password: str = "",
+        credentials_path: Optional[Path] = None,
+        token_path: Optional[Path] = None,
     ):
-        """Initialize email client.
+        """Initialize Gmail client with OAuth.
 
         Args:
-            smtp_host: SMTP server hostname
-            smtp_port: SMTP server port
-            username: SMTP username/email
-            password: SMTP password or app password
+            credentials_path: Path to OAuth client credentials JSON.
+                Defaults to tools/oauth_credentials.json
+            token_path: Path to store OAuth tokens.
+                Defaults to tools/gmail_token.json
         """
-        self.smtp_host = smtp_host
-        self.smtp_port = smtp_port
-        self.username = username
-        self.password = password
+        tools_dir = Path(__file__).parent
+        self.credentials_path = credentials_path or (tools_dir / "oauth_credentials.json")
+        self.token_path = token_path or (tools_dir / "gmail_token.json")
+        self._service = None
+
+    def _get_credentials(self):
+        """Get OAuth credentials, prompting for browser login if needed."""
+        _load_gmail_libs()
+
+        if GmailInstalledAppFlow is None:
+            raise ImportError(
+                "OAuth dependencies not installed. Run:\n"
+                "  pip install google-auth-oauthlib"
+            )
+
+        creds = None
+
+        # Load existing token if available
+        if self.token_path.exists():
+            creds = GmailCredentials.from_authorized_user_file(
+                str(self.token_path), GMAIL_SCOPES
+            )
+
+        # If no valid credentials, run OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                from google.auth.transport.requests import Request
+                creds.refresh(Request())
+                logger.info("Refreshed Gmail OAuth token")
+            else:
+                if not self.credentials_path.exists():
+                    raise FileNotFoundError(
+                        f"OAuth credentials not found at {self.credentials_path}. "
+                        "See tools/README.md for setup instructions."
+                    )
+                flow = GmailInstalledAppFlow.from_client_secrets_file(
+                    str(self.credentials_path), GMAIL_SCOPES
+                )
+                creds = flow.run_local_server(port=0)
+                logger.info("Completed Gmail OAuth login flow")
+
+            # Save token for future use
+            with open(self.token_path, "w") as token_file:
+                token_file.write(creds.to_json())
+            logger.info(f"Saved Gmail OAuth token to {self.token_path}")
+
+        return creds
+
+    @property
+    def service(self):
+        """Lazy-load authenticated Gmail API service."""
+        if self._service is None:
+            _load_gmail_libs()
+            credentials = self._get_credentials()
+            self._service = gmail_build("gmail", "v1", credentials=credentials)
+            logger.info("Authenticated with Gmail API (OAuth 2.0)")
+        return self._service
 
     def send_email(
         self,
@@ -351,8 +435,8 @@ class EmailClient:
         attachment_path: Optional[Path] = None,
         attachment_name: Optional[str] = None,
         cc: Optional[List[str]] = None,
-    ) -> None:
-        """Send an email with optional attachment.
+    ) -> dict:
+        """Send an email with optional attachment via Gmail API.
 
         Args:
             to: List of recipient email addresses
@@ -362,12 +446,14 @@ class EmailClient:
             attachment_name: Custom filename for attachment
             cc: List of CC email addresses
 
+        Returns:
+            Gmail API response with message id and thread id
+
         Raises:
-            smtplib.SMTPException: If email fails to send
+            Exception: If email fails to send
         """
         # Create message
         msg = MIMEMultipart()
-        msg["From"] = self.username
         msg["To"] = ", ".join(to)
         msg["Subject"] = subject
 
@@ -391,13 +477,17 @@ class EmailClient:
                 )
                 msg.attach(part)
 
-        # Send email
-        all_recipients = to + (cc or [])
+        # Encode message for Gmail API
+        raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
 
-        with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-            server.starttls()
-            server.login(self.username, self.password)
-            server.sendmail(self.username, all_recipients, msg.as_string())
+        # Send via Gmail API
+        result = self.service.users().messages().send(
+            userId="me",
+            body={"raw": raw_message}
+        ).execute()
+
+        logger.info(f"Email sent! Message ID: {result.get('id')}")
+        return result
 
 
 # =============================================================================
@@ -629,24 +719,11 @@ def email(
     ] = False,
     dpi: Annotated[int, typer.Option("--dpi", help="Screenshot resolution")] = 150,
 ) -> None:
-    """Generate screenshot and send via email."""
-    # Load SMTP config from environment
-    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-    smtp_user = os.environ.get("SMTP_USER", "")
-    smtp_password = os.environ.get("SMTP_PASSWORD", "")
+    """Generate screenshot and send via Gmail (OAuth authentication).
 
-    if not smtp_user and not dry_run:
-        typer.echo("Error: SMTP_USER environment variable not set", err=True)
-        typer.echo("\nTo set SMTP credentials:", err=True)
-        typer.echo("  export SMTP_USER='your-email@gmail.com'", err=True)
-        typer.echo("  export SMTP_PASSWORD='your-app-password'", err=True)
-        raise typer.Exit(1)
-
-    if not smtp_password and not dry_run:
-        typer.echo("Error: SMTP_PASSWORD environment variable not set", err=True)
-        raise typer.Exit(1)
-
+    First run will open browser for Google login. Token is saved for future use.
+    Requires: tools/oauth_credentials.json (same as Google Drive upload)
+    """
     if not to:
         typer.echo("Error: --to/-t is required", err=True)
         raise typer.Exit(1)
@@ -686,7 +763,7 @@ def email(
             if cc:
                 typer.echo(f"  CC: {', '.join(cc)}")
             typer.echo(f"  Subject: {email_subject}")
-            typer.echo(f"  SMTP: {smtp_host}:{smtp_port}")
+            typer.echo(f"  Auth: Gmail OAuth (tools/oauth_credentials.json)")
             return
 
         # Generate screenshot
@@ -698,14 +775,9 @@ def email(
             generate_screenshot(xlsx_path, output_path, dpi=dpi)
             typer.echo(f"Screenshot saved: {output_path}")
 
-            # Send email
+            # Send email via Gmail API
             typer.echo(f"Sending email to {', '.join(to)}...")
-            client = EmailClient(
-                smtp_host=smtp_host,
-                smtp_port=smtp_port,
-                username=smtp_user,
-                password=smtp_password,
-            )
+            client = EmailClient()  # Uses OAuth credentials from tools/
 
             attachment_name = f"{project}-{date}-state-counts.png"
             client.send_email(
@@ -729,13 +801,6 @@ def email(
         raise typer.Exit(1)
     except ImportError as e:
         typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
-    except smtplib.SMTPAuthenticationError:
-        typer.echo("Error: SMTP authentication failed", err=True)
-        typer.echo("\nFor Gmail, use an App Password:", err=True)
-        typer.echo("  1. Enable 2FA on your Google account", err=True)
-        typer.echo("  2. Go to: https://myaccount.google.com/apppasswords", err=True)
-        typer.echo("  3. Create an app password for 'Mail'", err=True)
         raise typer.Exit(1)
     except Exception as e:
         typer.echo(f"Error: {e}", err=True)

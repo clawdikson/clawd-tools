@@ -496,18 +496,21 @@ pip install dataframe-image matplotlib openpyxl
 
 ### Setup
 
-#### For Email
+#### For Email (Gmail OAuth)
 
-Set SMTP credentials (Gmail example):
+Uses the same OAuth credentials as Google Drive upload (`tools/oauth_credentials.json`).
 
-```bash
-export SMTP_HOST='smtp.gmail.com'      # Default
-export SMTP_PORT='587'                  # Default
-export SMTP_USER='your-email@gmail.com'
-export SMTP_PASSWORD='your-app-password'
-```
+**First run**: Opens browser for Google login. Token is saved to `tools/gmail_token.json` for future use.
 
-**Gmail App Password**: Enable 2FA, then create at https://myaccount.google.com/apppasswords
+**Requirements**:
+- `tools/oauth_credentials.json` (OAuth client credentials)
+- Gmail API enabled in your Google Cloud project
+
+If you don't have OAuth credentials set up yet:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Enable the **Gmail API** (APIs & Services -> Library -> Gmail API)
+3. Create OAuth 2.0 credentials (APIs & Services -> Credentials -> Create Credentials -> OAuth client ID)
+4. Download and save as `tools/oauth_credentials.json`
 
 #### For ClickUp
 
@@ -621,14 +624,23 @@ Comment added
 - **Cause**: ClickUp API rate limiting
 - **Fix**: Wait a few minutes and retry
 
-**Error**: "SMTP_USER environment variable not set"
-- **Fix**: Set your email: `export SMTP_USER='your-email@gmail.com'`
-- **Also set**: `export SMTP_PASSWORD='your-app-password'`
+**Error**: "OAuth credentials not found at tools/oauth_credentials.json"
+- **Fix**: Download OAuth credentials from Google Cloud Console
+- **Steps**:
+  1. Go to https://console.cloud.google.com/
+  2. APIs & Services -> Credentials
+  3. Create OAuth client ID (Desktop app)
+  4. Download JSON and save as `tools/oauth_credentials.json`
 
-**Error**: "SMTP authentication failed"
-- **Cause**: Wrong credentials or using regular password instead of app password
-- **Fix for Gmail**:
-  1. Enable 2FA on your Google account
-  2. Go to https://myaccount.google.com/apppasswords
-  3. Create an app password for 'Mail'
-  4. Use that 16-character password as SMTP_PASSWORD
+**Error**: "Gmail API dependencies not installed"
+- **Fix**: Install Google API libraries:
+  ```bash
+  pip install google-api-python-client google-auth google-auth-oauthlib
+  ```
+
+**Error**: "Access blocked: This app's request is invalid" (during OAuth)
+- **Cause**: OAuth consent screen not configured
+- **Fix**: Configure OAuth consent screen in Google Cloud Console
+  1. APIs & Services -> OAuth consent screen
+  2. Set user type to "External" or "Internal"
+  3. Add your email as test user (if external)

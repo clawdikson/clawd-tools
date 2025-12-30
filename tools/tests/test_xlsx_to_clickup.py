@@ -257,59 +257,62 @@ class TestClickUpClient:
 
 
 class TestEmailClient:
-    """Tests for Email client."""
+    """Tests for Gmail OAuth Email client."""
 
-    @patch("xlsx_to_clickup.smtplib.SMTP")
-    def test_send_email_basic(self, mock_smtp_class):
-        """Should send email with correct parameters."""
-        mock_smtp = Mock()
-        mock_smtp_class.return_value.__enter__ = Mock(return_value=mock_smtp)
-        mock_smtp_class.return_value.__exit__ = Mock(return_value=False)
+    @patch("xlsx_to_clickup.EmailClient._get_credentials")
+    @patch("xlsx_to_clickup.gmail_build")
+    @patch("xlsx_to_clickup._load_gmail_libs")
+    def test_send_email_basic(self, mock_load_libs, mock_build, mock_get_creds):
+        """Should send email via Gmail API."""
+        # Setup mocks
+        mock_service = Mock()
+        mock_messages = Mock()
+        mock_send = Mock()
+        mock_send.execute.return_value = {"id": "msg123", "threadId": "thread123"}
+        mock_messages.send.return_value = mock_send
+        mock_service.users.return_value.messages.return_value = mock_messages
+        mock_build.return_value = mock_service
+        mock_get_creds.return_value = Mock()
 
-        client = EmailClient(
-            smtp_host="smtp.test.com",
-            smtp_port=587,
-            username="user@test.com",
-            password="password123",
-        )
-
-        client.send_email(
+        client = EmailClient()
+        result = client.send_email(
             to=["recipient@test.com"],
             subject="Test Subject",
             body="Test body",
         )
 
-        # Verify SMTP connection
-        mock_smtp_class.assert_called_once_with("smtp.test.com", 587)
-        mock_smtp.starttls.assert_called_once()
-        mock_smtp.login.assert_called_once_with("user@test.com", "password123")
-        mock_smtp.sendmail.assert_called_once()
+        # Verify Gmail API was called
+        assert result["id"] == "msg123"
+        mock_messages.send.assert_called_once()
 
-        # Verify recipients
-        call_args = mock_smtp.sendmail.call_args
-        assert call_args.args[0] == "user@test.com"
-        assert call_args.args[1] == ["recipient@test.com"]
+        # Verify the message structure
+        call_args = mock_messages.send.call_args
+        assert call_args.kwargs["userId"] == "me"
+        assert "raw" in call_args.kwargs["body"]
 
-    @patch("xlsx_to_clickup.smtplib.SMTP")
-    def test_send_email_with_attachment(self, mock_smtp_class):
+    @patch("xlsx_to_clickup.EmailClient._get_credentials")
+    @patch("xlsx_to_clickup.gmail_build")
+    @patch("xlsx_to_clickup._load_gmail_libs")
+    def test_send_email_with_attachment(self, mock_load_libs, mock_build, mock_get_creds):
         """Should include attachment in email."""
-        mock_smtp = Mock()
-        mock_smtp_class.return_value.__enter__ = Mock(return_value=mock_smtp)
-        mock_smtp_class.return_value.__exit__ = Mock(return_value=False)
+        # Setup mocks
+        mock_service = Mock()
+        mock_messages = Mock()
+        mock_send = Mock()
+        mock_send.execute.return_value = {"id": "msg123"}
+        mock_messages.send.return_value = mock_send
+        mock_service.users.return_value.messages.return_value = mock_messages
+        mock_build.return_value = mock_service
+        mock_get_creds.return_value = Mock()
 
-        client = EmailClient(
-            smtp_host="smtp.test.com",
-            smtp_port=587,
-            username="user@test.com",
-            password="password123",
-        )
+        client = EmailClient()
 
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             f.write(b"fake image data")
             file_path = Path(f.name)
 
         try:
-            client.send_email(
+            result = client.send_email(
                 to=["recipient@test.com"],
                 subject="Test Subject",
                 body="Test body",
@@ -318,64 +321,82 @@ class TestEmailClient:
             )
 
             # Verify email was sent
-            mock_smtp.sendmail.assert_called_once()
+            assert result["id"] == "msg123"
+            mock_messages.send.assert_called_once()
 
-            # Check that attachment is in the message
-            call_args = mock_smtp.sendmail.call_args
-            message_content = call_args.args[2]
-            assert "report.png" in message_content
+            # Verify attachment is in the encoded message
+            call_args = mock_messages.send.call_args
+            raw_message = call_args.kwargs["body"]["raw"]
+            # Decode to check content
+            import base64
+            decoded = base64.urlsafe_b64decode(raw_message).decode("utf-8", errors="ignore")
+            assert "report.png" in decoded
         finally:
             file_path.unlink()
 
-    @patch("xlsx_to_clickup.smtplib.SMTP")
-    def test_send_email_with_cc(self, mock_smtp_class):
-        """Should include CC recipients."""
-        mock_smtp = Mock()
-        mock_smtp_class.return_value.__enter__ = Mock(return_value=mock_smtp)
-        mock_smtp_class.return_value.__exit__ = Mock(return_value=False)
+    @patch("xlsx_to_clickup.EmailClient._get_credentials")
+    @patch("xlsx_to_clickup.gmail_build")
+    @patch("xlsx_to_clickup._load_gmail_libs")
+    def test_send_email_with_cc(self, mock_load_libs, mock_build, mock_get_creds):
+        """Should include CC in email headers."""
+        # Setup mocks
+        mock_service = Mock()
+        mock_messages = Mock()
+        mock_send = Mock()
+        mock_send.execute.return_value = {"id": "msg123"}
+        mock_messages.send.return_value = mock_send
+        mock_service.users.return_value.messages.return_value = mock_messages
+        mock_build.return_value = mock_service
+        mock_get_creds.return_value = Mock()
 
-        client = EmailClient(
-            smtp_host="smtp.test.com",
-            smtp_port=587,
-            username="user@test.com",
-            password="password123",
-        )
-
-        client.send_email(
+        client = EmailClient()
+        result = client.send_email(
             to=["recipient@test.com"],
             subject="Test Subject",
             body="Test body",
             cc=["cc1@test.com", "cc2@test.com"],
         )
 
-        # Verify all recipients received the email
-        call_args = mock_smtp.sendmail.call_args
-        all_recipients = call_args.args[1]
-        assert "recipient@test.com" in all_recipients
-        assert "cc1@test.com" in all_recipients
-        assert "cc2@test.com" in all_recipients
+        # Verify email was sent
+        assert result["id"] == "msg123"
 
-    @patch("xlsx_to_clickup.smtplib.SMTP")
-    def test_send_email_multiple_recipients(self, mock_smtp_class):
+        # Verify CC is in the encoded message
+        call_args = mock_messages.send.call_args
+        raw_message = call_args.kwargs["body"]["raw"]
+        import base64
+        decoded = base64.urlsafe_b64decode(raw_message).decode("utf-8", errors="ignore")
+        assert "cc1@test.com" in decoded
+        assert "cc2@test.com" in decoded
+
+    @patch("xlsx_to_clickup.EmailClient._get_credentials")
+    @patch("xlsx_to_clickup.gmail_build")
+    @patch("xlsx_to_clickup._load_gmail_libs")
+    def test_send_email_multiple_recipients(self, mock_load_libs, mock_build, mock_get_creds):
         """Should send to multiple TO recipients."""
-        mock_smtp = Mock()
-        mock_smtp_class.return_value.__enter__ = Mock(return_value=mock_smtp)
-        mock_smtp_class.return_value.__exit__ = Mock(return_value=False)
+        # Setup mocks
+        mock_service = Mock()
+        mock_messages = Mock()
+        mock_send = Mock()
+        mock_send.execute.return_value = {"id": "msg123"}
+        mock_messages.send.return_value = mock_send
+        mock_service.users.return_value.messages.return_value = mock_messages
+        mock_build.return_value = mock_service
+        mock_get_creds.return_value = Mock()
 
-        client = EmailClient(
-            smtp_host="smtp.test.com",
-            smtp_port=587,
-            username="user@test.com",
-            password="password123",
-        )
-
-        client.send_email(
+        client = EmailClient()
+        result = client.send_email(
             to=["r1@test.com", "r2@test.com"],
             subject="Test Subject",
             body="Test body",
         )
 
-        call_args = mock_smtp.sendmail.call_args
-        all_recipients = call_args.args[1]
-        assert "r1@test.com" in all_recipients
-        assert "r2@test.com" in all_recipients
+        # Verify email was sent
+        assert result["id"] == "msg123"
+
+        # Verify recipients in the encoded message
+        call_args = mock_messages.send.call_args
+        raw_message = call_args.kwargs["body"]["raw"]
+        import base64
+        decoded = base64.urlsafe_b64decode(raw_message).decode("utf-8", errors="ignore")
+        assert "r1@test.com" in decoded
+        assert "r2@test.com" in decoded
