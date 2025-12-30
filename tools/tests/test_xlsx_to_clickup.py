@@ -88,13 +88,24 @@ class TestGenerateScreenshot:
 
     @pytest.fixture
     def sample_xlsx(self, tmp_path):
-        """Create a sample XLSX file for testing."""
+        """Create a sample XLSX file for testing (compact summary format)."""
         xlsx_path = tmp_path / "test.xlsx"
         df = pd.DataFrame(
             {
-                "State": ["IL", "TX", "CA"],
-                "Count": [100, 200, 300],
-                "Network": ["Network A", "Network B", "Network C"],
+                "Description": [
+                    "In-scope States:",
+                    "In-Scope Providers (Unique):",
+                    "Out-of-Scope Provider (Unique):",
+                    "In-Scope Providers (Non-Unique):",
+                    "Out-of-Scope Providers (Non-Unique):",
+                ],
+                "Data": [
+                    "IL, TX, CA",
+                    "100 (100.0%)",
+                    "0 (0.0%)",
+                    "200 (95.2%)",
+                    "10 (4.8%)",
+                ],
             }
         )
         df.to_excel(xlsx_path, index=False)

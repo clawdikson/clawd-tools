@@ -40,11 +40,6 @@ import requests
 import typer
 
 try:
-    import dataframe_image as dfi
-except ImportError:
-    dfi = None
-
-try:
     from core.logging import logger
 except ImportError:
     import logging
@@ -118,7 +113,11 @@ def generate_screenshot(
     dpi: int = 150,
     sheet_name: Optional[str] = None,
 ) -> Path:
-    """Generate PNG screenshot from XLSX file.
+    """Generate PNG screenshot from XLSX file - compact summary format.
+
+    Creates a clean summary image showing:
+    - In-scope States
+    - In-Scope/Out-of-Scope Provider counts (Unique and Non-Unique)
 
     Args:
         xlsx_path: Path to XLSX file
@@ -130,14 +129,11 @@ def generate_screenshot(
         Path to generated PNG file
 
     Raises:
-        ImportError: If dataframe-image is not installed
+        ImportError: If matplotlib is not installed
         ValueError: If Excel file is empty
     """
-    if dfi is None:
-        raise ImportError(
-            "dataframe-image is required for screenshot generation. "
-            "Install with: pip install dataframe-image"
-        )
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import FancyBboxPatch
 
     # Read Excel file
     df = pd.read_excel(
@@ -150,46 +146,82 @@ def generate_screenshot(
     if df.empty:
         raise ValueError(f"Excel file is empty: {xlsx_path}")
 
-    # Style the DataFrame for better appearance
-    styled = df.style.set_properties(
-        **{
-            "text-align": "center",
-            "font-size": "10pt",
-            "border": "1px solid #ddd",
-            "padding": "4px",
-        }
-    ).set_table_styles(
-        [
-            {
-                "selector": "th",
-                "props": [
-                    ("background-color", "#4472C4"),
-                    ("color", "white"),
-                    ("font-weight", "bold"),
-                    ("text-align", "center"),
-                    ("padding", "6px"),
-                ],
-            },
-            {
-                "selector": "tr:nth-child(even)",
-                "props": [
-                    ("background-color", "#f9f9f9"),
-                ],
-            },
-        ]
+    # Extract summary rows (first 5 rows contain the key stats)
+    summary_rows = []
+    for idx, row in df.iterrows():
+        desc = str(row.get("Description", "")).strip()
+        data = str(row.get("Data", "")).strip()
+        if desc and desc != "nan" and idx < 5:
+            # Clean up description (remove trailing colon for cleaner display)
+            label = desc.rstrip(":")
+            value = data if data and data != "nan" else ""
+            summary_rows.append((label, value))
+
+    if not summary_rows:
+        raise ValueError(f"No summary data found in: {xlsx_path}")
+
+    # Create figure with matplotlib
+    fig, ax = plt.subplots(figsize=(8, 3), facecolor="white")
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, len(summary_rows) + 1)
+    ax.axis("off")
+
+    # Add a subtle background box
+    bg_box = FancyBboxPatch(
+        (0.1, 0.3),
+        9.8,
+        len(summary_rows) + 0.4,
+        boxstyle="round,pad=0.02,rounding_size=0.1",
+        facecolor="#f8f9fa",
+        edgecolor="#dee2e6",
+        linewidth=1,
     )
+    ax.add_patch(bg_box)
+
+    # Render each row
+    y_pos = len(summary_rows)
+    for label, value in summary_rows:
+        # Label on left (bold, dark gray)
+        ax.text(
+            0.3,
+            y_pos,
+            f"{label}:",
+            fontsize=11,
+            fontweight="bold",
+            color="#333333",
+            verticalalignment="center",
+            fontfamily="sans-serif",
+        )
+        # Value on right (regular, dark blue)
+        ax.text(
+            5.0,
+            y_pos,
+            value,
+            fontsize=11,
+            fontweight="normal",
+            color="#1a5276",
+            verticalalignment="center",
+            fontfamily="sans-serif",
+        )
+        y_pos -= 1
+
+    # Adjust layout
+    plt.tight_layout(pad=0.5)
 
     # Generate output path if not provided
     if output_path is None:
         output_path = Path(tempfile.mktemp(suffix=".png"))
 
-    # Export to PNG using matplotlib backend (no browser dependency)
-    dfi.export(
-        styled,
+    # Save figure
+    fig.savefig(
         str(output_path),
         dpi=dpi,
-        table_conversion="matplotlib",
+        bbox_inches="tight",
+        facecolor="white",
+        edgecolor="none",
+        pad_inches=0.2,
     )
+    plt.close(fig)
 
     return output_path
 
