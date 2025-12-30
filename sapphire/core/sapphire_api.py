@@ -634,6 +634,39 @@ class SapphireAPI:
 
         return list(results)
 
+    async def request(
+        self,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
+        """Make a raw API request to a full URL.
+
+        This is a low-level method for making requests to arbitrary URLs.
+        For typed API calls, prefer the specific methods like get_facets(), get_summary(), etc.
+
+        Args:
+            url: Full URL to request
+            headers: Optional custom headers (merged with defaults)
+
+        Returns:
+            Response data as dict
+
+        Raises:
+            APIError: If request fails
+        """
+        await self._ensure_initialized()
+
+        if not self._browser_queue:
+            raise SessionError("Browser queue not initialized")
+
+        # Build headers
+        request_headers = self._get_headers()
+        if headers:
+            request_headers.update(headers)
+
+        # Make request through browser queue
+        return await self._browser_queue.make_request(url, request_headers)
+
     @property
     def stats(self) -> Dict[str, Any]:
         """Get API statistics."""

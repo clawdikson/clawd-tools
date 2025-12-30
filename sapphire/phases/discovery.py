@@ -47,7 +47,7 @@ except ImportError:
     logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sapphire.core.session import SapphireAPI
+    from sapphire.core.sapphire_api import SapphireAPI
 
 
 # =============================================================================
@@ -123,6 +123,10 @@ def load_geo_codes(
 ) -> dict[str, list[GeoCircle]]:
     """Load geographic circles from JSON files.
 
+    Supports two JSON formats:
+    1. New format: {"geo_codes": [{"state": "IL", "coords": [lat, lng], "radius": 100}]}
+    2. Legacy format: {"IL": {"coords": [{"lat": 40.0, "lng": -89.0, "radius": 100}]}}
+
     Args:
         data_dir: Path to sapphire/data directory
         geo_type: Type of circles to load ("small" or "complete")
@@ -140,8 +144,33 @@ def load_geo_codes(
         raw_data = json.load(f)
 
     result: dict[str, list[GeoCircle]] = {}
-    geo_num = 1
 
+    # New format: {"geo_codes": [{"state": "IL", "coords": [lat, lng], "radius": 100}]}
+    if "geo_codes" in raw_data:
+        for entry in raw_data["geo_codes"]:
+            state = entry.get("state", "").upper()
+            coords = entry.get("coords", [])
+            radius = entry.get("radius", 100)
+            geo_num = entry.get("geo_num", 0)
+
+            if not state or len(coords) < 2:
+                continue
+
+            circle = GeoCircle(
+                state=state,
+                lat=coords[0],
+                lng=coords[1],
+                radius=radius,
+                geo_num=geo_num,
+            )
+
+            if state not in result:
+                result[state] = []
+            result[state].append(circle)
+        return result
+
+    # Legacy format: {"IL": {"coords": [{"lat": 40.0, "lng": -89.0, "radius": 100}]}}
+    geo_num = 1
     for state, state_data in raw_data.items():
         circles = []
         coords = state_data.get("coords", [])
