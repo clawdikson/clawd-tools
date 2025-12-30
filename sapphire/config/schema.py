@@ -174,27 +174,17 @@ class NormalizeConfig(BaseModel):
     )
 
 
-class ProxyConfig(BaseModel):
-    """Proxy configuration."""
-
-    server: str = Field(
-        default="http://gw.dataimpulse.com:10001",
-        description="Proxy server URL",
-    )
-    location: str = Field(
-        default="us",
-        description="Proxy location (us, ca, uk)",
-    )
-
-
 class SessionConfig(BaseModel):
-    """Browser session configuration."""
+    """Browser session configuration.
+
+    Note: Proxy configuration is handled by core.proxy.ProxyManager
+    using environment variables (DECODO_DC_USERNAME, etc.)
+    """
 
     browser_type: Literal["camoufox", "playwright", "patchright"] = Field(
         default="camoufox",
         description="Browser backend type",
     )
-    proxy: ProxyConfig = Field(default_factory=ProxyConfig)
 
 
 class SapphireProjectConfig(BaseModel):

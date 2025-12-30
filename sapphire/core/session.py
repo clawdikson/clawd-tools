@@ -69,12 +69,6 @@ class SapphireSessionConfig:
     browser_type: str = "camoufox"
     headless: bool = False
 
-    # Proxy configuration
-    proxy_server: str = "http://gw.dataimpulse.com:10001"
-    proxy_username: Optional[str] = None
-    proxy_password: Optional[str] = None
-    proxy_location: str = "us"
-
     # Site configuration
     base_url: str = ""
     ci: str = ""
@@ -103,8 +97,6 @@ class SapphireSessionConfig:
         """Create session config from project configuration."""
         return cls(
             browser_type=config.session.browser_type,
-            proxy_server=config.session.proxy.server,
-            proxy_location=config.session.proxy.location,
             base_url=f"https://{config.site.domain}",
             ci=config.site.ci,
             network_id=network_id,
@@ -178,8 +170,8 @@ class SapphireBrowserQueue:
             try:
                 logger.info(f"SapphireBrowserQueue: initializing browser ({self.config.browser_type})")
 
-                # Build proxy configuration
-                proxy_types = [ProxyType.DATAIMPULSE_SESSION]
+                # Build proxy configuration - use Decodo DC proxies (managed by core)
+                proxy_types = [ProxyType.DECODO_DC_STATIC]
 
                 # Create browser session with appropriate backend
                 browser_type = BrowserType.CAMOUFOX if BrowserType else None

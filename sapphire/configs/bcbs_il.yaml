@@ -62,6 +62,3 @@ output:
 
 session:
   browser_type: camoufox
-  proxy:
-    server: http://gw.dataimpulse.com:10001
-    location: us
