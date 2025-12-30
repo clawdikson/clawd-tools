@@ -18,6 +18,7 @@ from typing import Callable, Optional
 
 from sapphire.config.schema import SapphireProjectConfig, StorageBackend
 from sapphire.core.exceptions import SapphireError
+from sapphire.core.sapphire_api import SapphireAPI
 
 # Type alias for custom mapper function
 MapperFunc = Callable[[dict], dict]
@@ -106,22 +107,27 @@ async def run_scraper_async(
     base_dir = Path(config.output.base_dir) if config.output.base_dir else Path(".")
     output_dir = base_dir / curr_date
 
+    # Determine which phases to run
+    if phase is not None:
+        phases_to_run = [phase]
+    else:
+        # Default: run phases 1-3
+        phases_to_run = [1, 2, 3]
+
+        # Add Phase 4 if QA flags set
+        if run_qa or run_validate or run_compare:
+            phases_to_run.append(4)
+
+        # Add Phase 5 if report flags set
+        if run_report or run_excel or run_samples:
+            phases_to_run.append(5)
+
+    # Create SapphireAPI instance for phases that need it
+    # Use first network and empty geo as defaults (request() uses full URLs)
+    default_network_id = config.networks[0].id if config.networks else ""
+    api = SapphireAPI(config, default_network_id, "")
+
     try:
-        # Determine which phases to run
-        if phase is not None:
-            phases_to_run = [phase]
-        else:
-            # Default: run phases 1-3
-            phases_to_run = [1, 2, 3]
-
-            # Add Phase 4 if QA flags set
-            if run_qa or run_validate or run_compare:
-                phases_to_run.append(4)
-
-            # Add Phase 5 if report flags set
-            if run_report or run_excel or run_samples:
-                phases_to_run.append(5)
-
         # Phase 1: Discovery
         if 1 in phases_to_run:
             phase_start = datetime.now()
@@ -132,7 +138,7 @@ async def run_scraper_async(
                 result = await run_discovery(
                     config=config,
                     curr_date=curr_date,
-                    storage_backend=backend,
+                    api=api,
                 )
                 phase_results[1] = PhaseResult(
                     phase=1,
@@ -167,7 +173,6 @@ async def run_scraper_async(
                 result = await run_details(
                     config=config,
                     curr_date=curr_date,
-                    storage_backend=backend,
                 )
                 phase_results[2] = PhaseResult(
                     phase=2,
@@ -321,6 +326,8 @@ async def run_scraper_async(
             started_at=started_at,
             completed_at=datetime.now(),
         )
+    finally:
+        await api.close()
 
 
 def run_scraper_sync(
