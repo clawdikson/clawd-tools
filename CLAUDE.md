@@ -140,14 +140,18 @@ scraping/
 ├── tools/                   # Execution and automation tools
 │   ├── run_parallel.py      # Parallel scraper execution with retry logic
 │   ├── upload_to_drive.py   # Google Drive 7z archive uploader (CLI)
-│   ├── drive_uploader.py    # DriveUploader class with resumable upload support (lazy-loaded Google libs)
-│   ├── xlsx_to_clickup.py   # Generate PNG screenshots from XLSX reports and upload to ClickUp
+│   ├── drive_uploader.py    # DriveUploader class with dual auth (service account + OAuth 2.0), resumable upload, folder validation
+│   ├── xlsx_to_clickup.py   # Generate compact PNG screenshots from XLSX reports (matplotlib), send via Gmail, or upload to ClickUp
 │   ├── project_config.py    # Project config loader (Audiobee config.py + HealthSparq YAML)
 │   ├── drive_folder_mapping.json  # Project -> Google Drive folder ID mapping
-│   ├── requirements.txt     # Dependencies (google-api-python-client, typer, tqdm, dataframe-image)
+│   ├── oauth_credentials.json     # OAuth 2.0 client credentials (shared: Drive + Gmail)
+│   ├── oauth_token.json           # Cached OAuth tokens for Drive API
+│   ├── gmail_token.json           # Cached OAuth tokens for Gmail API
+│   ├── requirements.txt     # Dependencies (google-api-python-client, google-auth-oauthlib, typer, tqdm, matplotlib)
 │   ├── tests/               # Test suite for tools
 │   │   ├── test_project_config.py    # Unit tests for config detection/parsing
-│   │   └── test_drive_integration.py # Integration tests for Drive uploads
+│   │   ├── test_drive_integration.py # Integration tests for Drive uploads
+│   │   └── test_xlsx_to_clickup.py   # Unit tests for screenshot generation and email/ClickUp upload
 │   └── README.md            # Tools documentation (validation, migration, upload)
 │
 ├── scripts/                 # Development and setup scripts
@@ -504,20 +508,38 @@ python tools/upload_to_drive.py validate audiobee_bcbs_il
 ```
 
 **Setup Requirements**:
+
+**Service Account (Shared Drives/External Access)**:
 1. Create Google Cloud project and enable Drive API
 2. Create service account and download JSON credentials
 3. Save credentials to `tools/google_drive_credentials.json`
 4. Share Drive folders with service account email
 5. Add folder mappings to `tools/drive_folder_mapping.json`
 
+**OAuth 2.0 (Personal Drive Folders)**:
+1. Create OAuth 2.0 client in Google Cloud Console
+2. Download credentials and save to `tools/oauth_credentials.json`
+3. Add folder mappings to `tools/drive_folder_mapping.json`
+4. First run will prompt browser login and save token to `tools/oauth_token.json`
+5. Token auto-refreshes on subsequent runs (no re-authentication)
+
 See `tools/README.md` for detailed setup instructions.
 
-### ClickUp Report Upload
+### Report Distribution (Email & ClickUp)
 
-Generate PNG screenshots from XLSX state reports and upload to ClickUp tasks:
+Generate PNG screenshots from XLSX state reports and distribute via email or ClickUp:
 
 ```bash
-# Full workflow: generate screenshot + upload
+# Send screenshot via email (Gmail OAuth)
+python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to recipient@example.com
+
+# Send to multiple recipients with CC
+python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to r1@example.com --to r2@example.com --cc manager@example.com
+
+# Custom subject and body
+python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to recipient@example.com --subject "Weekly Report" --body "Please review"
+
+# Full workflow: generate screenshot + upload to ClickUp
 python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345
 
 # With custom comment
@@ -526,24 +548,36 @@ python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345 --comment "D
 # Override date
 python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345 --curr 20251210
 
-# Dry run (validate without uploading)
+# Dry run (validate without sending/uploading)
+python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to test@example.com --dry-run
 python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345 --dry-run
 
-# Generate screenshot only (no upload)
+# Generate screenshot only (no send/upload)
 python tools/xlsx_to_clickup.py generate audiobee_bcbs_il --output report.png
 
-# Upload existing image
+# Upload existing image to ClickUp
 python tools/xlsx_to_clickup.py upload report.png --task CU12345
 ```
 
 **Setup Requirements**:
+
+For Email (Gmail OAuth):
+1. Uses same OAuth credentials as Google Drive (`tools/oauth_credentials.json`)
+2. Enable Gmail API in Google Cloud Console
+3. First run opens browser for login, saves token to `tools/gmail_token.json`
+4. Token auto-refreshes on subsequent runs
+
+For ClickUp:
 1. Set ClickUp API token: `export CLICKUP_API_TOKEN='pk_...'`
 2. Install dependencies: `pip install dataframe-image openpyxl matplotlib`
 
 **Features**:
 - Auto-detects XLSX file from project's processed directory
-- Generates styled PNG screenshot with matplotlib (no browser dependency)
-- Uploads to ClickUp with automatic filename and metadata comment
+- Generates compact summary screenshots with matplotlib (no dataframe-image dependency)
+- Shows key stats: In-scope States, In-Scope/Out-of-Scope Providers (Unique/Non-Unique)
+- Shared OAuth setup for Drive and Gmail (single credentials file)
+- Email: Sends via Gmail API with attachments
+- ClickUp: Uploads with automatic filename and metadata comment
 - Supports both state_with_surrounding and state_only count files
 
 <!-- END AUTO-MANAGED -->
@@ -1521,22 +1555,27 @@ The `healthsparq/` package has been transformed from a CLI-only tool into an imp
 **What Changed**:
 
 - **tools/upload_to_drive.py**: CLI tool with Typer interface for uploading archives
-- **tools/drive_uploader.py**: DriveUploader class with resumable upload support (10 MB chunks, exponential backoff). Paths resolve relative to tools/ directory for portability (commit c269b2b)
+- **tools/drive_uploader.py**: DriveUploader class with dual authentication (service account + OAuth 2.0), resumable upload support (10 MB chunks, exponential backoff). Added validate_folder_access() for pre-upload permission checks. Enhanced error logging with chunk-level details (commits c269b2b, 838c69c, 6b610aa)
 - **tools/project_config.py**: Project config loader supporting both Audiobee (config.py) and HealthSparq (YAML) projects
 - **tools/drive_folder_mapping.json**: JSON mapping of project names to Google Drive folder IDs
+- **tools/oauth_credentials.json**: OAuth 2.0 client credentials for personal Drive access
+- **tools/oauth_token.json**: Cached OAuth tokens with automatic refresh
 - **tools/tests/**: Test suite with unit tests (project_config) and integration tests (Drive uploads)
-- **audiobee_bcbs_il/run_all.py**: Integration with `upload_archive()` API for automatic upload after QA
-- **.gitignore**: Added exclusions for Google Drive credentials (google_drive_credentials.json, service-account*.json)
+- **audiobee_bcbs_il/run_all.py**: Integration with `upload_archive()` API for automatic upload after QA with OAuth support
+- **.gitignore**: Added exclusions for Google Drive credentials (google_drive_credentials.json, oauth_credentials.json, oauth_token.json, service-account*.json)
 
 **Key Features**:
 
-- **Service account authentication**: No user interaction required (unattended automation)
+- **Dual authentication modes**: Service account (unattended automation) or OAuth 2.0 (personal Drive folders)
+- **OAuth token caching**: Browser login once, auto-refresh on subsequent runs
 - **Resumable uploads**: Handles network interruptions with exponential backoff (max 5 retries)
+- **Folder validation**: Pre-upload access checks with validate_folder_access() to catch permission errors early
 - **Auto-detection**: Detects project type (Audiobee vs HealthSparq) and loads dates from config
 - **Progress reporting**: tqdm-based progress bars with elapsed/remaining time
+- **Enhanced error logging**: Chunk-level debug logs and detailed HTTP error messages (404/403 with content)
 - **Dry-run mode**: Validate configuration without uploading
 - **Structured logging**: Integration with core.logging for debugging
-- **upload_archive() API**: Programmatic API for run_all.py integration
+- **upload_archive() API**: Programmatic API for run_all.py integration with OAuth support
 
 **Usage Pattern**:
 
@@ -1549,21 +1588,40 @@ python tools/upload_to_drive.py audiobee_bcbs_il --dry-run       # Validate only
 # Programmatic usage (from run_all.py)
 from tools.drive_uploader import upload_archive
 
+# With OAuth 2.0 (personal Drive folders)
 result = upload_archive(
     project_name=config.PROJECT_NAME,
     curr_date=config.CURR_DATE,
     base_path=".",  # Archive at ./{CURR_DATE}/{CURR_DATE}.7z
+    use_oauth=True,  # Use OAuth instead of service account
+)
+print(f"Uploaded: {result.get('webViewLink')}")
+
+# With service account (Shared Drives)
+result = upload_archive(
+    project_name=config.PROJECT_NAME,
+    curr_date=config.CURR_DATE,
+    base_path=".",
+    use_oauth=False,  # Default: service account
 )
 print(f"Uploaded: {result.get('webViewLink')}")
 ```
 
 **Setup Requirements**:
 
+**Service Account (Shared Drives/External Access)**:
 1. Create Google Cloud project and enable Drive API
 2. Create service account and download JSON credentials
 3. Save credentials to `tools/google_drive_credentials.json`
 4. Share Drive folders with service account email (from credentials JSON)
 5. Add folder mappings to `tools/drive_folder_mapping.json`
+
+**OAuth 2.0 (Personal Drive Folders)**:
+1. Create OAuth 2.0 client in Google Cloud Console
+2. Download credentials and save to `tools/oauth_credentials.json`
+3. Add folder mappings to `tools/drive_folder_mapping.json`
+4. First run will prompt browser login and save token to `tools/oauth_token.json`
+5. Token auto-refreshes on subsequent runs (no re-authentication)
 
 **Impact**:
 
@@ -1581,22 +1639,27 @@ print(f"Uploaded: {result.get('webViewLink')}")
 
 ### ClickUp Report Upload Tool (Completed - Dec 2025)
 
-**From commits 838c69c**: Added automated ClickUp report upload functionality for state count XLSX files.
+**From commits 838c69c, 59f3d74**: Added automated ClickUp report upload functionality for state count XLSX files with compact summary screenshot format.
 
 **Problem Solved**: Manual screenshot generation from XLSX reports and ClickUp upload was time-consuming. Needed automated way to share QA results with stakeholders.
 
 **What Changed**:
 
-- **tools/xlsx_to_clickup.py**: Typer-based CLI tool for screenshot generation and ClickUp upload
-- **pyproject.toml**: Added dependencies (google, google-auth, dataframe-image, openpyxl, matplotlib)
-- **tools/drive_uploader.py**: Fixed lazy-loading of Google libraries to prevent import errors (commit 838c69c)
+- **Compact summary format** (commit 59f3d74): Replaced full DataFrame table with 5-row summary showing In-scope States, In-Scope/Out-of-Scope Providers (Unique/Non-Unique)
+- **tools/xlsx_to_clickup.py**: Typer-based CLI tool for screenshot generation and ClickUp upload (commit f8b9c05)
+- **Matplotlib-based rendering**: Uses matplotlib directly instead of dataframe-image for cleaner output and better control
+- **pyproject.toml**: Added dependencies (google, google-auth, matplotlib, openpyxl)
+- **tools/drive_uploader.py**: Added validate_folder_access() method for pre-upload permission checks. Added supportsAllDrives flag for Shared Drive compatibility. Enhanced error logging with chunk-level details and HTTP error content decoding (commit 838c69c)
+- **Test coverage**: Updated test fixtures to use new XLSX format with Description/Data columns
 
 **Key Features**:
 
 - **Auto-detection**: Finds state count XLSX files in project's processed directory
   - Primary: `{project}-{date}-state_with_surrounding-counts.xlsx`
   - Fallback: `{project}-{date}-state_only-counts.xlsx`
-- **PNG generation**: Styled screenshots with matplotlib (no browser dependency)
+- **PNG generation**: Compact summary screenshots with matplotlib (no dataframe-image dependency)
+- **Summary format**: Extracts first 5 rows from XLSX (Description/Data columns) showing key provider counts
+- **Styled output**: Clean background box with bold labels and colored values
 - **ClickUp integration**: Uploads with automatic filename and metadata comment
 - **Lazy imports**: Google Drive libraries loaded only when needed (prevents import errors)
 - **Project config integration**: Uses existing `project_config.py` for date/path resolution
@@ -1620,14 +1683,15 @@ python tools/xlsx_to_clickup.py upload report.png --task CU12345
 **Setup Requirements**:
 
 1. Set ClickUp API token: `export CLICKUP_API_TOKEN='pk_...'`
-2. Install dependencies: `pip install dataframe-image openpyxl matplotlib`
+2. Install dependencies: `pip install matplotlib openpyxl`
 
 **Impact**:
 
 - Automates QA report sharing with stakeholders
-- Generates professional-looking screenshots with consistent styling
+- Generates clean, compact summary screenshots (5-row summary instead of full table)
 - Reduces manual copy-paste errors
 - Enables programmatic report upload from run_all.py
+- No longer requires dataframe-image library (matplotlib-only rendering)
 
 ---
 

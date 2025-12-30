@@ -7,7 +7,6 @@
     "4. Add mapping below: \"project_name\": \"folder_id\""
   ],
   "projects": {
-    "audiobee_bcbs_il": "REPLACE_WITH_ACTUAL_FOLDER_ID",
-    "audiobee_excellus": "REPLACE_WITH_ACTUAL_FOLDER_ID"
+    "audiobee_bcbs_il": "1mtoTq7LvUo0UWe0F41XqflnWVAf61j6z"
   }
 }
