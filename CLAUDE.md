@@ -140,10 +140,11 @@ scraping/
 ├── tools/                   # Execution and automation tools
 │   ├── run_parallel.py      # Parallel scraper execution with retry logic
 │   ├── upload_to_drive.py   # Google Drive 7z archive uploader (CLI)
-│   ├── drive_uploader.py    # DriveUploader class with resumable upload support
+│   ├── drive_uploader.py    # DriveUploader class with resumable upload support (lazy-loaded Google libs)
+│   ├── xlsx_to_clickup.py   # Generate PNG screenshots from XLSX reports and upload to ClickUp
 │   ├── project_config.py    # Project config loader (Audiobee config.py + HealthSparq YAML)
 │   ├── drive_folder_mapping.json  # Project -> Google Drive folder ID mapping
-│   ├── requirements.txt     # Dependencies (google-api-python-client, typer, tqdm)
+│   ├── requirements.txt     # Dependencies (google-api-python-client, typer, tqdm, dataframe-image)
 │   ├── tests/               # Test suite for tools
 │   │   ├── test_project_config.py    # Unit tests for config detection/parsing
 │   │   └── test_drive_integration.py # Integration tests for Drive uploads
@@ -510,6 +511,40 @@ python tools/upload_to_drive.py validate audiobee_bcbs_il
 5. Add folder mappings to `tools/drive_folder_mapping.json`
 
 See `tools/README.md` for detailed setup instructions.
+
+### ClickUp Report Upload
+
+Generate PNG screenshots from XLSX state reports and upload to ClickUp tasks:
+
+```bash
+# Full workflow: generate screenshot + upload
+python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345
+
+# With custom comment
+python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345 --comment "December run results"
+
+# Override date
+python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345 --curr 20251210
+
+# Dry run (validate without uploading)
+python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345 --dry-run
+
+# Generate screenshot only (no upload)
+python tools/xlsx_to_clickup.py generate audiobee_bcbs_il --output report.png
+
+# Upload existing image
+python tools/xlsx_to_clickup.py upload report.png --task CU12345
+```
+
+**Setup Requirements**:
+1. Set ClickUp API token: `export CLICKUP_API_TOKEN='pk_...'`
+2. Install dependencies: `pip install dataframe-image openpyxl matplotlib`
+
+**Features**:
+- Auto-detects XLSX file from project's processed directory
+- Generates styled PNG screenshot with matplotlib (no browser dependency)
+- Uploads to ClickUp with automatic filename and metadata comment
+- Supports both state_with_surrounding and state_only count files
 
 <!-- END AUTO-MANAGED -->
 
@@ -1135,7 +1170,8 @@ See **docs/extra/PLAN.md** for full implementation details, code samples, AMI se
 11. **Performance Fixes**: P1 issues completed - SQLiteFS write buffering, async I/O wrappers, JSONLReader context manager (see `todos/` directory)
 12. **HealthSparq Unified Package**: Use `python -m healthsparq` CLI for HealthSparq projects instead of individual audiobee\_\* projects - provides configuration validation, phase control, and better error handling
 13. **Google Drive Uploads**: Use `tools/upload_to_drive.py` to upload 7z archives - auto-detects project type and loads dates from config - see `tools/README.md` for setup
-14. **Credentials Security**: Never commit `tools/google_drive_credentials.json` or service account files - already excluded in .gitignore
+14. **ClickUp Report Upload**: Use `tools/xlsx_to_clickup.py` to generate PNG screenshots from XLSX state reports and upload to ClickUp tasks with automatic metadata - requires CLICKUP_API_TOKEN env var
+15. **Credentials Security**: Never commit `tools/google_drive_credentials.json` or service account files - already excluded in .gitignore
 
 ---
 
@@ -1196,6 +1232,60 @@ for path, record in store:
 ```
 
 **See**: `plans/feat-datastore-abstraction.md` for complete implementation details.
+
+---
+
+### XLSX Screenshot Upload to ClickUp (Completed - Dec 2025)
+
+**From commit f8b9c05**: Added CLI tool to generate PNG screenshots from XLSX state reports and upload to ClickUp with automatic metadata.
+
+**What Changed**:
+
+- **tools/xlsx_to_clickup.py**: Typer-based CLI tool with three commands (run, generate, upload)
+- **tools/project_config.py**: Unified config loader supporting both Audiobee config.py and HealthSparq YAML
+- **Screenshot generation**: Uses dataframe-image with matplotlib backend (cross-platform, no browser dependency)
+- **ClickUp API client**: Exponential backoff on rate limits, automatic retry with max 3 attempts
+- **Dry-run mode**: Validate paths and configuration without uploading
+- **14 unit tests**: Comprehensive test coverage in tools/tests/test_xlsx_to_clickup.py
+- **pyproject.toml**: Added dependencies (dataframe-image, matplotlib, openpyxl)
+
+**Key Features**:
+
+- Reads project configuration to auto-detect CURR_DATE (no manual date entry)
+- Locates XLSX files with fallback pattern (state_with_surrounding > state_only)
+- Generates styled PNG screenshots with custom DPI (default 150)
+- Uploads to ClickUp with task ID and optional comment
+- Proper error handling with descriptive messages
+- Follows project conventions (Typer CLI, config patterns from healthsparq/core)
+
+**Usage Pattern**:
+
+```bash
+# Full workflow: generate + upload to ClickUp
+uv run python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345
+
+# Override date (instead of reading from config.py)
+uv run python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345 --curr 20251227
+
+# Generate screenshot only (no upload)
+uv run python tools/xlsx_to_clickup.py generate audiobee_bcbs_il --output report.png
+
+# Upload existing image
+uv run python tools/xlsx_to_clickup.py upload report.png --task CU12345 --comment "Weekly report"
+
+# Dry run (validate without uploading)
+uv run python tools/xlsx_to_clickup.py run audiobee_bcbs_il --dry-run
+```
+
+**Implementation Details**:
+
+- File resolution priority: `{project}-{date}-state_with_surrounding-counts.xlsx` > `{project}-{date}-state_only-counts.xlsx`
+- Environment variable: `CLICKUP_API_TOKEN` (required for upload)
+- Screenshot styling: Blue header (#4472C4), zebra striping, centered text
+- Rate limiting: Exponential backoff (2^retry seconds) with max 3 retries
+- Response validation: Checks for attachment_id and upload confirmation
+
+**See**: `plans/feat-xlsx-screenshot-clickup-upload.md` for complete implementation plan and `tools/README.md` for usage documentation.
 
 ---
 
@@ -1419,6 +1509,125 @@ The `healthsparq/` package has been transformed from a CLI-only tool into an imp
 
 - `plans/refactor-healthsparq-retry-consolidation.md` - Master plan
 - `plans/context/http-retry-consolidation-phase*.md` - Detailed phase documentation
+
+---
+
+### Google Drive 7z Archive Upload (Completed - Dec 2025)
+
+**From commits 5eaad0e, 6b610aa, c269b2b**: Added automated Google Drive upload functionality for scraper output archives.
+
+**Problem Solved**: Manual uploading of 7z archives to Google Drive was error-prone (wrong folder) and time-consuming for 86+ projects. No automated way to upload after scraping runs completed.
+
+**What Changed**:
+
+- **tools/upload_to_drive.py**: CLI tool with Typer interface for uploading archives
+- **tools/drive_uploader.py**: DriveUploader class with resumable upload support (10 MB chunks, exponential backoff). Paths resolve relative to tools/ directory for portability (commit c269b2b)
+- **tools/project_config.py**: Project config loader supporting both Audiobee (config.py) and HealthSparq (YAML) projects
+- **tools/drive_folder_mapping.json**: JSON mapping of project names to Google Drive folder IDs
+- **tools/tests/**: Test suite with unit tests (project_config) and integration tests (Drive uploads)
+- **audiobee_bcbs_il/run_all.py**: Integration with `upload_archive()` API for automatic upload after QA
+- **.gitignore**: Added exclusions for Google Drive credentials (google_drive_credentials.json, service-account*.json)
+
+**Key Features**:
+
+- **Service account authentication**: No user interaction required (unattended automation)
+- **Resumable uploads**: Handles network interruptions with exponential backoff (max 5 retries)
+- **Auto-detection**: Detects project type (Audiobee vs HealthSparq) and loads dates from config
+- **Progress reporting**: tqdm-based progress bars with elapsed/remaining time
+- **Dry-run mode**: Validate configuration without uploading
+- **Structured logging**: Integration with core.logging for debugging
+- **upload_archive() API**: Programmatic API for run_all.py integration
+
+**Usage Pattern**:
+
+```bash
+# CLI usage
+python tools/upload_to_drive.py audiobee_bcbs_il                  # Auto-loads CURR_DATE
+python tools/upload_to_drive.py christus_health_plan --date 20251227  # HealthSparq
+python tools/upload_to_drive.py audiobee_bcbs_il --dry-run       # Validate only
+
+# Programmatic usage (from run_all.py)
+from tools.drive_uploader import upload_archive
+
+result = upload_archive(
+    project_name=config.PROJECT_NAME,
+    curr_date=config.CURR_DATE,
+    base_path=".",  # Archive at ./{CURR_DATE}/{CURR_DATE}.7z
+)
+print(f"Uploaded: {result.get('webViewLink')}")
+```
+
+**Setup Requirements**:
+
+1. Create Google Cloud project and enable Drive API
+2. Create service account and download JSON credentials
+3. Save credentials to `tools/google_drive_credentials.json`
+4. Share Drive folders with service account email (from credentials JSON)
+5. Add folder mappings to `tools/drive_folder_mapping.json`
+
+**Impact**:
+
+- Eliminates manual Drive uploads for 86+ projects
+- Prevents wrong-folder upload errors
+- Enables unattended automation (service account auth)
+- Reduces post-scraping time (automatic upload in run_all.py)
+
+**See**:
+
+- `plans/feat-google-drive-7z-upload.md` - Complete implementation plan with 12 tasks
+- `tools/README.md` - Setup instructions and troubleshooting guide
+
+---
+
+### ClickUp Report Upload Tool (Completed - Dec 2025)
+
+**From commits 838c69c**: Added automated ClickUp report upload functionality for state count XLSX files.
+
+**Problem Solved**: Manual screenshot generation from XLSX reports and ClickUp upload was time-consuming. Needed automated way to share QA results with stakeholders.
+
+**What Changed**:
+
+- **tools/xlsx_to_clickup.py**: Typer-based CLI tool for screenshot generation and ClickUp upload
+- **pyproject.toml**: Added dependencies (google, google-auth, dataframe-image, openpyxl, matplotlib)
+- **tools/drive_uploader.py**: Fixed lazy-loading of Google libraries to prevent import errors (commit 838c69c)
+
+**Key Features**:
+
+- **Auto-detection**: Finds state count XLSX files in project's processed directory
+  - Primary: `{project}-{date}-state_with_surrounding-counts.xlsx`
+  - Fallback: `{project}-{date}-state_only-counts.xlsx`
+- **PNG generation**: Styled screenshots with matplotlib (no browser dependency)
+- **ClickUp integration**: Uploads with automatic filename and metadata comment
+- **Lazy imports**: Google Drive libraries loaded only when needed (prevents import errors)
+- **Project config integration**: Uses existing `project_config.py` for date/path resolution
+
+**Usage Pattern**:
+
+```bash
+# Full workflow: generate + upload
+python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345
+
+# With custom comment
+python tools/xlsx_to_clickup.py run audiobee_bcbs_il --task CU12345 --comment "December results"
+
+# Generate screenshot only
+python tools/xlsx_to_clickup.py generate audiobee_bcbs_il --output report.png
+
+# Upload existing image
+python tools/xlsx_to_clickup.py upload report.png --task CU12345
+```
+
+**Setup Requirements**:
+
+1. Set ClickUp API token: `export CLICKUP_API_TOKEN='pk_...'`
+2. Install dependencies: `pip install dataframe-image openpyxl matplotlib`
+
+**Impact**:
+
+- Automates QA report sharing with stakeholders
+- Generates professional-looking screenshots with consistent styling
+- Reduces manual copy-paste errors
+- Enables programmatic report upload from run_all.py
 
 ---
 
