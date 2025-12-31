@@ -46,7 +46,11 @@ except ImportError:
 
     logger = logging.getLogger(__name__)
 
-from project_config import load_project_config
+# Handle import from both tools/ directory and workspace root
+try:
+    from project_config import load_project_config
+except ImportError:
+    from tools.project_config import load_project_config
 
 app = typer.Typer(
     name="xlsx-to-clickup",
@@ -837,6 +841,121 @@ def email(
     except Exception as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(2)
+
+
+# =============================================================================
+# Programmatic API (for run_all.py integration)
+# =============================================================================
+
+DEFAULT_RECIPIENTS = ["operations@audiobee.ai"]
+
+
+def send_report_email(
+    project_name: str,
+    curr_date: str,
+    base_path: Optional[str | Path] = None,
+    to: Optional[List[str]] = None,
+    cc: Optional[List[str]] = None,
+    subject: Optional[str] = None,
+    body: Optional[str] = None,
+    dpi: int = 150,
+    dry_run: bool = False,
+) -> dict:
+    """Generate screenshot from XLSX and send via Gmail.
+
+    This is the main entry point for integration with run_all.py.
+
+    Args:
+        project_name: Project name (e.g., "audiobee_bcbs_il")
+        curr_date: Date string in YYYYMMDD format
+        base_path: Base directory containing the project. Defaults to project_name/.
+        to: List of recipient emails. Defaults to DEFAULT_RECIPIENTS.
+        cc: Optional list of CC emails.
+        subject: Custom email subject. Defaults to "State Counts Report: {project} ({date})".
+        body: Custom email body.
+        dpi: Screenshot resolution (default 150).
+        dry_run: If True, validate without sending.
+
+    Returns:
+        dict with:
+            - message_id: Gmail message ID
+            - xlsx_path: Path to source XLSX file
+            - screenshot_path: Path to generated PNG (temp file, deleted after send)
+
+    Raises:
+        FileNotFoundError: If XLSX file not found
+        Exception: If email fails to send
+
+    Example:
+        # In run_all.py:
+        from tools.xlsx_to_clickup import send_report_email
+        result = send_report_email(config.PROJECT_NAME, config.CURR_DATE)
+        print(f"Email sent: {result['message_id']}")
+    """
+    # Set defaults
+    if to is None:
+        to = DEFAULT_RECIPIENTS
+
+    # Construct base path
+    if base_path is None:
+        base_path = Path(project_name)
+    else:
+        base_path = Path(base_path)
+
+    # Resolve XLSX path
+    xlsx_path = resolve_xlsx_path(project_name, curr_date, base_path)
+    logger.info(f"Found XLSX: {xlsx_path}")
+
+    # Build email content
+    email_subject = subject or f"State Counts Report: {project_name} ({curr_date})"
+    email_body = body or (
+        f"State counts report attached.\n\n"
+        f"Project: {project_name}\n"
+        f"Date: {curr_date}\n"
+        f"Source: {xlsx_path.name}"
+    )
+
+    if dry_run:
+        logger.info(f"[DRY RUN] Would send email to {to}")
+        return {
+            "message_id": "dry-run",
+            "xlsx_path": str(xlsx_path),
+            "screenshot_path": "dry-run",
+        }
+
+    # Generate screenshot
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        output_path = Path(tmp.name)
+
+    try:
+        generate_screenshot(xlsx_path, output_path, dpi=dpi)
+        logger.info(f"Screenshot generated: {output_path}")
+
+        # Send email via Gmail API
+        client = EmailClient()
+        attachment_name = f"{project_name}-{curr_date}-state-counts.png"
+
+        result = client.send_email(
+            to=to,
+            subject=email_subject,
+            body=email_body,
+            attachment_path=output_path,
+            attachment_name=attachment_name,
+            cc=cc,
+        )
+
+        logger.info(f"Email sent! Message ID: {result.get('id')}")
+
+        return {
+            "message_id": result.get("id"),
+            "xlsx_path": str(xlsx_path),
+            "screenshot_path": str(output_path),
+        }
+
+    finally:
+        # Cleanup temp file
+        if output_path.exists():
+            output_path.unlink()
 
 
 if __name__ == "__main__":
