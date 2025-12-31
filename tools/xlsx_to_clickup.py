@@ -25,6 +25,7 @@ Environment Variables:
 from __future__ import annotations
 
 import base64
+import json
 import os
 import tempfile
 import time
@@ -104,6 +105,92 @@ def resolve_xlsx_path(project_name: str, curr_date: str, base_path: Path) -> Pat
         f"No state counts file found in {processed_dir}. "
         f"Looked for:\n  - {primary_filename}\n  - {fallback_filename}"
     )
+
+
+def resolve_jsonl_path(project_name: str, curr_date: str, base_path: Path) -> Path:
+    """Find the JSONL output file for a project.
+
+    Pattern: {base_path}/{date}/processed/{project}-{date}.jsonl
+
+    Args:
+        project_name: Project name (e.g., "audiobee_bcbs_il")
+        curr_date: Date in YYYYMMDD format
+        base_path: Base path to the project directory
+
+    Returns:
+        Path to the JSONL file
+
+    Raises:
+        FileNotFoundError: If file doesn't exist
+    """
+    processed_dir = base_path / curr_date / "processed"
+    jsonl_filename = f"{project_name}-{curr_date}.jsonl"
+    jsonl_path = processed_dir / jsonl_filename
+
+    if not jsonl_path.exists():
+        raise FileNotFoundError(f"JSONL file not found: {jsonl_path}")
+
+    return jsonl_path
+
+
+def parse_run_timestamps(xlsx_path: Path) -> dict:
+    """Extract run timestamps from XLSX state counts file.
+
+    Parses cells A8 (First File Created) and A9 (Last File Created).
+
+    Args:
+        xlsx_path: Path to XLSX file with state counts
+
+    Returns:
+        dict with keys:
+        - first_file_created: datetime or None
+        - last_file_created: datetime or None
+        - run_duration_seconds: int or 0
+        - run_ended_str: str (formatted timestamp from Last File Created)
+    """
+    from openpyxl import load_workbook
+    from datetime import datetime
+
+    wb = load_workbook(xlsx_path, data_only=True)
+    ws = wb.active
+
+    result = {
+        "first_file_created": None,
+        "last_file_created": None,
+        "run_duration_seconds": 0,
+        "run_ended_str": "",
+    }
+
+    # Parse cell A8: "First File Created = DD/MM/YYYY HH:MM:SS"
+    cell_a8 = str(ws['A8'].value or "")
+    if "=" in cell_a8:
+        try:
+            timestamp_str = cell_a8.split("=")[1].strip()
+            result["first_file_created"] = datetime.strptime(
+                timestamp_str, "%d/%m/%Y %H:%M:%S"
+            )
+        except (ValueError, IndexError) as e:
+            logger.warning(f"Failed to parse A8: {cell_a8} - {e}")
+
+    # Parse cell A9: "Last File Created = DD/MM/YYYY HH:MM:SS"
+    cell_a9 = str(ws['A9'].value or "")
+    if "=" in cell_a9:
+        try:
+            timestamp_str = cell_a9.split("=")[1].strip()
+            result["last_file_created"] = datetime.strptime(
+                timestamp_str, "%d/%m/%Y %H:%M:%S"
+            )
+            result["run_ended_str"] = timestamp_str
+        except (ValueError, IndexError) as e:
+            logger.warning(f"Failed to parse A9: {cell_a9} - {e}")
+
+    # Calculate duration
+    if result["first_file_created"] and result["last_file_created"]:
+        delta = result["last_file_created"] - result["first_file_created"]
+        result["run_duration_seconds"] = max(0, int(delta.total_seconds()))
+
+    wb.close()
+    return result
 
 
 # =============================================================================
@@ -754,11 +841,22 @@ def email(
         bool, typer.Option("--dry-run", help="Validate without sending")
     ] = False,
     dpi: Annotated[int, typer.Option("--dpi", help="Screenshot resolution")] = 150,
+    s3_upload: Annotated[
+        bool,
+        typer.Option("--s3-upload", help="Upload JSONL to S3 and include metadata in email")
+    ] = False,
+    s3_expires_in: Annotated[
+        int,
+        typer.Option("--s3-expires-in", help="Presigned URL expiration in seconds")
+    ] = 604800,  # 7 days
 ) -> None:
     """Generate screenshot and send via Gmail (OAuth authentication).
 
     First run will open browser for Google login. Token is saved for future use.
     Requires: tools/oauth_credentials.json (same as Google Drive upload)
+
+    With --s3-upload: Also uploads JSONL to S3 and includes presigned URL + metadata in email.
+    Requires: S3_BUCKET_NAME environment variable and AWS credentials.
     """
     if not to:
         typer.echo("Error: --to/-t is required", err=True)
@@ -779,58 +877,45 @@ def email(
 
         typer.echo(f"Using date: {date}")
 
-        # Resolve XLSX path
-        xlsx_path = resolve_xlsx_path(project, date, config.base_path)
-        typer.echo(f"Found: {xlsx_path}")
-
-        # Build email content
-        email_subject = subject or f"State Counts Report: {project} ({date})"
-        email_body = body or (
-            f"State counts report attached.\n\n"
-            f"Project: {project}\n"
-            f"Date: {date}\n"
-            f"Source: {xlsx_path.name}"
-        )
-
+        # Use send_report_email for the actual work
         if dry_run:
+            # Resolve XLSX path for dry-run display
+            xlsx_path = resolve_xlsx_path(project, date, config.base_path)
             typer.echo("\n[DRY RUN] Would generate screenshot and send email")
             typer.echo(f"  Source: {xlsx_path}")
             typer.echo(f"  To: {', '.join(to)}")
             if cc:
                 typer.echo(f"  CC: {', '.join(cc)}")
-            typer.echo(f"  Subject: {email_subject}")
+            typer.echo(f"  Subject: {subject or f'State Counts Report: {project} ({date})'}")
             typer.echo(f"  Auth: Gmail OAuth (tools/oauth_credentials.json)")
+            if s3_upload:
+                typer.echo(f"  S3 Upload: Enabled (expires in {s3_expires_in // 86400} days)")
+                typer.echo(f"  S3 Bucket: {os.environ.get('S3_BUCKET_NAME', '(not set)')}")
             return
 
-        # Generate screenshot
-        typer.echo("Generating screenshot...")
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            output_path = Path(tmp.name)
+        typer.echo("Generating screenshot and sending email...")
+        if s3_upload:
+            typer.echo(f"S3 upload enabled (expires in {s3_expires_in // 86400} days)")
 
-        try:
-            generate_screenshot(xlsx_path, output_path, dpi=dpi)
-            typer.echo(f"Screenshot saved: {output_path}")
+        result = send_report_email(
+            project_name=project,
+            curr_date=date,
+            base_path=config.base_path,
+            to=to,
+            cc=cc,
+            subject=subject,
+            body=body,
+            dpi=dpi,
+            dry_run=False,
+            upload_to_s3=s3_upload,
+            s3_expires_in=s3_expires_in,
+        )
 
-            # Send email via Gmail API
-            typer.echo(f"Sending email to {', '.join(to)}...")
-            client = EmailClient()  # Uses OAuth credentials from tools/
+        typer.echo(typer.style("Email sent successfully!", fg=typer.colors.GREEN))
+        typer.echo(f"Message ID: {result.get('message_id')}")
 
-            attachment_name = f"{project}-{date}-state-counts.png"
-            client.send_email(
-                to=to,
-                subject=email_subject,
-                body=email_body,
-                attachment_path=output_path,
-                attachment_name=attachment_name,
-                cc=cc,
-            )
-
-            typer.echo(typer.style("Email sent successfully!", fg=typer.colors.GREEN))
-
-        finally:
-            # Cleanup temp file
-            if output_path.exists():
-                output_path.unlink()
+        if result.get("s3_key"):
+            typer.echo(typer.style(f"S3 Upload: {result.get('s3_key')}", fg=typer.colors.CYAN))
 
     except FileNotFoundError as e:
         typer.echo(f"Error: {e}", err=True)
@@ -860,10 +945,18 @@ def send_report_email(
     body: Optional[str] = None,
     dpi: int = 150,
     dry_run: bool = False,
+    upload_to_s3: bool = False,
+    s3_expires_in: int = 604800,  # 7 days
 ) -> dict:
     """Generate screenshot from XLSX and send via Gmail.
 
     This is the main entry point for integration with run_all.py.
+
+    When upload_to_s3=True, also:
+    - Uploads JSONL to S3
+    - Generates presigned URL
+    - Parses run timestamps from XLSX
+    - Adds JSON metadata block to email body
 
     Args:
         project_name: Project name (e.g., "audiobee_bcbs_il")
@@ -875,12 +968,17 @@ def send_report_email(
         body: Custom email body.
         dpi: Screenshot resolution (default 150).
         dry_run: If True, validate without sending.
+        upload_to_s3: If True, upload JSONL to S3 and include metadata in email.
+        s3_expires_in: Presigned URL expiration in seconds (default 7 days).
 
     Returns:
         dict with:
             - message_id: Gmail message ID
             - xlsx_path: Path to source XLSX file
             - screenshot_path: Path to generated PNG (temp file, deleted after send)
+            - s3_key: S3 object key (if upload_to_s3=True)
+            - presigned_url: S3 presigned URL (if upload_to_s3=True)
+            - run_metadata: Parsed timestamps (if upload_to_s3=True)
 
     Raises:
         FileNotFoundError: If XLSX file not found
@@ -891,6 +989,13 @@ def send_report_email(
         from tools.xlsx_to_clickup import send_report_email
         result = send_report_email(config.PROJECT_NAME, config.CURR_DATE)
         print(f"Email sent: {result['message_id']}")
+
+        # With S3 upload:
+        result = send_report_email(
+            config.PROJECT_NAME, config.CURR_DATE,
+            upload_to_s3=True
+        )
+        print(f"S3 URL: {result.get('presigned_url')}")
     """
     # Set defaults
     if to is None:
@@ -915,13 +1020,83 @@ def send_report_email(
         f"Source: {xlsx_path.name}"
     )
 
+    # S3 upload results (populated if upload_to_s3=True and succeeds)
+    s3_result = {}
+
+    # Handle S3 upload if enabled
+    if upload_to_s3:
+        try:
+            # Lazy import S3 uploader
+            try:
+                from s3_uploader import S3Uploader, S3Config
+            except ImportError:
+                from tools.s3_uploader import S3Uploader, S3Config
+
+            # Find JSONL file
+            jsonl_path = resolve_jsonl_path(project_name, curr_date, base_path)
+            logger.info(f"Found JSONL: {jsonl_path}")
+
+            # Upload to S3
+            s3_config = S3Config.from_env()
+            s3_config.presigned_expiry = s3_expires_in
+            uploader = S3Uploader(s3_config)
+
+            s3_key, presigned_url = uploader.upload_and_get_url(
+                jsonl_path, project_name, curr_date, s3_expires_in
+            )
+
+            # Parse run timestamps from XLSX
+            run_timestamps = parse_run_timestamps(xlsx_path)
+
+            # Build JSON metadata
+            json_metadata = {
+                "json_url": presigned_url,
+                "project_name": project_name,
+                "run_ended": run_timestamps["run_ended_str"],
+                "run_duration": run_timestamps["run_duration_seconds"],
+                "api_key": "mc!G3mibFdirRd"
+            }
+
+            # Append S3 info to email body
+            expiry_days = s3_expires_in // 86400
+            email_body = f"""{email_body}
+
+---
+JSONL Download URL (expires in {expiry_days} days):
+{presigned_url}
+
+Run Metadata:
+{json.dumps(json_metadata, indent=2)}
+"""
+
+            s3_result = {
+                "s3_key": s3_key,
+                "presigned_url": presigned_url,
+                "run_metadata": run_timestamps,
+                "json_metadata": json_metadata,
+            }
+            logger.info(f"S3 upload complete: {s3_key}")
+
+        except FileNotFoundError as e:
+            # JSONL not found - log warning but continue with email
+            logger.warning(f"S3 upload skipped: {e}")
+        except ValueError as e:
+            # S3_BUCKET_NAME not set
+            logger.warning(f"S3 upload skipped (config error): {e}")
+        except Exception as e:
+            # Other S3 errors - log and continue
+            logger.warning(f"S3 upload failed: {e}")
+
     if dry_run:
         logger.info(f"[DRY RUN] Would send email to {to}")
-        return {
+        result = {
             "message_id": "dry-run",
             "xlsx_path": str(xlsx_path),
             "screenshot_path": "dry-run",
         }
+        if s3_result:
+            result.update(s3_result)
+        return result
 
     # Generate screenshot
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
@@ -946,11 +1121,17 @@ def send_report_email(
 
         logger.info(f"Email sent! Message ID: {result.get('id')}")
 
-        return {
+        response = {
             "message_id": result.get("id"),
             "xlsx_path": str(xlsx_path),
             "screenshot_path": str(output_path),
         }
+
+        # Include S3 results if upload was enabled and succeeded
+        if s3_result:
+            response.update(s3_result)
+
+        return response
 
     finally:
         # Cleanup temp file
