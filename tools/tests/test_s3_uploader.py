@@ -39,11 +39,11 @@ class TestS3Config:
                     assert config.region == "us-east-1"
 
     def test_from_env_missing_bucket(self):
-        """Test error when S3_BUCKET_NAME not set."""
+        """Test error when S3 not configured."""
         from tools.s3_uploader import S3Config
 
         with patch.dict(os.environ, {}, clear=True):
-            with pytest.raises(ValueError, match="S3_BUCKET_NAME environment variable not set"):
+            with pytest.raises(ValueError, match="S3 not configured"):
                 S3Config.from_env()
 
 

@@ -4,15 +4,23 @@
 This module provides S3 upload capabilities for JSONL files.
 Used by xlsx_to_clickup.py for enhanced email reports.
 
-Environment Variables:
-    S3_BUCKET_NAME: Target S3 bucket (required)
-    AWS_ACCESS_KEY_ID: AWS access key (or use ~/.aws/credentials)
-    AWS_SECRET_ACCESS_KEY: AWS secret key (or use ~/.aws/credentials)
-    AWS_DEFAULT_REGION: AWS region (default: us-east-1)
+Configuration (in order of precedence):
+    1. tools/aws_credentials.json (recommended)
+    2. Environment variables:
+       - S3_BUCKET_NAME: Target S3 bucket
+       - AWS_ACCESS_KEY_ID: AWS access key
+       - AWS_SECRET_ACCESS_KEY: AWS secret key
+       - AWS_DEFAULT_REGION: AWS region (default: us-east-1)
+    3. ~/.aws/credentials (boto3 default)
+
+Setup:
+    1. Copy tools/aws_credentials.example.json to tools/aws_credentials.json
+    2. Fill in your AWS credentials and bucket name
 """
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,24 +34,78 @@ except ImportError:
 
 
 # =============================================================================
+# Credentials Loading
+# =============================================================================
+
+# Path to credentials file (relative to this file)
+CREDENTIALS_FILE = Path(__file__).parent / "aws_credentials.json"
+
+
+def _load_credentials_file() -> Optional[dict]:
+    """Load AWS credentials from JSON file if it exists.
+
+    Returns:
+        Dict with credentials or None if file doesn't exist
+    """
+    if not CREDENTIALS_FILE.exists():
+        return None
+
+    try:
+        with open(CREDENTIALS_FILE, "r") as f:
+            creds = json.load(f)
+        logger.debug(f"Loaded AWS credentials from {CREDENTIALS_FILE}")
+        return creds
+    except (json.JSONDecodeError, IOError) as e:
+        logger.warning(f"Failed to load {CREDENTIALS_FILE}: {e}")
+        return None
+
+
+# =============================================================================
 # S3 Configuration
 # =============================================================================
 
 @dataclass
 class S3Config:
-    """S3 configuration from environment variables."""
+    """S3 configuration from credentials file or environment variables."""
     bucket_name: str
     region: str = "us-east-1"
     presigned_expiry: int = 604800  # 7 days
+    access_key_id: Optional[str] = None
+    secret_access_key: Optional[str] = None
 
     @classmethod
     def from_env(cls) -> "S3Config":
-        """Load S3 configuration from environment variables."""
+        """Load S3 configuration from credentials file or environment.
+
+        Precedence:
+            1. tools/aws_credentials.json
+            2. Environment variables
+            3. ~/.aws/credentials (handled by boto3)
+        """
+        # Try credentials file first
+        creds = _load_credentials_file()
+
+        if creds:
+            bucket = creds.get("bucket_name")
+            if not bucket:
+                raise ValueError(
+                    "bucket_name not set in aws_credentials.json.\n"
+                    "Add it to tools/aws_credentials.json"
+                )
+            return cls(
+                bucket_name=bucket,
+                region=creds.get("region", "us-east-1"),
+                access_key_id=creds.get("aws_access_key_id"),
+                secret_access_key=creds.get("aws_secret_access_key"),
+            )
+
+        # Fall back to environment variables
         bucket = os.environ.get("S3_BUCKET_NAME")
         if not bucket:
             raise ValueError(
-                "S3_BUCKET_NAME environment variable not set.\n"
-                "Set it with: export S3_BUCKET_NAME='your-bucket-name'"
+                "S3 not configured. Either:\n"
+                "  1. Copy tools/aws_credentials.example.json to tools/aws_credentials.json\n"
+                "  2. Or set S3_BUCKET_NAME environment variable"
             )
         return cls(
             bucket_name=bucket,
@@ -95,10 +157,23 @@ class S3Uploader:
                 signature_version='s3v4',
                 retries={'max_attempts': 5, 'mode': 'standard'}
             )
+            # Use credentials from config if provided, otherwise boto3 default chain
+            client_kwargs = {
+                's3': None,
+                'region_name': self.config.region,
+                'config': boto_config,
+            }
+            if self.config.access_key_id and self.config.secret_access_key:
+                client_kwargs['aws_access_key_id'] = self.config.access_key_id
+                client_kwargs['aws_secret_access_key'] = self.config.secret_access_key
+                logger.debug("Using credentials from aws_credentials.json")
+
             self._client = boto3_client.client(
                 's3',
                 region_name=self.config.region,
-                config=boto_config
+                config=boto_config,
+                aws_access_key_id=self.config.access_key_id,
+                aws_secret_access_key=self.config.secret_access_key,
             )
         return self._client
 
