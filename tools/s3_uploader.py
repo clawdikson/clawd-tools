@@ -201,7 +201,7 @@ class S3Uploader:
         if not local_path.exists():
             raise FileNotFoundError(f"JSONL file not found: {local_path}")
 
-        object_key = f"{project_name}/{curr_date}/processed/{project_name}-{curr_date}.jsonl"
+        object_key = f"{project_name}-{curr_date}.jsonl"
 
         logger.info(f"Uploading {local_path} to s3://{self.config.bucket_name}/{object_key}")
 

@@ -141,16 +141,20 @@ scraping/
 │   ├── run_parallel.py      # Parallel scraper execution with retry logic
 │   ├── upload_to_drive.py   # Google Drive 7z archive uploader (CLI)
 │   ├── drive_uploader.py    # DriveUploader class with dual auth (service account + OAuth 2.0), resumable upload, folder validation
-│   ├── xlsx_to_clickup.py   # Generate compact PNG screenshots from XLSX reports (matplotlib), send via Gmail, or upload to ClickUp
+│   ├── s3_uploader.py       # S3Uploader class for JSONL uploads with presigned URL generation (boto3, local credentials support)
+│   ├── xlsx_to_clickup.py   # Generate compact PNG screenshots from XLSX reports (matplotlib), send via Gmail with S3 upload, or upload to ClickUp
 │   ├── project_config.py    # Project config loader (Audiobee config.py + HealthSparq YAML)
 │   ├── drive_folder_mapping.json  # Project -> Google Drive folder ID mapping
+│   ├── aws_credentials.json       # AWS credentials (access key, secret key, region, bucket) - local file (gitignored)
+│   ├── aws_credentials.example.json # AWS credentials template
 │   ├── oauth_credentials.json     # OAuth 2.0 client credentials (shared: Drive + Gmail)
 │   ├── oauth_token.json           # Cached OAuth tokens for Drive API
 │   ├── gmail_token.json           # Cached OAuth tokens for Gmail API
-│   ├── requirements.txt     # Dependencies (google-api-python-client, google-auth-oauthlib, typer, tqdm, matplotlib)
+│   ├── requirements.txt     # Dependencies (google-api-python-client, google-auth-oauthlib, typer, tqdm, matplotlib, boto3)
 │   ├── tests/               # Test suite for tools
 │   │   ├── test_project_config.py    # Unit tests for config detection/parsing
 │   │   ├── test_drive_integration.py # Integration tests for Drive uploads
+│   │   ├── test_s3_uploader.py       # Unit tests for S3 upload functionality
 │   │   └── test_xlsx_to_clickup.py   # Unit tests for screenshot generation and email/ClickUp upload
 │   └── README.md            # Tools documentation (validation, migration, upload)
 │
@@ -564,15 +568,19 @@ python tools/xlsx_to_clickup.py upload report.png --task CU12345
 ```python
 from tools.xlsx_to_clickup import send_report_email
 
-# Send to default recipients (operations@audiobee.ai)
+# Send to default recipients with S3 upload (operations@audiobee.ai)
 result = send_report_email(
     project_name=config.PROJECT_NAME,
     curr_date=config.CURR_DATE,
     base_path=".",  # XLSX is at ./{CURR_DATE}/processed/
+    upload_to_s3=True,  # Upload JSONL to S3 and include presigned URL + metadata
 )
 print(f"Email sent: {result['message_id']}")
+if result.get("s3_key"):
+    print(f"S3 Upload: {result['s3_key']}")
+    print(f"Presigned URL: {result['s3_url']}")
 
-# Custom recipients
+# Custom recipients without S3 upload
 result = send_report_email(
     project_name=config.PROJECT_NAME,
     curr_date=config.CURR_DATE,
@@ -581,7 +589,26 @@ result = send_report_email(
     cc=["manager@example.com"],
     subject="Weekly Report",
     body="Please review the attached state counts",
+    upload_to_s3=False,  # Skip S3 upload
 )
+```
+
+**S3 Upload Integration** (NEW):
+
+When `upload_to_s3=True`, the email includes:
+- JSON metadata block with presigned S3 URL, run timestamps, and duration
+- JSONL file uploaded to S3 with 7-day presigned URL
+- Metadata extracted from XLSX state counts (First/Last File Created timestamps)
+
+JSON metadata format:
+```json
+{
+    "json_url": "https://s3.amazonaws.com/bucket/project/date/file.jsonl?signature=...",
+    "project_name": "audiobee_bcbs_il",
+    "run_ended": "2025-12-31 14:30:00 -0500",
+    "run_duration": 7200,
+    "api_key": "mc!G3mibFdirRd"
+}
 ```
 
 **Setup Requirements**:
@@ -591,6 +618,14 @@ For Email (Gmail OAuth):
 2. Enable Gmail API in Google Cloud Console
 3. First run opens browser for login, saves token to `tools/gmail_token.json`
 4. Token auto-refreshes on subsequent runs
+
+For S3 Upload (Optional):
+1. Configure AWS credentials (in order of precedence):
+   - **Local file** (recommended): Copy `tools/aws_credentials.example.json` to `tools/aws_credentials.json` and fill in credentials
+   - **Environment variables**: `S3_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+   - **AWS CLI profile**: `~/.aws/credentials` (boto3 default)
+2. Set region (optional): Default `us-east-1` (can override in credentials file or `AWS_DEFAULT_REGION` env var)
+3. Install dependencies: `pip install boto3`
 
 For ClickUp:
 1. Set ClickUp API token: `export CLICKUP_API_TOKEN='pk_...'`
@@ -602,6 +637,7 @@ For ClickUp:
 - Shows key stats: In-scope States, In-Scope/Out-of-Scope Providers (Unique/Non-Unique)
 - Shared OAuth setup for Drive and Gmail (single credentials file)
 - Email: Sends via Gmail API with attachments, default recipients (operations@audiobee.ai)
+- S3 Upload: Optional JSONL upload with presigned URL (7-day expiry), run metadata extraction
 - ClickUp: Uploads with automatic filename and metadata comment
 - Supports both state_with_surrounding and state_only count files
 - Import handling: Works from both tools/ directory and workspace root
@@ -1286,6 +1322,133 @@ See **docs/extra/PLAN.md** for full implementation details, code samples, AMI se
 ---
 
 ## Recent Enhancements
+
+### S3 Local Credentials File Support (Completed - Dec 2025)
+
+**From commit f7484e5**: Added local credentials file support to S3 uploader for easier configuration without environment variables.
+
+**Problem Solved**: Managing AWS credentials via environment variables required setting them in each shell session. No simple way to persist credentials locally without committing them to git.
+
+**What Changed**:
+
+- **tools/aws_credentials.json**: Local credentials file (gitignored) with bucket_name, access keys, region
+- **tools/aws_credentials.example.json**: Template file with placeholder values
+- **tools/s3_uploader.py**: Enhanced S3Config.from_env() with 3-tier precedence (local file > env vars > ~/.aws/credentials)
+- **tools/tests/test_s3_uploader.py**: Added test coverage for credentials file loading
+
+**Credential Loading Precedence**:
+
+1. **Local file** (recommended): `tools/aws_credentials.json` with all credentials in one place
+2. **Environment variables**: `S3_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`
+3. **AWS CLI profile**: `~/.aws/credentials` (boto3 default credential chain)
+
+**Key Benefits**:
+
+- Simpler setup: Copy example file, fill in credentials, done
+- No shell environment pollution with AWS credentials
+- Consistent with existing pattern (oauth_credentials.json for Drive/Gmail)
+- Security: Credentials file gitignored, not committed to repo
+- Backward compatible: Existing environment variable and ~/.aws/credentials workflows unchanged
+
+**Usage Pattern**:
+
+```bash
+# Setup (one-time)
+cp tools/aws_credentials.example.json tools/aws_credentials.json
+# Edit tools/aws_credentials.json with your credentials
+
+# Use from code (automatic detection)
+from tools.s3_uploader import S3Config, S3Uploader
+
+config = S3Config.from_env()  # Loads from local file first
+uploader = S3Uploader(config)
+```
+
+**See**: Commit f7484e5 for implementation details.
+
+---
+
+### S3 JSONL Upload with Presigned URLs (Completed - Dec 2025)
+
+**From commit 1c6734a**: Added S3 upload functionality for JSONL files with presigned URL generation and enhanced email reports with run metadata.
+
+**Problem Solved**: Stakeholders needed programmatic access to JSONL output files via S3 presigned URLs and run metadata (duration, end time) for API integration and tracking.
+
+**What Changed**:
+
+- **tools/s3_uploader.py** (NEW): S3Uploader class with boto3 for JSONL uploads and presigned URL generation
+- **tools/xlsx_to_clickup.py** (ENHANCED): Added optional S3 upload to `send_report_email()` with JSON metadata block
+- **tools/requirements.txt**: Added boto3>=1.35.0 dependency
+- **audiobee_bcbs_il/run_all.py**: Integrated S3 upload in send_email_report task with `upload_to_s3=True`
+- **plans/feat-s3-jsonl-upload-presigned-url-email.md**: Complete implementation plan
+
+**Key Features**:
+
+- **S3 Upload**: Uploads JSONL files to S3 with key pattern `{project}-{date}.jsonl`
+- **Presigned URLs**: Generates 7-day expiry URLs for secure temporary access
+- **Run Metadata Extraction**: Parses XLSX state counts (cells A8/A9) for First/Last File Created timestamps
+- **JSON Metadata Block**: Embeds structured data in email body with presigned URL, project name, run duration, and API key
+- **Lazy Loading**: boto3 imported only when S3 upload enabled (no import errors without boto3)
+- **Error Handling**: Graceful degradation if S3_BUCKET_NAME not set or boto3 not installed
+
+**S3 Configuration** (3 methods in order of precedence):
+
+1. **Local credentials file** (recommended):
+   - Copy `tools/aws_credentials.example.json` to `tools/aws_credentials.json`
+   - Fill in: `aws_access_key_id`, `aws_secret_access_key`, `bucket_name`, `region`
+   - File is gitignored for security
+
+2. **Environment variables**:
+   - `S3_BUCKET_NAME`: Target S3 bucket (required for upload)
+   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`: AWS credentials
+   - `AWS_DEFAULT_REGION`: AWS region (default: us-east-1)
+
+3. **AWS CLI profile**: `~/.aws/credentials` (boto3 default chain)
+
+**JSON Metadata Format**:
+
+```json
+{
+    "json_url": "https://s3.amazonaws.com/bucket/project/date/file.jsonl?signature=...",
+    "project_name": "audiobee_bcbs_il",
+    "run_ended": "2025-12-31 14:30:00 -0500",
+    "run_duration": 7200,
+    "api_key": "mc!G3mibFdirRd"
+}
+```
+
+**Usage Pattern**:
+
+```python
+from tools.xlsx_to_clickup import send_report_email
+
+# Send email with S3 upload (from run_all.py)
+result = send_report_email(
+    project_name=config.PROJECT_NAME,
+    curr_date=config.CURR_DATE,
+    base_path=".",
+    upload_to_s3=True,  # Upload JSONL to S3 and include presigned URL
+)
+print(f"S3 Key: {result.get('s3_key')}")
+print(f"Presigned URL: {result.get('s3_url')}")
+```
+
+**Testing**:
+
+- **tools/tests/test_s3_uploader.py**: Unit tests for S3Config, S3Uploader, and timestamp parsing
+- Mock-based testing with boto3 client mocking
+- Tests cover file validation, object key format, presigned URL generation, and error handling
+
+**Impact**:
+
+- Enables programmatic JSONL access for stakeholders via presigned URLs
+- Provides run metadata for tracking and API integration
+- Maintains backward compatibility (S3 upload is optional via `upload_to_s3` parameter)
+- No code changes needed for projects that don't use S3
+
+**See**: `plans/feat-s3-jsonl-upload-presigned-url-email.md` for complete implementation details.
+
+---
 
 ### DataStore Abstraction Layer (Completed - Dec 2025)
 

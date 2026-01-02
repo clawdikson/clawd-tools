@@ -180,7 +180,8 @@ def parse_run_timestamps(xlsx_path: Path) -> dict:
             result["last_file_created"] = datetime.strptime(
                 timestamp_str, "%d/%m/%Y %H:%M:%S"
             )
-            result["run_ended_str"] = timestamp_str
+            # Format as YYYY-MM-DD HH:MM:SS with -0330 timezone (Newfoundland)
+            result["run_ended_str"] = result["last_file_created"].strftime("%Y-%m-%d %H:%M:%S") + " -0330"
         except (ValueError, IndexError) as e:
             logger.warning(f"Failed to parse A9: {cell_a9} - {e}")
 
@@ -932,7 +933,7 @@ def email(
 # Programmatic API (for run_all.py integration)
 # =============================================================================
 
-DEFAULT_RECIPIENTS = ["operations@audiobee.ai"]
+DEFAULT_RECIPIENTS = ["operations@audiobee.ai", "dikson@audiobee.ai"]
 
 
 def send_report_email(
@@ -1011,12 +1012,16 @@ def send_report_email(
     xlsx_path = resolve_xlsx_path(project_name, curr_date, base_path)
     logger.info(f"Found XLSX: {xlsx_path}")
 
+    # Parse run timestamps from XLSX (needed for email body)
+    run_timestamps = parse_run_timestamps(xlsx_path)
+
     # Build email content
-    email_subject = subject or f"State Counts Report: {project_name} ({curr_date})"
+    email_subject = subject or f"Scrape Completed: {project_name} ({curr_date})"
     email_body = body or (
-        f"State counts report attached.\n\n"
         f"Project: {project_name}\n"
-        f"Date: {curr_date}\n"
+        f"Run Date: {curr_date}\n"
+        f"Run Ended: {run_timestamps['run_ended_str']}\n"
+        f"Run Duration: {run_timestamps['run_duration_seconds']} seconds\n"
         f"Source: {xlsx_path.name}"
     )
 
@@ -1045,10 +1050,7 @@ def send_report_email(
                 jsonl_path, project_name, curr_date, s3_expires_in
             )
 
-            # Parse run timestamps from XLSX
-            run_timestamps = parse_run_timestamps(xlsx_path)
-
-            # Build JSON metadata
+            # Build JSON metadata (run_timestamps already parsed above)
             json_metadata = {
                 "json_url": presigned_url,
                 "project_name": project_name,
@@ -1057,16 +1059,18 @@ def send_report_email(
                 "api_key": "mc!G3mibFdirRd"
             }
 
-            # Append S3 info to email body
+            # Append S3 info to email body with clear JSON block for easy copy-paste
             expiry_days = s3_expires_in // 86400
+            json_block = json.dumps(json_metadata, indent=2)
             email_body = f"""{email_body}
 
 ---
 JSONL Download URL (expires in {expiry_days} days):
 {presigned_url}
 
-Run Metadata:
-{json.dumps(json_metadata, indent=2)}
+--- JSON START (copy from here) ---
+{json_block}
+--- JSON END ---
 """
 
             s3_result = {
