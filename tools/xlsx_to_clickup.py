@@ -1056,7 +1056,7 @@ def send_report_email(
                 "project_name": project_name,
                 "run_ended": run_timestamps["run_ended_str"],
                 "run_duration": run_timestamps["run_duration_seconds"],
-                "api_key": "mc!G3mibFdirRd"
+                "api_key": ""
             }
 
             # Append S3 info to email body with clear JSON block for easy copy-paste
