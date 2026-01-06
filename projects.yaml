@@ -172,8 +172,6 @@ projects:
     coverage: []
     states: [TX]
     status: active
-    dir_name: audiobee_kelsey_care
-    notes: "Directory named kelsey_care (with underscore)"
 
   audiobee_la_care_health:
     site_type: carrier
@@ -589,8 +587,7 @@ projects:
     coverage: [aca]
     states: [CA, CO, CT, GA, IN, KY, ME, MO, NH, NV, NY, OH, VA, WI]
     status: active
-    dir_name: audiobee_anthem_new
-    notes: "Directory named anthem_new, advanced architecture with task_server/"
+    notes: "Advanced architecture with task_server/"
 
   audiobee_healthy_blue:
     site_type: anthem
