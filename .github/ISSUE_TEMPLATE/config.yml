@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://bitbucket.org/productaudiobee/scraping-base/src/master/docs/
+    about: Check the documentation before opening an issue
+  - name: Beads Issue Tracker
+    url: https://github.com/Dicklesworthstone/beads_viewer
+    about: This project uses Beads (bd) for AI-native issue tracking

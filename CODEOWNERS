@@ -1,0 +1,68 @@
+# =============================================================================
+# CODEOWNERS - Code Ownership Definitions
+# =============================================================================
+# This file defines who is responsible for code review in different parts
+# of the repository. Owners are automatically requested for review when
+# someone opens a pull request that modifies code they own.
+#
+# Format: <pattern> <owner> [<owner>...]
+# Owners can be @username, @org/team, or email addresses
+# =============================================================================
+
+# =============================================================================
+# Default owners (fallback for all files)
+# =============================================================================
+*                           @productaudiobee/scraping-team
+
+# =============================================================================
+# Core shared utilities - require careful review
+# =============================================================================
+/core/                      @productaudiobee/core-maintainers
+/core/session/              @productaudiobee/core-maintainers
+/core/io/                   @productaudiobee/core-maintainers
+/core/logging/              @productaudiobee/core-maintainers
+/core/mapper/               @productaudiobee/core-maintainers
+/core/qa/                   @productaudiobee/core-maintainers
+
+# =============================================================================
+# HealthSparq library - unified scraper package
+# =============================================================================
+/healthsparq/               @productaudiobee/healthsparq-maintainers
+/healthsparq/core/          @productaudiobee/healthsparq-maintainers
+/healthsparq/phases/        @productaudiobee/healthsparq-maintainers
+/healthsparq/configs/       @productaudiobee/scraping-team
+
+# =============================================================================
+# Tools and automation
+# =============================================================================
+/tools/                     @productaudiobee/tools-maintainers
+/tools/drive_uploader.py    @productaudiobee/tools-maintainers
+/tools/s3_uploader.py       @productaudiobee/tools-maintainers
+/tools/run_parallel.py      @productaudiobee/tools-maintainers
+
+# =============================================================================
+# Documentation
+# =============================================================================
+/docs/                      @productaudiobee/scraping-team
+*.md                        @productaudiobee/scraping-team
+CLAUDE.md                   @productaudiobee/core-maintainers
+AGENTS.md                   @productaudiobee/core-maintainers
+
+# =============================================================================
+# Configuration and CI
+# =============================================================================
+pyproject.toml              @productaudiobee/core-maintainers
+.gitignore                  @productaudiobee/scraping-team
+.env.example                @productaudiobee/scraping-team
+
+# =============================================================================
+# Individual scraper projects - team ownership
+# =============================================================================
+/audiobee_*/                @productaudiobee/scraping-team
+
+# =============================================================================
+# Security-sensitive files - require security review
+# =============================================================================
+**/credentials*             @productaudiobee/security-team
+**/oauth*                   @productaudiobee/security-team
+**/*token*                  @productaudiobee/security-team
