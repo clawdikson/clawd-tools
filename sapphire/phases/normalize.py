@@ -441,7 +441,7 @@ def load_raw_records(
                 storage_backend=storage_backend,
                 read_only=True,
             ) as store:
-                for path, record in store.iter_results():
+                for path, record in store:
                     yield record
         except StorageError as e:
             logger.error(f"Failed to load from store: {e}")

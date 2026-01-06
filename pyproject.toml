@@ -24,6 +24,7 @@ dependencies = [
     "boto3>=1.42.19",
     "xlsxwriter>=3.2.9",
     "py7zr>=1.1.0",
+    "camoufox[geoip]>=0.4.11",
 ]
 
 [build-system]
