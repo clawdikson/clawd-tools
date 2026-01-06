@@ -8,6 +8,7 @@
 #   python tools/project_registry.py list --site-type sapphire
 #   python tools/project_registry.py list --state TX
 #   python tools/project_registry.py list --coverage medicaid
+#   python tools/project_registry.py list --status not_implemented
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -32,14 +33,27 @@ coverage_types:
   large_group: "Employer-sponsored plans"
 
 # -----------------------------------------------------------------------------
+# Status Definitions
+# -----------------------------------------------------------------------------
+# active: Implemented and running
+# not_implemented: In CSV/planned but no code yet
+# archived: Previously active, now deprecated
+
+# -----------------------------------------------------------------------------
 # Project Registry
 # -----------------------------------------------------------------------------
 projects:
 
   # ===========================================================================
-  # CARRIER PROJECTS (35)
+  # CARRIER PROJECTS
   # Direct API integration with carrier-specific endpoints
   # ===========================================================================
+
+  audiobee_aetna_better_health_of_oklahoma:
+    site_type: carrier
+    coverage: [medicaid]
+    states: [OK]
+    status: not_implemented
 
   audiobee_banner_health:
     site_type: carrier
@@ -53,25 +67,24 @@ projects:
     states: [TX]
     status: active
 
+  audiobee_bcbs_ma:
+    site_type: carrier
+    coverage: [medicare_advantage, aca, large_group]
+    states: [MA]
+    status: not_implemented
+
   audiobee_blueshield_ca:
     site_type: carrier
     coverage: [medicare_advantage, aca]
     states: [CA]
     status: active
 
-  audiobee_blueshield_ca_server:
-    site_type: carrier
-    coverage: [medicare_advantage, aca]
-    states: [CA]
-    status: active
-    notes: "Server variant of blueshield_ca"
-
   audiobee_blueshield_ca-new:
     site_type: carrier
     coverage: [medicare_advantage, aca]
     states: [CA]
     status: active
-    notes: "New implementation of blueshield_ca"
+    notes: "Primary blueshield_ca implementation"
 
   audiobee_champion_health:
     site_type: carrier
@@ -90,6 +103,13 @@ projects:
     coverage: [medicaid]
     states: [DE]
     status: active
+
+  audiobee_devoted_health:
+    site_type: carrier
+    coverage: []
+    states: [ALL]
+    status: not_implemented
+    notes: "National coverage"
 
   audiobee_emblem:
     site_type: carrier
@@ -140,23 +160,33 @@ projects:
     states: [NJ]
     status: active
 
-  audiobee_innovataion_health:
+  audiobee_innovation_health:
     site_type: carrier
     coverage: [aca, large_group]
     states: [VA]
-    status: active
+    status: not_implemented
+    notes: "Correct spelling - replaces archived innovataion_health"
 
-  audiobee_kelsey_care:
+  audiobee_kelseycare:
     site_type: carrier
     coverage: []
     states: [TX]
     status: active
+    dir_name: audiobee_kelsey_care
+    notes: "Directory named kelsey_care (with underscore)"
 
   audiobee_la_care_health:
     site_type: carrier
     coverage: [medicaid]
     states: [CA]
     status: active
+
+  audiobee_mainecare:
+    site_type: carrier
+    coverage: [medicaid]
+    states: [ME]
+    status: not_implemented
+    notes: "Medicaid site"
 
   audiobee_multiplan:
     site_type: carrier
@@ -263,7 +293,7 @@ projects:
     status: active
 
   # ===========================================================================
-  # HEALTHSPARQ PROJECTS (24)
+  # HEALTHSPARQ PROJECTS
   # Use: python -m healthsparq run <project> --curr YYYYMMDD
   # ===========================================================================
 
@@ -280,12 +310,6 @@ projects:
     states: [PA]
     status: active
     config_ref: healthsparq/configs/amerihealth_administrators_pa.yaml
-
-  audiobee_amerihealth_caritas_fl:
-    site_type: healthsparq
-    coverage: [medicaid]
-    states: [FL]
-    status: active
 
   audiobee_amerihealth_caritas_vip_de:
     site_type: healthsparq
@@ -307,6 +331,13 @@ projects:
     states: [WA, OR, ID, UT]
     status: active
     config_ref: healthsparq/configs/asuris_northwest.yaml
+
+  audiobee_bluecard_national:
+    site_type: healthsparq
+    coverage: []
+    states: [ALL]
+    status: active
+    notes: "National BlueCard network"
 
   audiobee_capital_blue:
     site_type: healthsparq
@@ -384,6 +415,12 @@ projects:
     status: active
     config_ref: healthsparq/configs/medica.yaml
 
+  audiobee_medica_mayo_medical:
+    site_type: healthsparq
+    coverage: []
+    states: [MN, SD, ND, WI]
+    status: not_implemented
+
   audiobee_medica_sg:
     site_type: healthsparq
     coverage: [aca]
@@ -441,7 +478,7 @@ projects:
     config_ref: healthsparq/configs/wellmark_medicare.yaml
 
   # ===========================================================================
-  # SAPPHIRE PROJECTS (15)
+  # SAPPHIRE PROJECTS
   # ProviderFinderOnline platform - standardized API structure
   # ===========================================================================
 
@@ -499,11 +536,11 @@ projects:
     states: [TX]
     status: active
 
-  audiobee_bcbs_vt:
+  audiobee_braven_health:
     site_type: sapphire
     coverage: []
-    states: [VT]
-    status: active
+    states: [NJ]
+    status: not_implemented
 
   audiobee_carefirst:
     site_type: sapphire
@@ -537,7 +574,7 @@ projects:
     status: active
 
   # ===========================================================================
-  # ANTHEM PROJECTS (4)
+  # ANTHEM PROJECTS
   # Wellpoint/Anthem infrastructure - multi-phase with intelligent filtering
   # ===========================================================================
 
@@ -547,12 +584,13 @@ projects:
     states: [AZ, DC, GA, IA, NJ, NM, TN, TX, WA]
     status: active
 
-  audiobee_anthem_new:
+  audiobee_anthem:
     site_type: anthem
     coverage: [aca]
     states: [CA, CO, CT, GA, IN, KY, ME, MO, NH, NV, NY, OH, VA, WI]
     status: active
-    notes: "Advanced architecture with task_server/"
+    dir_name: audiobee_anthem_new
+    notes: "Directory named anthem_new, advanced architecture with task_server/"
 
   audiobee_healthy_blue:
     site_type: anthem
@@ -560,15 +598,14 @@ projects:
     states: [LA, MO, KS]
     status: active
 
-  audiobee_bluecard_national:
+  audiobee_simply_healthcare:
     site_type: anthem
-    coverage: []
-    states: [ALL]
-    status: active
-    notes: "National BlueCard network"
+    coverage: [medicare_advantage, medicaid]
+    states: [FL]
+    status: not_implemented
 
   # ===========================================================================
-  # HEALTHTRIOCONNECT PROJECTS (2)
+  # HEALTHTRIOCONNECT PROJECTS
   # Node.js + Python hybrid - browser automation with Python processing
   # ===========================================================================
 
@@ -585,7 +622,7 @@ projects:
     status: active
 
   # ===========================================================================
-  # WERALLY PROJECTS (2)
+  # WERALLY PROJECTS
   # UHC platform - grid-based geographic search
   # ===========================================================================
 
@@ -608,7 +645,7 @@ projects:
     status: active
 
   # ===========================================================================
-  # PROVIDER LENZ PROJECTS (1)
+  # PROVIDER LENZ PROJECTS
   # Anti-bot protected - requires captcha solving
   # ===========================================================================
 

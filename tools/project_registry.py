@@ -85,6 +85,25 @@ def get_project_info(project_name: str) -> Optional[dict]:
     return projects.get(project_name)
 
 
+def get_projects_by_status(status: str) -> list[str]:
+    """Get all projects with a specific status."""
+    status = status.lower()
+    projects = get_projects()
+    return [
+        name
+        for name, config in projects.items()
+        if config.get("status", "active") == status
+    ]
+
+
+def get_project_dir(project_name: str) -> str:
+    """Get the actual directory name for a project (handles dir_name override)."""
+    info = get_project_info(project_name)
+    if info and info.get("dir_name"):
+        return info["dir_name"]
+    return project_name
+
+
 @app.command()
 def list(
     site_type: Optional[str] = typer.Option(
@@ -96,8 +115,14 @@ def list(
     coverage: Optional[str] = typer.Option(
         None, "--coverage", "-c", help="Filter by coverage type (medicare_advantage, medicaid, aca, large_group)"
     ),
+    status: Optional[str] = typer.Option(
+        None, "--status", help="Filter by status (active, not_implemented, archived)"
+    ),
     names_only: bool = typer.Option(
         False, "--names-only", "-n", help="Output project names only (for scripting)"
+    ),
+    dirs_only: bool = typer.Option(
+        False, "--dirs-only", "-d", help="Output directory names only (handles dir_name overrides)"
     ),
 ):
     """List projects with optional filters."""
@@ -116,6 +141,10 @@ def list(
         matching = set(get_projects_by_coverage(coverage))
         projects = {k: v for k, v in projects.items() if k in matching}
 
+    if status:
+        matching = set(get_projects_by_status(status))
+        projects = {k: v for k, v in projects.items() if k in matching}
+
     if not projects:
         typer.echo("No projects match the specified filters.")
         raise typer.Exit(1)
@@ -123,13 +152,18 @@ def list(
     if names_only:
         for name in sorted(projects.keys()):
             typer.echo(name)
+    elif dirs_only:
+        for name in sorted(projects.keys()):
+            typer.echo(get_project_dir(name))
     else:
         typer.echo(f"\nFound {len(projects)} project(s):\n")
         for name in sorted(projects.keys()):
             config = projects[name]
             site = config.get("site_type", "unknown")
             states = ", ".join(config.get("states", []))
-            typer.echo(f"  {name}")
+            proj_status = config.get("status", "active")
+            status_marker = "" if proj_status == "active" else f" [{proj_status.upper()}]"
+            typer.echo(f"  {name}{status_marker}")
             typer.echo(f"    Site: {site} | States: {states}")
 
 
