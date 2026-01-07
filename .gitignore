@@ -20,6 +20,8 @@ audiobee_*/
 *.egg-info/
 .coverage
 *.7z
+*.db
+
 # Continuous Claude cache (local only)
 .claude/cache/
 
