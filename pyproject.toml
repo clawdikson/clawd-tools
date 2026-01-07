@@ -26,6 +26,12 @@ dependencies = [
     "py7zr>=1.1.0",
     "camoufox[geoip]>=0.4.11",
     "ruff>=0.8.0",
+    "python-dotenv>=1.2.1",
+    "pydantic-settings>=2.12.0",
+    "loguru>=0.7.3",
+    "patchright>=1.57.2",
+    "curl-cffi>=0.14.0",
+    "core",
 ]
 
 [build-system]
@@ -152,3 +158,11 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["shared_package.*", "core.*"]
 ignore_missing_imports = true
+
+[tool.uv.workspace]
+members = [
+    "core",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
