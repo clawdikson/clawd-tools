@@ -9,10 +9,10 @@ This hook runs when a subagent completes and:
 """
 
 import json
-import sys
 import os
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 
 def get_project_dir() -> Path:
@@ -96,7 +96,7 @@ def main():
     """Main hook entry point."""
     try:
         # Read input from stdin
-        input_data = json.load(sys.stdin)
+        json.load(sys.stdin)
 
         # Read findings
         findings = read_findings()

@@ -13,7 +13,6 @@ Usage:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 import yaml
@@ -79,7 +78,7 @@ def get_projects_by_coverage(coverage: str) -> list[str]:
     ]
 
 
-def get_project_info(project_name: str) -> Optional[dict]:
+def get_project_info(project_name: str) -> dict | None:
     """Get detailed info for a specific project."""
     projects = get_projects()
     return projects.get(project_name)
@@ -106,16 +105,16 @@ def get_project_dir(project_name: str) -> str:
 
 @app.command()
 def list(
-    site_type: Optional[str] = typer.Option(
+    site_type: str | None = typer.Option(
         None, "--site-type", "-t", help="Filter by site type (carrier, healthsparq, sapphire, anthem, etc.)"
     ),
-    state: Optional[str] = typer.Option(
+    state: str | None = typer.Option(
         None, "--state", "-s", help="Filter by state (e.g., TX, CA, NY)"
     ),
-    coverage: Optional[str] = typer.Option(
+    coverage: str | None = typer.Option(
         None, "--coverage", "-c", help="Filter by coverage type (medicare_advantage, medicaid, aca, large_group)"
     ),
-    status: Optional[str] = typer.Option(
+    status: str | None = typer.Option(
         None, "--status", help="Filter by status (active, not_implemented, archived)"
     ),
     names_only: bool = typer.Option(
@@ -171,7 +170,7 @@ def list(
 def show(project_name: str = typer.Argument(..., help="Project name (e.g., audiobee_bcbs_il)")):
     """Show detailed information for a specific project."""
     info = get_project_info(project_name)
-    
+
     if not info:
         typer.echo(f"Project '{project_name}' not found in manifest.")
         raise typer.Exit(1)
@@ -182,13 +181,13 @@ def show(project_name: str = typer.Argument(..., help="Project name (e.g., audio
     typer.echo(f"\n{project_name}")
     typer.echo("=" * len(project_name))
     typer.echo(f"Site Type:  {info.get('site_type', 'N/A')}")
-    
+
     site_desc = site_types.get(info.get("site_type", ""), "")
     if site_desc:
         typer.echo(f"            {site_desc}")
-    
+
     typer.echo(f"States:     {', '.join(info.get('states', []))}")
-    
+
     coverage = info.get("coverage", [])
     if coverage:
         typer.echo(f"Coverage:   {', '.join(coverage)}")
@@ -198,15 +197,15 @@ def show(project_name: str = typer.Argument(..., help="Project name (e.g., audio
                 typer.echo(f"            - {c}: {desc}")
     else:
         typer.echo("Coverage:   Not specified")
-    
+
     typer.echo(f"Status:     {info.get('status', 'unknown')}")
-    
+
     if info.get("config_ref"):
         typer.echo(f"Config:     {info['config_ref']}")
-    
+
     if info.get("notes"):
         typer.echo(f"Notes:      {info['notes']}")
-    
+
     typer.echo()
 
 
@@ -229,7 +228,7 @@ def stats():
     for config in projects.values():
         site = config.get("site_type", "unknown")
         site_counts[site] = site_counts.get(site, 0) + 1
-    
+
     for site, count in sorted(site_counts.items(), key=lambda x: -x[1]):
         desc = site_types.get(site, "")[:40]
         typer.echo(f"  {site:20} {count:3}  {desc}")
@@ -243,7 +242,7 @@ def stats():
     for config in projects.values():
         for cov in config.get("coverage", []):
             coverage_counts[cov] = coverage_counts.get(cov, 0) + 1
-    
+
     for cov, count in sorted(coverage_counts.items(), key=lambda x: -x[1]):
         desc = coverage_types.get(cov, "")
         typer.echo(f"  {cov:20} {count:3}  {desc}")
@@ -258,7 +257,7 @@ def stats():
         for state in config.get("states", []):
             if state != "ALL":
                 state_counts[state] = state_counts.get(state, 0) + 1
-    
+
     for state, count in sorted(state_counts.items(), key=lambda x: -x[1])[:15]:
         typer.echo(f"  {state:5} {count:3}")
 
@@ -280,7 +279,7 @@ def types():
     typer.echo("-" * 60)
     for name, desc in coverage_types.items():
         typer.echo(f"  {name:20} {desc}")
-    
+
     typer.echo()
 
 

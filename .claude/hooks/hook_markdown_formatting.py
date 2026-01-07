@@ -15,7 +15,6 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-
 PYTHON_BLOCK_PATTERN = r"^( *)```(?:python|py|\{[ ]*\.py[ ]*\.annotate[ ]*\})\n(.*?)\n\1```"
 BASH_BLOCK_PATTERN = r"^( *)```(?:bash|sh|shell)\n(.*?)\n\1```"
 LANGUAGE_TAGS = {"python": ["python", "py", "{ .py .annotate }"], "bash": ["bash", "sh", "shell"]}

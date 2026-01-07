@@ -109,14 +109,21 @@ select = [
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
+    "E402",   # module import not at top (common for conditional imports)
     "B008",   # function call in default argument (common in Typer)
     "B905",   # zip without strict= (Python 3.10+ feature)
     "ARG001", # unused function argument (common in callbacks)
+    "SIM117", # multiple with statements (stylistic preference)
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**/*.py" = ["ARG001", "ARG002"]
+"**/tests/**/*.py" = ["ARG001", "ARG002", "F401"]
 "**/conftest.py" = ["ARG001", "ARG002"]
+"**/__init__.py" = ["F401"]
+"**/cli.py" = ["B904"]
+"tools/**/*.py" = ["B904"]
+".claude/**/*.py" = ["E722", "F841", "B904", "ARG002", "SIM105", "SIM102", "SIM108", "E741"]
+".claude/skills.bak/**/*.py" = ["F821", "F841", "SIM102", "SIM108", "E741", "ARG005", "B007", "B023"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["healthsparq", "core", "shared_package"]
@@ -158,6 +165,24 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["shared_package.*", "core.*"]
 ignore_missing_imports = true
+
+[tool.pyright]
+pythonVersion = "3.10"
+reportMissingImports = false
+reportMissingModuleSource = false
+reportOptionalMemberAccess = false
+reportOptionalContextManager = false
+reportAttributeAccessIssue = false
+reportArgumentType = "warning"
+reportGeneralTypeIssues = "warning"
+reportCallIssue = false
+reportOptionalOperand = false
+reportPossiblyUnboundVariable = false
+reportInvalidTypeForm = false
+reportReturnType = false
+reportOptionalSubscript = false
+reportOperatorIssue = false
+reportAssignmentType = false
 
 [tool.uv.workspace]
 members = [

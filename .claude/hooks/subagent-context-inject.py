@@ -10,8 +10,8 @@ automatically appends read instructions to the subagent's prompt.
 """
 
 import json
-import sys
 import os
+import sys
 from pathlib import Path
 
 
@@ -53,7 +53,7 @@ def build_context_injection(context_files: list[tuple[str, str]]) -> str:
     injection += "---\n\n"
     injection += "**IMPORTANT**: After completing your task, if you discover any important "
     injection += "findings, insights, or information the main agent should know, write them to:\n"
-    injection += f"`.claude/contexts/subagent-findings/<descriptive-name>.md`\n\n"
+    injection += "`.claude/contexts/subagent-findings/<descriptive-name>.md`\n\n"
     injection += "---\n\n"
 
     return injection

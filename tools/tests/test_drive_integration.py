@@ -1,11 +1,10 @@
 """Integration tests for Google Drive upload (requires credentials)."""
 import os
-import tempfile
+import sys
 from pathlib import Path
 
 import pytest
 
-import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # Skip all tests if credentials not available

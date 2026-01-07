@@ -11,7 +11,7 @@ import sys
 
 def main():
     # Read hook input from stdin
-    input_data = json.load(sys.stdin)
+    json.load(sys.stdin)
 
     # Output the reminder message
     result = {

@@ -9,8 +9,8 @@ CONSERVATIVE BY DEFAULT: When in doubt, recommends sequential execution.
 """
 
 import json
-import sys
 import re
+import sys
 from typing import NamedTuple
 
 
@@ -82,10 +82,7 @@ def count_unique_files(prompt: str) -> int:
 
 def has_pattern(prompt: str, patterns: list) -> bool:
     """Check if any pattern matches the prompt."""
-    for pattern in patterns:
-        if re.search(pattern, prompt, re.IGNORECASE | re.MULTILINE):
-            return True
-    return False
+    return any(re.search(pattern, prompt, re.IGNORECASE | re.MULTILINE) for pattern in patterns)
 
 
 def count_tasks_heuristic(prompt: str) -> int:
@@ -110,7 +107,7 @@ def count_tasks_heuristic(prompt: str) -> int:
 
 def analyze_prompt(prompt: str) -> AnalysisResult:
     """Analyze prompt for parallelization potential."""
-    prompt_lower = prompt.lower()
+    prompt.lower()
 
     # Check for multi-task indicators
     is_multi_task = has_pattern(prompt, MULTI_TASK_PATTERNS) or count_tasks_heuristic(prompt) >= 2
@@ -192,7 +189,7 @@ def build_guidance(result: AnalysisResult) -> str:
     if not result.is_multi_task:
         return ""
 
-    guidance = f"\n\n---\n## 🔄 Parallel Execution Analysis\n\n"
+    guidance = "\n\n---\n## 🔄 Parallel Execution Analysis\n\n"
     guidance += f"**Detected tasks:** ~{result.task_count}\n"
     guidance += f"**Analysis:** {result.reason}\n"
     guidance += f"**Confidence:** {result.confidence}\n\n"
@@ -245,7 +242,7 @@ def main():
 
     except json.JSONDecodeError:
         sys.exit(0)
-    except Exception as e:
+    except Exception:
         # Don't block on errors
         sys.exit(0)
 
