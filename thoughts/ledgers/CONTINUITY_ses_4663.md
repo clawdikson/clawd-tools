@@ -1,85 +1,81 @@
 ---
 session: ses_4663
-updated: 2026-01-07T19:11:01.347Z
+updated: 2026-01-07T19:25:30.940Z
 ---
 
 # Session Summary
 
 ## Goal
-Make Phase 6 (recovery.py) consistent with other phases' data storage patterns by using DataStore abstraction, and plan how recovered providers can be integrated into the final JSONL output for QA/validation/report phases.
+Implement merge functionality so recovered providers from Phase 6 can be included in Phase 3 normalization, then re-run QA/Report phases on the merged output.
 
 ## Constraints & Preferences
-- Follow Phase 1-2 storage patterns: `DataStore.put()` / `FileWriteWorker.write()`
+- Follow existing Phase 1-2 storage patterns: `DataStore.put()` / `FileWriteWorker.write()`
 - Support multiple backends: SQLITE, JSONL, JSON_FILES
-- Add cache checking (`store.exists()`) before fetching
-- Use context manager pattern (`with create_phase_store(...)`)
+- Use `--include-recovered` flag to opt-in to merging (not automatic)
 
 ## Progress
 ### Done
-- [x] Analyzed Phase 6 vs other phases' data storage patterns - found Phase 6 used raw `open()` + `orjson.dumps()` instead of DataStore abstraction
-- [x] Added imports: `StorageBackend`, `create_phase_store`, `FileWriteWorker`, `TYPE_CHECKING`, `Union`
-- [x] Added `storage_backend: Optional[StorageBackend] = None` to `RecoveryConfig` dataclass
-- [x] Updated `recover_provider()` function signature to accept `store: Union["DataStore", FileWriteWorker]` parameter
-- [x] Added cache checking with `store.exists()` before fetching providers
-- [x] Updated `run_recovery()` to use `create_phase_store()` context manager for non-JSON_FILES backends, `FileWriteWorker()` for JSON_FILES
-- [x] Updated `run_recovery_sync()` to accept and pass `storage_backend` parameter
-- [x] Fixed tests in `test_recovery.py` to pass mock store parameter - all 29 tests pass
-- [x] Analyzed CLI pipeline flow in `healthsparq/cli.py` to understand phase sequencing
+- [x] Added `include_recovered: bool = False` to `NormalizeConfig` dataclass
+- [x] Added `recovered_dir` property to `NormalizeConfig` (returns `raw_dir.parent / "recovered"`)
+- [x] Modified `iter_raw_details()` to accept optional `recovered_dir` parameter - reads from both `provider_details/` AND `recovered/` when provided
+- [x] Modified `iter_raw_details_prefetch()` similarly for SQLite backend prefetching
+- [x] Updated `run_normalize()` to pass `recovered_dir` when `include_recovered=True`
+- [x] Updated `run_normalize_sync()` to accept and pass `include_recovered` parameter
+- [x] Added `--include-recovered` CLI flag to `healthsparq/cli.py`
+- [x] Updated `healthsparq/CLAUDE.md` with merge workflow documentation
+- [x] Updated `healthsparq/phases/CLAUDE.md` with Phase 3/6 data flow updates
 
 ### In Progress
-- [ ] Planning how recovered providers can be merged into final JSONL and re-run QA/validation/report
+- [ ] Code review of changes for usability and correctness
 
 ### Blocked
 - (none)
 
 ## Key Decisions
-- **Use same pattern as Phase 1-2**: DataStore abstraction for consistency, cache checking, backend flexibility
-- **Naming convention**: `{plan_code}_{identifier}_recovered.json` to match Phase 2 pattern
+- **Opt-in merge via flag**: User must explicitly pass `--include-recovered` rather than auto-detecting recovered/ directory - prevents accidental re-inclusion of old recovered data
+- **Re-run Phase 3 approach**: Instead of creating separate merge step, modified Phase 3 to read from both directories - simpler, reuses existing deduplication logic
 
 ## Next Steps
-1. Create plan for merging recovered providers into final JSONL (options identified below)
-2. Implement chosen merge strategy
-3. Add CLI flag to trigger merge + re-QA workflow
+1. Review code changes for correctness and edge cases
+2. Check for any issues with the recovery→normalize→QA flow
+3. Consider if any additional logging or error handling needed
 
 ## Critical Context
-### Current Pipeline Flow
+### Workflow After Recovery
+```bash
+# 1. Run recovery phase
+python -m healthsparq run medica_sg --curr 20251230 --prev 20251126 --phase 6
+
+# 2. Re-run normalize with recovered providers
+python -m healthsparq run medica_sg --curr 20251230 --phase 3 --include-recovered
+
+# 3. Re-run QA and report
+python -m healthsparq run medica_sg --curr 20251230 --prev 20251126 --qa --report
 ```
-Phase 1 (Search) → raw/search_results/
-Phase 2 (Details) → raw/provider_details/
-Phase 3 (Normalize) → processed/{project}-{date}.jsonl (reads from provider_details)
-Phase 4 (QA) → reads from processed JSONL
-Phase 5 (Report) → reads from processed JSONL
-Phase 6 (Recovery) → raw/recovered/ (reads from processed JSONL curr+prev, writes recovered JSON)
+
+### Directory Structure
+```
+{date}/raw/provider_details/  ← Phase 2 output (main)
+{date}/raw/recovered/         ← Phase 6 output (recovered)
+{date}/processed/{slug}.jsonl ← Phase 3 output (merged when --include-recovered)
 ```
 
-### The Problem
-Phase 6 outputs go to `raw/recovered/` but are **never merged** into the final JSONL. QA/Report only read from normalized JSONL.
-
-### Identified Integration Options
-| Option | Approach | Pros | Cons |
-|--------|----------|------|------|
-| **A** | Modify Phase 3 to read from both `provider_details/` AND `recovered/` | Single normalize step | Requires re-running full Phase 3 |
-| **B** | Add append/merge step after Phase 6 | Clean separation, minimal changes | Needs deduplication logic |
-| **C** | Move recovery before Phase 3 | Natural flow | Chicken-egg: need JSONL to find missing |
-| **D** | New Phase 6.5: merge + re-QA | Most complete | Adds complexity |
-
-### Key File Paths
-- `healthsparq/phases/recovery.py` - Phase 6 implementation (modified)
-- `healthsparq/phases/normalize.py` - Phase 3 with `iter_raw_details()` and `run_normalize()`
-- `healthsparq/cli.py` - CLI orchestration
-- `healthsparq/tests/test_recovery.py` - Tests (modified)
+### Test Results
+- 29/29 recovery tests pass
+- 34/36 normalize tests pass (2 pre-existing failures unrelated to changes)
+  - `test_normalize_under_600_loc` - Expected, file grew from ~790 to 917 lines
+  - `test_network_structure_and_sorting` - Pre-existing test issue
 
 ## File Operations
 ### Read
 - `healthsparq/phases/recovery.py`
-- `healthsparq/phases/search.py`
-- `healthsparq/phases/details.py`
 - `healthsparq/phases/normalize.py`
-- `healthsparq/phases/qa.py`
-- `healthsparq/phases/report.py`
 - `healthsparq/cli.py`
-- `healthsparq/tests/test_recovery.py`
+- `healthsparq/CLAUDE.md`
+- `healthsparq/phases/CLAUDE.md`
 
 ### Modified
-- `healthsparq/phases/recovery.py` - Added DataStore pattern, storage_backend, cache checking
-- `healthsparq/tests/test_recovery.py` - Updated 3 tests to pass mock `store` parameter
+- `healthsparq/phases/normalize.py` - Added `include_recovered`, `recovered_dir`, updated iterators
+- `healthsparq/cli.py` - Added `--include-recovered` flag, updated Phase 3 call
+- `healthsparq/CLAUDE.md` - Added merge workflow documentation
+- `healthsparq/phases/CLAUDE.md` - Updated Phase 3/6 sections and data flow

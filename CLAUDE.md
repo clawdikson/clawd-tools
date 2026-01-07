@@ -19,17 +19,20 @@ Scraping monorepo for healthcare provider directory data extraction. Contains 95
 # Install dependencies (uv recommended)
 uv sync
 
+# IMPORTANT: Always use the venv in the base folder
+# All python commands should use .venv/bin/python
+
 # Run a healthsparq project
-python -m healthsparq run medica_sg --curr 20251230
+.venv/bin/python -m healthsparq run medica_sg --curr 20251230
 
 # Run a sapphire project
-python -m sapphire run molina --curr 20251230
+.venv/bin/python -m sapphire run molina --curr 20251230
 
 # Run QA validation
-python -m core.qa validate providers.jsonl
+.venv/bin/python -m core.qa validate providers.jsonl
 
 # Run tests
-pytest core/tests/ healthsparq/tests/ sapphire/tests/ -v
+.venv/bin/pytest core/tests/ healthsparq/tests/ sapphire/tests/ -v
 ```
 
 ## Architecture
@@ -103,16 +106,16 @@ fix(core): handle missing NPI in provider response
 
 ```bash
 # All tests
-pytest -v
+.venv/bin/pytest -v
 
 # Specific package
-pytest healthsparq/tests/ -v
+.venv/bin/pytest healthsparq/tests/ -v
 
 # Coverage
-pytest --cov=core --cov=healthsparq --cov=sapphire
+.venv/bin/pytest --cov=core --cov=healthsparq --cov=sapphire
 
 # Type checking
-mypy core/ healthsparq/ sapphire/
+.venv/bin/mypy core/ healthsparq/ sapphire/
 ```
 
 ## Submodule Documentation
