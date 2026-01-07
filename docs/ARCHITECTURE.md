@@ -8,6 +8,8 @@ This repository contains **~86 web scrapers** for extracting provider directory 
 
 **Execution Model**: Manual runs as needed (not automated/scheduled).
 
+**Issue Tracking**: Uses `bd` (beads) for AI-native issue tracking. Run `bd ready` to find available work.
+
 ## Tech Stack
 
 | Category | Technologies |
@@ -53,8 +55,17 @@ scraping/
 │   ├── config/              # YAML configuration loading
 │   ├── configs/             # Project YAML files (23 configs)
 │   ├── core/                # HealthSpark API wrapper, session management
-│   ├── phases/              # Pipeline phases (search, details, normalize)
+│   ├── phases/              # Pipeline phases (search, details, normalize, qa, report)
 │   └── templates/           # Project scaffolding templates
+│
+├── sapphire/                # Sapphire library v1.0 (14 projects)
+│   ├── api.py               # High-level API (run_scraper_sync, run_scraper_async)
+│   ├── cli.py               # Typer CLI
+│   ├── config/              # YAML configuration loading
+│   ├── configs/             # Project YAML files (14 configs)
+│   ├── core/                # SapphireAPI wrapper, session management
+│   ├── phases/              # Pipeline phases (discovery, details, normalize, qa, report)
+│   └── mappers/             # Data mapping utilities
 │
 ├── output_generator/        # Legacy QA utilities (deprecated → use core/qa)
 │
@@ -118,6 +129,23 @@ config = load_config("christus_health_plan")
 result = run_scraper_sync(config, "20251227")
 ```
 
+### 4. Sapphire Library (`sapphire/`)
+
+Unified package for 14 ProviderFinderOnline-based projects:
+
+- **Dual interface**: CLI (`python -m sapphire`) + importable library
+- **Configuration-driven**: YAML configs in `configs/`
+- **Network-based filtering**: Uses network_id for plan-specific data
+- **Async-first**: Primary API is async with sync wrapper
+
+```python
+# Library usage
+from sapphire import load_config, run_scraper_sync
+
+config = load_config("bcbs_il")
+result = run_scraper_sync(config, curr_date="20251227")
+```
+
 ## Data Flow
 
 ### Scraper Pipeline
@@ -151,8 +179,8 @@ Projects are categorized by underlying provider directory platform:
 | Site Type | Projects | Pattern | Tech |
 |-----------|----------|---------|------|
 | **Carrier** | 32 | Direct REST API | httpx, async pagination |
-| **HealthSparq** | 23 | Unified library | ResilientBrowserSession, YAML configs |
-| **Sapphire** | 14 | ProviderFinderOnline API | network_id filtering |
+| **HealthSparq** | 23 | Unified library (`healthsparq/`) | ResilientBrowserSession, YAML configs |
+| **Sapphire** | 14 | Unified library (`sapphire/`) | SapphireAPI, network_id filtering |
 | **Anthem** | 3 | Wellpoint infrastructure | Multi-phase, complex networks |
 | **HealthTrioConnect** | 2 | Node.js + Python hybrid | Browser automation |
 | **Werally** | 3 | UHC Platform | Grid-based geographic search |
@@ -243,6 +271,16 @@ python -m healthsparq run medica_sg --curr 20251226 --prev 20251110
 python -m healthsparq run medica_sg --curr 20251226 --phase 1
 ```
 
+### Sapphire Projects
+
+```bash
+# Run scraper
+python -m sapphire run bcbs_il --curr 20251226
+
+# List available projects
+python -m sapphire list
+```
+
 ### QA Validation
 
 ```bash
@@ -297,3 +335,4 @@ All scrapers produce normalized JSONL with consistent fields:
 | `run_all.py` | Pipeline orchestrator |
 | `CLAUDE.md` | Project-specific AI context |
 | `AGENTS.md` | Agent workflow instructions |
+| `.beads/` | Issue tracking database (use `bd` CLI) |

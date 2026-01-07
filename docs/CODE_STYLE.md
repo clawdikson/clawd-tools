@@ -31,6 +31,8 @@
 | Date outputs | `YYYYMMDD` | `20251227/raw/`, `20251227/processed/` |
 | Raw data | `raw/` subdirs | `raw/search_results/`, `raw/provider_details/` |
 | Processed data | `processed/` | `processed/providers.jsonl` |
+| Config files | `*.yaml` | `healthsparq/configs/medica.yaml` |
+| Test fixtures | `fixtures/` | `tests/fixtures/mock_response.json` |
 
 ## File Organization
 
@@ -233,6 +235,27 @@ class ScraperResult:
     providers_count: int
     error: str | None = None
     phase_results: dict[int, PhaseResult] = field(default_factory=dict)
+```
+
+### Config Classes Pattern
+
+```python
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
+
+# For project configuration (loaded from YAML)
+class ProjectConfig(BaseModel):
+    name: str
+    slug: str
+    domain: str
+    plans: list[PlanConfig]
+
+# For environment-based settings
+class ProxySettings(BaseSettings):
+    username: str = Field(default="")
+    password: str = Field(default="")
+    
+    model_config = {"env_prefix": "SMARTPROXY_"}
 ```
 
 ### Pydantic Models
@@ -452,6 +475,9 @@ perf(sqlite): implement buffered writes for 15x speedup
 - Prefer `core/` implementations over reinventing
 - Use async/await for concurrent HTTP requests
 - Use `asyncio.Semaphore` for rate limiting
+- Use `bd` for issue tracking (`bd ready`, `bd close <id>`)
+- Use Pydantic for configuration validation
+- Use YAML for project-specific configs
 
 ### Don't
 
@@ -463,6 +489,7 @@ perf(sqlite): implement buffered writes for 15x speedup
 - Don't use `cd && command` in scripts (use `workdir` parameter)
 - Don't use interactive git commands (`-i` flag)
 - Don't skip type hints in new `core/` code
+- Don't create new individual `audiobee_*` projects for HealthSparq/Sapphire sites (use unified libraries)
 
 ## Type Hints
 
@@ -525,3 +552,64 @@ Each major component should have a `CLAUDE.md` file providing AI context:
 - Architecture notes
 - Key patterns
 - Dependencies
+
+## Exception Hierarchy
+
+```python
+# Base exception (core/exceptions.py)
+class SharedPackageError(Exception):
+    """Base for all shared_package exceptions."""
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
+        super().__init__(message)
+        self.context = context or {}
+
+# Domain-specific exceptions
+class SessionError(SharedPackageError):
+    """Session-related errors (initialization, closed, blocked, timeout)."""
+    pass
+
+class ProxyError(SharedPackageError):
+    """Proxy-related errors (configuration, connection, exhausted)."""
+    pass
+
+class ConfigError(SharedPackageError):
+    """Configuration errors (validation, not found, invalid site type)."""
+    pass
+
+# Use standard exceptions for:
+# - IOError for file operations
+# - ValueError for JSON parsing
+# - TimeoutError for timeouts
+```
+
+## Async Patterns
+
+### Async Context Manager
+
+```python
+class ResilientBrowserSession:
+    async def __aenter__(self):
+        await self._initialize()
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+
+# Usage
+async with ResilientBrowserSession() as session:
+    await session.login(url)
+```
+
+### Sync Wrapper for Async Functions
+
+```python
+import asyncio
+
+async def run_scraper(config, curr_date):
+    """Async implementation."""
+    ...
+
+def run_scraper_sync(config, curr_date):
+    """Sync wrapper for CLI usage."""
+    return asyncio.run(run_scraper(config, curr_date))
+```
