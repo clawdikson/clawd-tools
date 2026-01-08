@@ -126,3 +126,7 @@ Each module has its own CLAUDE.md with detailed API patterns:
 - `healthsparq/CLAUDE.md` - CLI, library API, phase details
 - `sapphire/CLAUDE.md` - CLI, library API, phase details
 - `core/*/CLAUDE.md` - Module-specific patterns (io, session, proxy, etc.)
+
+
+## CLI Documentation
+- Always use Typer for args in CLI.
