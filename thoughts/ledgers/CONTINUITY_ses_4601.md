@@ -1,123 +1,106 @@
 ---
 session: ses_4601
-updated: 2026-01-09T02:05:54.371Z
+updated: 2026-01-09T02:33:28.851Z
 ---
 
 # Session Summary
 
 ## Goal
-Fix sticky tqdm progress bars across all healthsparq and sapphire phases so logs scroll above while progress bar stays at bottom of terminal.
+Fix the extended report in `core/qa/reporter.py` to match the output_generator reference implementation with proper file timestamps, NPI statistics, scope breakdown with states, and fix the sampler to archive the entire processed/ directory.
 
 ## Constraints & Preferences
-- Keep using loguru logger (not switch to tqdm.write for all logging)
-- Use context manager pattern to temporarily redirect loguru through tqdm
-- Apply consistent fix across both healthsparq and sapphire packages
-- Import from core.logging when available, provide fallback no-op contextmanager otherwise
+- Match output_generator/report_generator.py format exactly
+- First/Last File Date should scan entire `raw/` directory (not just provider_details)
+- Original Dropped NPI = missing NPIs + true drops
+- Recovered NPI = NPIs from files with "missing" in filename
+- Scope breakdown must include in-scope states list
+- Samples save directly in `processed/` (no subfolder)
+- 7z archive should contain entire `processed/` directory with `{curr_date}.7z` filename
 
 ## Progress
 ### Done
-- [x] Created shared `tqdm_logging()` utility in `core/logging/logger.py` (lines 18-64)
-- [x] Exported `tqdm_logging` from `core/logging/__init__.py`
-- [x] Applied fix to `healthsparq/phases/qa.py` - wrapped Step 1 and Step 2 with tqdm_logging()
-- [x] Applied fix to `healthsparq/phases/report.py` - wrapped Step 1 and Step 2 with tqdm_logging()
-- [x] Applied fix to `sapphire/phases/normalize.py` - used `with open(...) as f, tqdm_logging():` pattern
-- [x] Added import for tqdm_logging to `sapphire/phases/recovery.py`
+- [x] Reviewed output_generator/report_generator.py and sample_generator.py for reference
+- [x] Updated `ExtendedReporter.__init__` to accept `base_raw_dir` parameter
+- [x] Fixed `_get_file_timestamps()` to scan entire `raw/` directory (not just provider_details)
+- [x] Fixed `_analyze_provider_data()` to return NPI sets (direct_npis, missing_npis) not just file counts
+- [x] Fixed NPI statistics calculation: scraped_npis, original_dropped_npis, recovered_npis, true_drops
+- [x] Updated `_write_extended_excel()` to include in-scope states in scope breakdown section
+- [x] Updated Excel format to match reference (percentages, formatted strings)
+- [x] Fixed `extended_report()` function signature to accept `base_raw_dir` parameter
+- [x] Updated `healthsparq/phases/report.py` to pass `base_raw_dir` to extended_report
+- [x] Fixed sampler `_create_archive()` to archive entire `processed/` directory
 
 ### In Progress
-- [ ] Wrap tqdm loop in `sapphire/phases/recovery.py` with tqdm_logging()
+- [ ] Verify all changes work correctly at runtime
 
 ### Blocked
 - (none)
 
 ## Key Decisions
-- **Context manager approach**: Temporarily remove all loguru sinks, add tqdm-compatible sink via `TqdmLoguruHandler`, restore default after. This keeps using logger.* calls while routing through tqdm.write()
-- **Fallback pattern**: When core.logging import fails, define local no-op `@contextmanager def tqdm_logging(): yield`
-- **Import pattern**: `from core.logging import logger, tqdm_logging` with fallback
+- **Scan entire raw/ for timestamps**: Reference implementation uses `os.walk(raw_dir)` to get first/last file dates from all files (search_results, provider_details, recovered, etc.)
+- **NPI calculation formula**: `original_dropped = len(missing_npis) + true_drops`, `recovered = len(missing_npis)`
+- **Timezone for timestamps**: Using Canada/Newfoundland timezone per reference, with UTC fallback
+- **Archive structure**: `{date}/processed/{files}` inside the 7z, archive saved at project root level
 
 ## Next Steps
-1. Wrap tqdm loop at lines 517-533 in `sapphire/phases/recovery.py` with `tqdm_logging()`
-2. Refactor `healthsparq/phases/normalize.py` to import from core.logging instead of local definition (task 15)
-3. Verify all module imports work correctly
+1. Test the extended_report function with actual data
+2. Verify sampler archives entire processed/ directory correctly
+3. Check sapphire/phases/report.py if it also needs base_raw_dir update
 
 ## Critical Context
-- **tqdm_logging implementation** (in core/logging/logger.py):
-```python
-class TqdmLoguruHandler:
-    def write(self, message: str) -> None:
-        if message.strip() and _tqdm_write is not None:
-            _tqdm_write(message.strip())
-    def flush(self) -> None:
-        pass
+- **Reference format for Excel Summary sheet** (from output_generator):
+```
+In-scope States: IA, SD
+In-Scope Providers (Unique): 1,234 (85.5%)
+Out-of-Scope Providers (Unique): 210 (14.5%)
+...
+First File Created = 01/01/2025 10:30:45
+Last File Created = 01/01/2025 18:45:22
 
-@contextmanager
-def tqdm_logging() -> Generator[None, None, None]:
-    if _tqdm_write is None:
-        yield
-        return
-    logger.remove()
-    sink_id = logger.add(
-        TqdmLoguruHandler(),
-        format="<green>{time:HH:mm:ss}</green> | <level>{level:<8}</level> | <level>{message}</level>",
-        level="DEBUG",
-        colorize=True,
-    )
-    try:
-        yield
-    finally:
-        logger.remove(sink_id)
-        logger.add(sys.stderr)
+Scraped NPIs = 1,234
+Original dropped NPIs = 56
+Found and scraped using checker tool = 12
+True Drops = 44
 ```
 
-- **Import fallback pattern** (used in each phase file):
+- **Key function signatures updated**:
 ```python
-try:
-    from core.logging import logger, tqdm_logging
-except ImportError:
-    import logging
-    from contextlib import contextmanager
-    logger = logging.getLogger(__name__)
+# core/qa/reporter.py
+class ExtendedReporter(Reporter):
+    def __init__(self, settings: QASettings, raw_dir: Path | None = None, base_raw_dir: Path | None = None):
 
-    @contextmanager
-    def tqdm_logging():
-        yield
+def extended_report(
+    project_name: str,
+    curr_date: str,
+    prev_date: str | None = None,
+    states: list[str] | None = None,
+    raw_dir: Path | None = None,
+    base_raw_dir: Path | None = None,
+    **kwargs,
+) -> QAResult[ExtendedReportMetrics]:
 ```
 
-- **sapphire/phases/recovery.py tqdm section to wrap** (lines 517-533):
-```python
-        with tqdm(
-            total=len(missing),
-            desc="Phase 6: Recovery",
-            unit="provider",
-            leave=True,
-        ) as pbar:
-            for i in range(0, len(missing), batch_size):
-                batch = missing[i : i + batch_size]
-                batch_tasks = [bounded_recover(p) for p in batch]
-                batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
-
-                for result in batch_results:
-                    if isinstance(result, list):
-                        results.extend(result)
-                    elif isinstance(result, Exception):
-                        logger.warning(f"Recovery batch error: {result}")  # <-- needs tqdm_logging
-                    pbar.update(1)
-```
-
-- **LSP errors are false positives** - imports like `core.logging`, `sapphire.config.schema`, etc. show as unresolved but work at runtime (verified with `.venv/bin/python -c "import ..."`)
+- **LSP errors are false positives** - imports like `core.logging`, `core.data`, `core.qa` show as unresolved but work at runtime
 
 ## File Operations
 ### Read
-- core/logging/__init__.py
-- core/logging/logger.py
-- healthsparq/phases/qa.py
+- output_generator/report_generator.py (reference implementation)
+- output_generator/sample_generator.py (reference for 7z archive)
+- core/qa/reporter.py
+- core/qa/sampler.py
 - healthsparq/phases/report.py
-- sapphire/phases/normalize.py
-- sapphire/phases/recovery.py
 
 ### Modified
-- `core/logging/logger.py` - Added TqdmLoguruHandler class and tqdm_logging() context manager
-- `core/logging/__init__.py` - Added tqdm_logging to imports and __all__
-- `healthsparq/phases/qa.py` - Added tqdm_logging import, wrapped Step 1 and Step 2
-- `healthsparq/phases/report.py` - Added tqdm_logging import, wrapped Step 1 and Step 2
-- `sapphire/phases/normalize.py` - Added tqdm_logging import, wrapped jsonl write loop
-- `sapphire/phases/recovery.py` - Added tqdm_logging import (wrap pending)
+- `core/qa/reporter.py`:
+  - `ExtendedReporter.__init__()` - added base_raw_dir parameter
+  - `_analyze_provider_data()` - returns dict with direct_npis/missing_npis sets
+  - `_get_file_timestamps()` - scans entire raw/ directory, returns DD/MM/YYYY HH:MM:SS format
+  - `_write_extended_excel()` - new format with states, percentages, proper NPI stats
+  - `run()` - updated NPI calculations
+  - `extended_report()` - added base_raw_dir parameter
+
+- `core/qa/sampler.py`:
+  - `_create_archive()` - archives entire processed/ directory with {date}/processed/{files} structure
+
+- `healthsparq/phases/report.py`:
+  - Line ~193-201: Added base_raw_dir calculation and passing to extended_report()

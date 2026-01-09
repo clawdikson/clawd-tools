@@ -1,5 +1,5 @@
 [project]
-name = "healthsparq"
+name = "scraping-base"
 version = "1.0.0"
 description = "Unified HealthSparq scraper package"
 requires-python = ">=3.10"
