@@ -14,12 +14,17 @@ dependencies = [
     "orjson>=3.9.0",
     "httpx>=0.24.0",
     "tenacity>=8.2.0",
+    "loguru>=0.7.3",
+    "dotenv>=0.9.9",
+    "patchright>=1.57.0",
+    "curl-cffi>=0.14.0",
+    "openpyxl>=3.1.5",
+    "pydantic-settings>=2.12.0",
     "pandas>=2.3.3",
     "browserforge>=1.2.3",
     "google>=3.0.0",
     "google-auth>=2.45.0",
     "dataframe-image>=0.2.3",
-    "openpyxl>=3.1.0",
     "matplotlib>=3.7.0",
     "boto3>=1.42.19",
     "xlsxwriter>=3.2.9",
@@ -71,3 +76,118 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
+
+# =============================================================================
+# Ruff - Fast Python Linter & Formatter
+# =============================================================================
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "*.egg-info",
+    "node_modules",
+    "old_code",
+    "audiobee_*/20*",  # Date-versioned output directories
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "E402",   # module import not at top (common for conditional imports)
+    "B008",   # function call in default argument (common in Typer)
+    "B905",   # zip without strict= (Python 3.10+ feature)
+    "ARG001", # unused function argument (common in callbacks)
+    "SIM117", # multiple with statements (stylistic preference)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = ["ARG001", "ARG002", "F401"]
+"**/conftest.py" = ["ARG001", "ARG002"]
+"**/__init__.py" = ["F401"]
+"**/cli.py" = ["B904"]
+"tools/**/*.py" = ["B904"]
+".claude/**/*.py" = ["E722", "F841", "B904", "ARG002", "SIM105", "SIM102", "SIM108", "E741"]
+".claude/skills.bak/**/*.py" = ["F821", "F841", "SIM102", "SIM108", "E741", "ARG005", "B007", "B023"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["healthsparq", "core", "shared_package"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# =============================================================================
+# Black - Code Formatter (alternative to ruff format)
+# =============================================================================
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+exclude = '''
+/(
+    \.git
+    | \.venv
+    | __pycache__
+    | \.egg-info
+    | node_modules
+    | old_code
+    | audiobee_.*/20\d{6}  # Date-versioned output directories
+)/
+'''
+
+# =============================================================================
+# MyPy - Type Checking
+# =============================================================================
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["shared_package.*", "core.*"]
+ignore_missing_imports = true
+
+[tool.pyright]
+pythonVersion = "3.10"
+reportMissingImports = false
+reportMissingModuleSource = false
+reportOptionalMemberAccess = false
+reportOptionalContextManager = false
+reportAttributeAccessIssue = false
+reportArgumentType = "warning"
+reportGeneralTypeIssues = "warning"
+reportCallIssue = false
+reportOptionalOperand = false
+reportPossiblyUnboundVariable = false
+reportInvalidTypeForm = false
+reportReturnType = false
+reportOptionalSubscript = false
+reportOperatorIssue = false
+reportAssignmentType = false
+
+[tool.uv.workspace]
+members = [
+    "core",
+    "sapphire",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+sapphire = { workspace = true }
