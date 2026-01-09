@@ -68,8 +68,10 @@ app = typer.Typer(
 def resolve_xlsx_path(project_name: str, curr_date: str, base_path: Path) -> Path:
     """Find the state counts XLSX file.
 
-    Primary: {project}/{date}/processed/{project}-{date}-state_with_surrounding-counts.xlsx
-    Fallback: {project}/{date}/processed/{project}-{date}-state_only-counts.xlsx
+    Supports both HealthSparq and Sapphire file patterns:
+    - HealthSparq: {project}-{date}-state_with_surrounding-counts.xlsx
+    - HealthSparq: {project}-{date}-state_only-counts.xlsx
+    - Sapphire: {project}-{date}-state_counts.xlsx
 
     Args:
         project_name: Project name (e.g., "audiobee_bcbs_il")
@@ -80,30 +82,28 @@ def resolve_xlsx_path(project_name: str, curr_date: str, base_path: Path) -> Pat
         Path to the XLSX file
 
     Raises:
-        FileNotFoundError: If neither file exists
+        FileNotFoundError: If no matching file exists
     """
     processed_dir = base_path / curr_date / "processed"
 
     if not processed_dir.exists():
         raise FileNotFoundError(f"Processed directory not found: {processed_dir}")
 
-    # Primary pattern
-    primary_filename = f"{project_name}-{curr_date}-state_with_surrounding-counts.xlsx"
-    primary_path = processed_dir / primary_filename
+    # File patterns in priority order
+    patterns = [
+        f"{project_name}-{curr_date}-state_with_surrounding-counts.xlsx",  # HealthSparq primary
+        f"{project_name}-{curr_date}-state_only-counts.xlsx",               # HealthSparq fallback
+        f"{project_name}-{curr_date}-state_counts.xlsx",                    # Sapphire
+    ]
 
-    if primary_path.exists():
-        return primary_path
-
-    # Fallback pattern
-    fallback_filename = f"{project_name}-{curr_date}-state_only-counts.xlsx"
-    fallback_path = processed_dir / fallback_filename
-
-    if fallback_path.exists():
-        return fallback_path
+    for pattern in patterns:
+        path = processed_dir / pattern
+        if path.exists():
+            return path
 
     raise FileNotFoundError(
         f"No state counts file found in {processed_dir}. "
-        f"Looked for:\n  - {primary_filename}\n  - {fallback_filename}"
+        f"Looked for:\n  - " + "\n  - ".join(patterns)
     )
 
 

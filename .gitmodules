@@ -3,7 +3,7 @@
 	url = https://bitbucket.org/productaudiobee/output-generator.git
 [submodule "healthsparq"]
 	path = healthsparq
-	url = https://bitbucket.org/productaudiobee/healthsparq.git
+	url = git@bitbucket.org:productaudiobee/healthsparq.git
 [submodule "core"]
 	path = core
 	url = https://bitbucket.org/productaudiobee/shared_package.git
