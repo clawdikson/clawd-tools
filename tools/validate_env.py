@@ -8,7 +8,6 @@ Usage:
 import argparse
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Site type requirements
 SITE_TYPE_REQUIRED_VARS = {
@@ -36,7 +35,7 @@ def load_env_file(env_path: Path) -> dict[str, str]:
     if not env_path.exists():
         return env_vars
 
-    with open(env_path, 'r', encoding='utf-8') as f:
+    with open(env_path, encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith('#'):
@@ -50,9 +49,7 @@ def load_env_file(env_path: Path) -> dict[str, str]:
             value = value.strip()
 
             # Remove quotes if present
-            if value.startswith('"') and value.endswith('"'):
-                value = value[1:-1]
-            elif value.startswith("'") and value.endswith("'"):
+            if value.startswith('"') and value.endswith('"') or value.startswith("'") and value.endswith("'"):
                 value = value[1:-1]
 
             env_vars[key] = value
@@ -62,8 +59,8 @@ def load_env_file(env_path: Path) -> dict[str, str]:
 
 def validate_env(
     env_path: Path,
-    project_name: Optional[str] = None,
-    site_type: Optional[str] = None,
+    project_name: str | None = None,
+    site_type: str | None = None,
 ) -> tuple[bool, list[str]]:
     """Validate environment configuration.
 
@@ -161,9 +158,9 @@ def main():
             is_valid, errors = validate_env(env_file)
 
             if is_valid:
-                print(f"  ✓ Valid\n")
+                print("  ✓ Valid\n")
             else:
-                print(f"  ✗ Invalid:")
+                print("  ✗ Invalid:")
                 for error in errors:
                     print(f"    - {error}")
                 print()
@@ -173,10 +170,7 @@ def main():
 
     else:
         # Validate single .env file
-        if args.env_file:
-            env_path = Path(args.env_file)
-        else:
-            env_path = Path(".env")
+        env_path = Path(args.env_file) if args.env_file else Path(".env")
 
         print(f"Validating {env_path}...")
 

@@ -4,10 +4,11 @@ PostToolUse hook: Auto-format Python files with ruff and docformatter
 Inspired by onuralpszr's pre-commit hook: https://github.com/onuralpszr/onuralpszr/blob/main/configs/git-hooks/pre-commit-line-120
 """
 import json
-import sys
-import subprocess
 import shutil
+import subprocess
+import sys
 from pathlib import Path
+
 
 def main():
     try:

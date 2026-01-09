@@ -20,6 +20,8 @@ audiobee_*/
 *.egg-info/
 .coverage
 *.7z
+*.db
+
 # Continuous Claude cache (local only)
 .claude/cache/
 
@@ -37,3 +39,5 @@ google_drive_credentials.json
 oauth_*.json
 gmail_token.json
 aws_credentials.json
+
+*.egg-info/

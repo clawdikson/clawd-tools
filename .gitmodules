@@ -7,3 +7,6 @@
 [submodule "core"]
 	path = core
 	url = https://bitbucket.org/productaudiobee/shared_package.git
+[submodule "sapphire"]
+	path = sapphire
+	url = https://bitbucket.org/productaudiobee/sapphire.git

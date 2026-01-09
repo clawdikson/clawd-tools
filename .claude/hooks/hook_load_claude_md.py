@@ -3,9 +3,10 @@
 UserPromptSubmit hook: Read CLAUDE.md or AGENTS.md from project directory and inject as context at each prompt.
 """
 import json
-import sys
 import os
+import sys
 from pathlib import Path
+
 
 def find_claude_md(project_dir):
     """Find CLAUDE.md or AGENTS.md in the project directory."""
@@ -32,7 +33,7 @@ try:
 
     # Read CLAUDE.md content
     try:
-        with open(claude_md_path, 'r', encoding='utf-8') as f:
+        with open(claude_md_path, encoding='utf-8') as f:
             content = f.read().strip()
 
         if not content:

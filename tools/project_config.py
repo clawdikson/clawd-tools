@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 try:
     from core.logging import logger
@@ -23,7 +23,7 @@ class ProjectConfig(NamedTuple):
 
     name: str
     project_type: str  # "audiobee" or "healthsparq"
-    curr_date: Optional[str]
+    curr_date: str | None
     base_path: Path
 
 
@@ -96,7 +96,7 @@ def extract_curr_date_from_config_py(config_path: Path) -> str:
 
 def load_project_config(
     project_name: str,
-    date_override: Optional[str] = None,
+    date_override: str | None = None,
     base_dir: Path = Path("."),
 ) -> ProjectConfig:
     """Load project configuration for upload.
@@ -127,10 +127,7 @@ def load_project_config(
         # HealthSparq projects: output goes to healthsparq/{project_slug}/{date}/
         # or project-specific directory if it exists
         project_dir = base_dir / project_name
-        if project_dir.exists():
-            base_path = project_dir
-        else:
-            base_path = base_dir / "healthsparq" / project_name
+        base_path = project_dir if project_dir.exists() else base_dir / "healthsparq" / project_name
 
         if not curr_date:
             # Try to find latest date directory

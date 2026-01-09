@@ -1,0 +1,117 @@
+{
+  // ==========================================================================
+  // Ideon Scraping - Multi-Root Workspace
+  // ==========================================================================
+  // Open with: code scraping.code-workspace
+  // This provides organized views of the codebase without moving files.
+  // ==========================================================================
+  
+  "folders": [
+    {
+      "name": "📁 Root",
+      "path": "."
+    },
+    {
+      "name": "🔧 Core Utilities",
+      "path": "core"
+    },
+    {
+      "name": "🏥 HealthSparq Library",
+      "path": "healthsparq"
+    },
+    {
+      "name": "💎 Sapphire Library",
+      "path": "sapphire"
+    },
+    {
+      "name": "🛠️ Tools",
+      "path": "tools"
+    },
+    {
+      "name": "📚 Documentation",
+      "path": "docs"
+    }
+  ],
+  
+  "settings": {
+    // Hide duplicated folders from root view since they have dedicated sections
+    "files.exclude": {
+      "core": true,
+      "healthsparq": true,
+      "sapphire": true,
+      "tools": true,
+      "docs": true,
+      
+      // Standard exclusions
+      "**/__pycache__": true,
+      "**/*.egg-info": true,
+      ".venv": true,
+      ".coverage": true,
+      ".pytest_cache": true,
+      "old_code": true,
+      "healthsparq-server": true,
+      ".idea": true,
+      "**/.DS_Store": true
+    },
+    
+    // Search exclusions
+    "search.exclude": {
+      "**/audiobee_*/20*": true,
+      "**/20*/": true,
+      "**/*.7z": true,
+      "**/uv.lock": true,
+      "**/node_modules": true
+    },
+    
+    // Python settings
+    "python.analysis.extraPaths": [
+      "${workspaceFolder:📁 Root}",
+      "${workspaceFolder:🔧 Core Utilities}",
+      "${workspaceFolder:🏥 HealthSparq Library}"
+    ]
+  },
+  
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.vscode-pylance",
+      "charliermarsh.ruff",
+      "redhat.vscode-yaml",
+      "yzhang.markdown-all-in-one"
+    ]
+  },
+  
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Run Current Scraper",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${file}",
+        "console": "integratedTerminal",
+        "cwd": "${fileDirname}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder:📁 Root}"
+        }
+      },
+      {
+        "name": "HealthSparq CLI",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "healthsparq",
+        "args": ["--help"],
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder:📁 Root}"
+      },
+      {
+        "name": "Project Registry",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${workspaceFolder:📁 Root}/tools/project_registry.py",
+        "args": ["stats"],
+        "console": "integratedTerminal"
+      }
+    ]
+  }
+}

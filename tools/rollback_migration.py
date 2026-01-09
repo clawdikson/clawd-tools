@@ -212,7 +212,7 @@ def main():
             sys.exit(0)
 
     # Execute rollback
-    print(f"\nRolling back shared_package...")
+    print("\nRolling back shared_package...")
     success, message = rollback_submodule(
         parent_repo=root,
         submodule_path="shared_package",

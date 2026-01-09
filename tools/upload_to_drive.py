@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
 from tqdm import tqdm
@@ -74,7 +73,7 @@ def upload(
         ...,
         help="Project name (e.g., audiobee_bcbs_il or christus_health_plan)",
     ),
-    date: Optional[str] = typer.Option(
+    date: str | None = typer.Option(
         None,
         "--date",
         "-d",
@@ -203,7 +202,7 @@ def list_projects():
 @app.command()
 def validate(
     project_name: str = typer.Argument(..., help="Project name to validate"),
-    date: Optional[str] = typer.Option(None, "--date", "-d", help="Date in YYYYMMDD format"),
+    date: str | None = typer.Option(None, "--date", "-d", help="Date in YYYYMMDD format"),
 ):
     """Validate project configuration and Drive folder mapping."""
     try:
