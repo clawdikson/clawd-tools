@@ -4,7 +4,9 @@ Tool Description Engineering
 This module provides utilities for generating and evaluating tool descriptions.
 """
 
+from typing import Dict, List, Any
 import re
+
 
 # Description Templates
 
@@ -28,7 +30,7 @@ TOOL_DESCRIPTION_TEMPLATE = """
 
 PARAM_TEMPLATE = """
 - **{param_name}** ({param_type}{" | required" if required else " | optional"})
-
+  
   {param_description}
   {"Default: " + default if default else ""}
 """
@@ -52,16 +54,16 @@ def generate_tool_description(tool_spec):
 def generate_usage_context(tool_spec):
     """Generate usage context section."""
     contexts = []
-
+    
     for trigger in tool_spec.triggers:
         contexts.append(f"- When {trigger}")
-
+    
     if tool_spec.examples:
         contexts.append("\n**Examples**:\n")
         for example in tool_spec.examples:
             contexts.append(f"- Input: {example.input}")
             contexts.append(f"  Output: {example.tool_call}")
-
+    
     return "\n".join(contexts)
 
 
@@ -76,42 +78,42 @@ class ToolDescriptionEvaluator:
             "actionability",
             "consistency"
         ]
-
-    def evaluate(self, description: str, tool_spec) -> dict:
+    
+    def evaluate(self, description: str, tool_spec) -> Dict:
         """Evaluate description against criteria."""
         results = {}
-
+        
         # Check clarity
         results["clarity"] = self._check_clarity(description)
-
+        
         # Check completeness
         results["completeness"] = self._check_completeness(description, tool_spec)
-
+        
         # Check accuracy
         results["accuracy"] = self._check_accuracy(description, tool_spec)
-
+        
         # Check actionability
         results["actionability"] = self._check_actionability(description)
-
+        
         # Check consistency
         results["consistency"] = self._check_consistency(description, tool_spec)
-
+        
         return results
-
+    
     def _check_clarity(self, description: str) -> float:
         """Check description clarity (0-1 score)."""
         # Check for vague language
         vague_terms = ["help", "assist", "thing", "stuff", "handle"]
         vague_count = sum(1 for term in vague_terms if term in description.lower())
-
+        
         # Check for ambiguous references
         ambiguous = ["it", "this", "that"]  # without clear antecedent
         ambiguous_count = sum(1 for term in ambiguous if f" {term} " in description)
-
+        
         # Calculate clarity score
         clarity = 1.0 - (vague_count * 0.1) - (ambiguous_count * 0.05)
         return max(0, clarity)
-
+    
     def _check_completeness(self, description: str, tool_spec) -> float:
         """Check that all required elements are present."""
         required_sections = [
@@ -120,10 +122,10 @@ class ToolDescriptionEvaluator:
             ("returns", r"### Returns"),
             ("errors", r"### Errors")
         ]
-
-        present = sum(1 for _, pattern in required_sections
+        
+        present = sum(1 for _, pattern in required_sections 
                       if re.search(pattern, description))
-
+        
         return present / len(required_sections)
 
 
@@ -139,7 +141,7 @@ class ErrorMessageGenerator:
             "example": "{correct_format}"
         }}
         """,
-
+        
         "INVALID_INPUT": """
         {{
             "error": "{error_code}",
@@ -148,7 +150,7 @@ class ErrorMessageGenerator:
             "resolution": "Provide value matching {expected_format}"
         }}
         """,
-
+        
         "RATE_LIMITED": """
         {{
             "error": "{error_code}",
@@ -158,8 +160,8 @@ class ErrorMessageGenerator:
         }}
         """
     }
-
-    def generate(self, error_type: str, context: dict) -> str:
+    
+    def generate(self, error_type: str, context: Dict) -> str:
         """Generate error message from template."""
         template = self.TEMPLATES.get(error_type, self.TEMPLATES["INVALID_INPUT"])
         return template.format(**context)
@@ -175,13 +177,13 @@ class ToolSchemaBuilder:
         self.parameters = []
         self.returns = None
         self.errors = []
-
+    
     def set_description(self, short: str, detailed: str):
         """Set description sections."""
         self.description = short
         self.detailed_description = detailed
         return self
-
+    
     def add_parameter(self, name: str, param_type: str, description: str,
                       required: bool = False, default=None, enum=None):
         """Add parameter definition."""
@@ -194,8 +196,8 @@ class ToolSchemaBuilder:
             "enum": enum
         })
         return self
-
-    def set_returns(self, return_type: str, description: str, properties: dict):
+    
+    def set_returns(self, return_type: str, description: str, properties: Dict):
         """Set return value definition."""
         self.returns = {
             "type": return_type,
@@ -203,7 +205,7 @@ class ToolSchemaBuilder:
             "properties": properties
         }
         return self
-
+    
     def add_error(self, code: str, description: str, resolution: str):
         """Add error definition."""
         self.errors.append({
@@ -212,8 +214,8 @@ class ToolSchemaBuilder:
             "resolution": resolution
         })
         return self
-
-    def build(self) -> dict:
+    
+    def build(self) -> Dict:
         """Build complete schema."""
         return {
             "name": self.name,

@@ -1,0 +1,42 @@
+# Sapphire Base Configuration
+# All project configs inherit from this base and override as needed
+
+# API Configuration (shared across all Sapphire sites)
+api:
+  endpoints:
+    facets: /api/providers/facets.json
+    summary: /api/providers/summary.json
+    locations: /api/providers/{provider_id}/locations/{location_id}/other_locations.json
+    affiliations: /api/providers/{provider_id}/locations/{location_id}/affiliations.json
+    networks: /api/providers/{provider_id}/locations/{location_id}/networks_accepted.json
+  common_params:
+    locale: en
+    data_language: en
+    account_id: "2"
+
+# Concurrency defaults (tuned for stability)
+concurrency:
+  max_workers: 10
+  max_pages: 2
+  batch_size: 1000
+  retry_attempts: 5
+  retry_delay_ms: 1000
+  page_refresh_interval: 5000
+  request_timeout_ms: 120000
+
+# Output defaults
+output:
+  raw_subdir: raw
+  processed_subdir: processed
+  storage_backend: sqlite
+
+# Session defaults
+session:
+  browser_type: camoufox
+  proxy:
+    server: http://gw.dataimpulse.com:10001
+    location: us
+
+# Normalization defaults
+normalize:
+  field_overrides: {}

@@ -24,6 +24,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 try:
     from core.logging import logger
@@ -40,7 +41,7 @@ except ImportError:
 CREDENTIALS_FILE = Path(__file__).parent / "aws_credentials.json"
 
 
-def _load_credentials_file() -> dict | None:
+def _load_credentials_file() -> Optional[dict]:
     """Load AWS credentials from JSON file if it exists.
 
     Returns:
@@ -50,11 +51,11 @@ def _load_credentials_file() -> dict | None:
         return None
 
     try:
-        with open(CREDENTIALS_FILE) as f:
+        with open(CREDENTIALS_FILE, "r") as f:
             creds = json.load(f)
         logger.debug(f"Loaded AWS credentials from {CREDENTIALS_FILE}")
         return creds
-    except (OSError, json.JSONDecodeError) as e:
+    except (json.JSONDecodeError, IOError) as e:
         logger.warning(f"Failed to load {CREDENTIALS_FILE}: {e}")
         return None
 
@@ -69,11 +70,11 @@ class S3Config:
     bucket_name: str
     region: str = "us-east-1"
     presigned_expiry: int = 604800  # 7 days
-    access_key_id: str | None = None
-    secret_access_key: str | None = None
+    access_key_id: Optional[str] = None
+    secret_access_key: Optional[str] = None
 
     @classmethod
-    def from_env(cls) -> S3Config:
+    def from_env(cls) -> "S3Config":
         """Load S3 configuration from credentials file or environment.
 
         Precedence:
@@ -217,7 +218,7 @@ class S3Uploader:
     def generate_presigned_url(
         self,
         object_key: str,
-        expiration: int | None = None,
+        expiration: Optional[int] = None,
     ) -> str:
         """Generate presigned URL for S3 object.
 
@@ -247,7 +248,7 @@ class S3Uploader:
         local_path: Path,
         project_name: str,
         curr_date: str,
-        expiration: int | None = None,
+        expiration: Optional[int] = None,
     ) -> tuple[str, str]:
         """Upload JSONL and generate presigned URL in one call.
 

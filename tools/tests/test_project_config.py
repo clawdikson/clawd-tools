@@ -1,9 +1,8 @@
 """Unit tests for project_config module."""
-import sys
+import pytest
 from pathlib import Path
 
-import pytest
-
+import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from tools.project_config import (

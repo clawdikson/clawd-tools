@@ -1,0 +1,63 @@
+# BCBS Illinois Sapphire Configuration
+
+project:
+  name: BCBS Illinois
+  slug: bcbs_il
+  description: Blue Cross Blue Shield of Illinois provider directory
+
+site:
+  domain: my.providerfinderonline.com
+  ci: il-blueadvantagehmo
+  config_signature: "{1292}-{1397|51}-{}"
+  api_version: v1
+
+# Networks - multiple IL plans
+networks:
+  - id: "210000007"
+    name: "Blue Advantage HMO"
+    state: IL
+  - id: "210000003"
+    name: "Blue Choice PPO"
+    state: IL
+  - id: "210000006"
+    name: "HMO Illinois"
+    state: IL
+  - id: "11152019"
+    name: "Blue Cross Community Health Plans (Medicaid)"
+    state: IL
+  - id: "210001003"
+    name: "Blue Cross Community MMAI (Medicare-Medicaid)"
+    state: IL
+  - id: "300000045"
+    name: "Blue Choice Options"
+    state: IL
+  - id: "300000000"
+    name: "Participating Provider Organization"
+    state: IL
+
+coverage:
+  states: [IL]
+  geo_strategy: dual
+
+api:
+  endpoints:
+    facets: /api/providers/facets.json
+    summary: /api/providers/summary.json
+    locations: /api/providers/{provider_id}/locations/{location_id}/other_locations.json
+    affiliations: /api/providers/{provider_id}/locations/{location_id}/affiliations.json
+    networks: /api/providers/{provider_id}/locations/{location_id}/networks_accepted.json
+  common_params:
+    locale: en
+    data_language: en
+
+concurrency:
+  max_workers: 1
+  max_pages: 2
+  batch_size: 1000
+  retry_attempts: 5
+
+output:
+  storage_backend: sqlite
+
+session:
+  browser_type: camoufox

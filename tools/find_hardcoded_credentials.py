@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+
 # Credential patterns
 CREDENTIAL_PATTERNS = [
     # API keys
@@ -78,7 +79,10 @@ SKIP_DIRS = {"node_modules", ".git", "__pycache__", "venv", ".venv", "dist", "bu
 
 def is_safe_line(line: str) -> bool:
     """Check if line is safe (loading from env, config, etc)."""
-    return any(re.search(pattern, line, re.IGNORECASE) for pattern in SAFE_PATTERNS)
+    for pattern in SAFE_PATTERNS:
+        if re.search(pattern, line, re.IGNORECASE):
+            return True
+    return False
 
 
 def scan_file(file_path: Path) -> list[dict[str, Any]]:
@@ -89,7 +93,7 @@ def scan_file(file_path: Path) -> list[dict[str, Any]]:
     findings = []
 
     try:
-        with open(file_path, encoding="utf-8", errors="ignore") as f:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             lines = f.readlines()
     except Exception as e:
         print(f"  ! Error reading {file_path}: {e}")

@@ -1,13 +1,14 @@
 """Tests for xlsx_to_clickup CLI tool."""
 
-# Import from tools directory
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
+
+# Import from tools directory
+import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

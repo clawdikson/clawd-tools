@@ -29,12 +29,12 @@ import json
 import os
 import tempfile
 import time
-from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email import encoders
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional, List
 
 import pandas as pd
 import requests
@@ -148,9 +148,8 @@ def parse_run_timestamps(xlsx_path: Path) -> dict:
         - run_duration_seconds: int or 0
         - run_ended_str: str (formatted timestamp from Last File Created)
     """
-    from datetime import datetime
-
     from openpyxl import load_workbook
+    from datetime import datetime
 
     wb = load_workbook(xlsx_path, data_only=True)
     ws = wb.active
@@ -202,9 +201,9 @@ def parse_run_timestamps(xlsx_path: Path) -> dict:
 
 def generate_screenshot(
     xlsx_path: Path,
-    output_path: Path | None = None,
+    output_path: Optional[Path] = None,
     dpi: int = 150,
-    sheet_name: str | None = None,
+    sheet_name: Optional[str] = None,
 ) -> Path:
     """Generate PNG screenshot from XLSX file - compact summary format.
 
@@ -387,7 +386,7 @@ class ClickUpClient:
         self,
         task_id: str,
         file_path: Path,
-        filename: str | None = None,
+        filename: Optional[str] = None,
     ) -> dict:
         """Upload a file as task attachment.
 
@@ -483,8 +482,8 @@ class EmailClient:
 
     def __init__(
         self,
-        credentials_path: Path | None = None,
-        token_path: Path | None = None,
+        credentials_path: Optional[Path] = None,
+        token_path: Optional[Path] = None,
     ):
         """Initialize Gmail client with OAuth.
 
@@ -554,12 +553,12 @@ class EmailClient:
 
     def send_email(
         self,
-        to: list[str],
+        to: List[str],
         subject: str,
         body: str,
-        attachment_path: Path | None = None,
-        attachment_name: str | None = None,
-        cc: list[str] | None = None,
+        attachment_path: Optional[Path] = None,
+        attachment_name: Optional[str] = None,
+        cc: Optional[List[str]] = None,
     ) -> dict:
         """Send an email with optional attachment via Gmail API.
 
@@ -626,10 +625,10 @@ def run(
         str, typer.Argument(help="Project name (e.g., audiobee_bcbs_il)")
     ],
     task_id: Annotated[
-        str | None, typer.Option("--task", "-t", help="ClickUp task ID")
+        Optional[str], typer.Option("--task", "-t", help="ClickUp task ID")
     ] = None,
     curr_date: Annotated[
-        str | None,
+        Optional[str],
         typer.Option("--curr", "-c", help="Override CURR_DATE (YYYYMMDD)"),
     ] = None,
     dry_run: Annotated[
@@ -637,7 +636,7 @@ def run(
     ] = False,
     dpi: Annotated[int, typer.Option("--dpi", help="Screenshot resolution")] = 150,
     comment: Annotated[
-        str | None, typer.Option("--comment", "-m", help="Comment to add")
+        Optional[str], typer.Option("--comment", "-m", help="Comment to add")
     ] = None,
 ) -> None:
     """Generate screenshot and upload to ClickUp in one step."""
@@ -695,12 +694,12 @@ def run(
 
             # Use descriptive filename
             upload_filename = f"{project}-{date}-state-counts.png"
-            client.upload_attachment(task_id, output_path, upload_filename)
+            result = client.upload_attachment(task_id, output_path, upload_filename)
 
             typer.echo(typer.style("Upload successful!", fg=typer.colors.GREEN))
 
             # Add comment if provided (or default comment with metadata)
-            if True:
+            if comment or not comment:
                 full_comment = (
                     f"{comment or 'State counts report'}\n\n"
                     f"Project: {project}\n"
@@ -729,10 +728,10 @@ def run(
 def generate(
     project: Annotated[str, typer.Argument(help="Project name")],
     output: Annotated[
-        Path | None, typer.Option("--output", "-o", help="Output PNG path")
+        Optional[Path], typer.Option("--output", "-o", help="Output PNG path")
     ] = None,
     curr_date: Annotated[
-        str | None, typer.Option("--curr", "-c", help="Override CURR_DATE")
+        Optional[str], typer.Option("--curr", "-c", help="Override CURR_DATE")
     ] = None,
     dpi: Annotated[int, typer.Option("--dpi", help="Screenshot resolution")] = 150,
 ) -> None:
@@ -781,7 +780,7 @@ def upload(
     image: Annotated[Path, typer.Argument(help="PNG file to upload")],
     task_id: Annotated[str, typer.Option("--task", "-t", help="ClickUp task ID")],
     comment: Annotated[
-        str | None, typer.Option("--comment", "-m", help="Comment to add")
+        Optional[str], typer.Option("--comment", "-m", help="Comment to add")
     ] = None,
 ) -> None:
     """Upload existing image to ClickUp."""
@@ -805,7 +804,7 @@ def upload(
         typer.echo(f"Uploading {image} to ClickUp task {task_id}...")
         client = ClickUpClient(api_token)
 
-        client.upload_attachment(task_id, image)
+        result = client.upload_attachment(task_id, image)
         typer.echo(typer.style("Upload successful!", fg=typer.colors.GREEN))
 
         # Add comment if provided
@@ -824,20 +823,20 @@ def email(
         str, typer.Argument(help="Project name (e.g., audiobee_bcbs_il)")
     ],
     to: Annotated[
-        list[str], typer.Option("--to", "-t", help="Recipient email address(es)")
+        List[str], typer.Option("--to", "-t", help="Recipient email address(es)")
     ],
     curr_date: Annotated[
-        str | None,
+        Optional[str],
         typer.Option("--curr", "-c", help="Override CURR_DATE (YYYYMMDD)"),
     ] = None,
     cc: Annotated[
-        list[str] | None, typer.Option("--cc", help="CC email address(es)")
+        Optional[List[str]], typer.Option("--cc", help="CC email address(es)")
     ] = None,
     subject: Annotated[
-        str | None, typer.Option("--subject", "-s", help="Email subject")
+        Optional[str], typer.Option("--subject", "-s", help="Email subject")
     ] = None,
     body: Annotated[
-        str | None, typer.Option("--body", "-b", help="Email body text")
+        Optional[str], typer.Option("--body", "-b", help="Email body text")
     ] = None,
     dry_run: Annotated[
         bool, typer.Option("--dry-run", help="Validate without sending")
@@ -889,7 +888,7 @@ def email(
             if cc:
                 typer.echo(f"  CC: {', '.join(cc)}")
             typer.echo(f"  Subject: {subject or f'State Counts Report: {project} ({date})'}")
-            typer.echo("  Auth: Gmail OAuth (tools/oauth_credentials.json)")
+            typer.echo(f"  Auth: Gmail OAuth (tools/oauth_credentials.json)")
             if s3_upload:
                 typer.echo(f"  S3 Upload: Enabled (expires in {s3_expires_in // 86400} days)")
                 typer.echo(f"  S3 Bucket: {os.environ.get('S3_BUCKET_NAME', '(not set)')}")
@@ -940,11 +939,11 @@ DEFAULT_RECIPIENTS = ["operations@audiobee.ai", "dikson@audiobee.ai"]
 def send_report_email(
     project_name: str,
     curr_date: str,
-    base_path: str | Path | None = None,
-    to: list[str] | None = None,
-    cc: list[str] | None = None,
-    subject: str | None = None,
-    body: str | None = None,
+    base_path: Optional[str | Path] = None,
+    to: Optional[List[str]] = None,
+    cc: Optional[List[str]] = None,
+    subject: Optional[str] = None,
+    body: Optional[str] = None,
     dpi: int = 150,
     dry_run: bool = False,
     upload_to_s3: bool = False,
@@ -1004,7 +1003,10 @@ def send_report_email(
         to = DEFAULT_RECIPIENTS
 
     # Construct base path
-    base_path = Path(project_name) if base_path is None else Path(base_path)
+    if base_path is None:
+        base_path = Path(project_name)
+    else:
+        base_path = Path(base_path)
 
     # Resolve XLSX path
     xlsx_path = resolve_xlsx_path(project_name, curr_date, base_path)
@@ -1031,9 +1033,9 @@ def send_report_email(
         try:
             # Lazy import S3 uploader
             try:
-                from s3_uploader import S3Config, S3Uploader
+                from s3_uploader import S3Uploader, S3Config
             except ImportError:
-                from tools.s3_uploader import S3Config, S3Uploader
+                from tools.s3_uploader import S3Uploader, S3Config
 
             # Find JSONL file
             jsonl_path = resolve_jsonl_path(project_name, curr_date, base_path)

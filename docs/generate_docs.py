@@ -5,8 +5,10 @@ Generates comprehensive documentation structure from CSV data.
 """
 
 import csv
-from collections import defaultdict
+import os
 from pathlib import Path
+from collections import defaultdict
+from typing import Dict, List
 
 # Base paths
 BASE_DIR = Path("/Users/dikson/Work/ideon_scraping/scraping")
@@ -15,11 +17,11 @@ DOCS_DIR = BASE_DIR / "docs"
 SITE_TYPE_DIR = DOCS_DIR / "by-site-type"
 
 
-def parse_csv() -> list[dict]:
+def parse_csv() -> List[Dict]:
     """Parse the CSV file and return list of project data."""
     projects = []
 
-    with open(CSV_PATH, encoding='utf-8') as f:
+    with open(CSV_PATH, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             # Skip the totals row
@@ -45,7 +47,7 @@ def parse_csv() -> list[dict]:
     return projects
 
 
-def group_by_site_type(projects: list[dict]) -> dict[str, list[dict]]:
+def group_by_site_type(projects: List[Dict]) -> Dict[str, List[Dict]]:
     """Group projects by site type."""
     grouped = defaultdict(list)
 
@@ -60,7 +62,7 @@ def group_by_site_type(projects: list[dict]) -> dict[str, list[dict]]:
     return dict(grouped)
 
 
-def create_project_claude_md(project: dict) -> str:
+def create_project_claude_md(project: Dict) -> str:
     """Generate CLAUDE.md content for a project."""
     content = f"""# {project['name']}
 
@@ -81,7 +83,7 @@ def create_project_claude_md(project: dict) -> str:
     return content
 
 
-def update_or_create_project_docs(projects: list[dict]):
+def update_or_create_project_docs(projects: List[Dict]):
     """Create or update CLAUDE.md files in each project directory."""
     created = 0
     updated = 0
@@ -100,7 +102,7 @@ def update_or_create_project_docs(projects: list[dict]):
 
         if claude_md_path.exists():
             # Read existing content
-            with open(claude_md_path, encoding='utf-8') as f:
+            with open(claude_md_path, 'r', encoding='utf-8') as f:
                 existing_content = f.read()
 
             # Check if metadata already exists
@@ -132,7 +134,7 @@ def update_or_create_project_docs(projects: list[dict]):
     return created, updated, skipped
 
 
-def create_site_type_mapping(grouped_projects: dict[str, list[dict]]):
+def create_site_type_mapping(grouped_projects: Dict[str, List[Dict]]):
     """Create site-type-mapping.md with grouped projects."""
     content = """# Site Type Mapping
 
@@ -174,7 +176,7 @@ This document organizes all scraping projects by their site type, making it easy
     print("✓ Created: docs/site-type-mapping.md")
 
 
-def create_master_readme(projects: list[dict], grouped_projects: dict[str, list[dict]]):
+def create_master_readme(projects: List[Dict], grouped_projects: Dict[str, List[Dict]]):
     """Create master README.md for docs folder."""
     content = """# Ideon Scraping Projects Documentation
 
@@ -268,7 +270,7 @@ When adding or modifying projects:
     print("✓ Created: docs/README.md")
 
 
-def create_quick_reference(projects: list[dict], grouped_projects: dict[str, list[dict]]):
+def create_quick_reference(projects: List[Dict], grouped_projects: Dict[str, List[Dict]]):
     """Create quick-reference.md with summary tables."""
     content = """# Quick Reference
 
@@ -378,7 +380,7 @@ Fast lookup tables and statistics for all scraping projects.
     print("✓ Created: docs/quick-reference.md")
 
 
-def create_search_guide(projects: list[dict]):
+def create_search_guide(projects: List[Dict]):
     """Create search-guide.md with filtering instructions."""
     content = """# Search and Filter Guide
 
@@ -584,7 +586,7 @@ glob: "*.md"
     print("✓ Created: docs/search-guide.md")
 
 
-def create_category_pages(grouped_projects: dict[str, list[dict]]):
+def create_category_pages(grouped_projects: Dict[str, List[Dict]]):
     """Create individual category pages in by-site-type/ directory."""
     for site_type, projects in grouped_projects.items():
         safe_name = site_type.lower().replace(' ', '-').replace('/', '-')
@@ -623,7 +625,7 @@ def create_category_pages(grouped_projects: dict[str, list[dict]]):
         print(f"✓ Created: docs/by-site-type/{safe_name}.md")
 
 
-def create_project_links(projects: list[dict]):
+def create_project_links(projects: List[Dict]):
     """Create project-links.md with alphabetical listing."""
     content = """# All Projects - Alphabetical
 
@@ -690,15 +692,15 @@ def main():
     print("\n" + "="*60)
     print("✅ Documentation generation complete!")
     print("="*60)
-    print("\nGenerated files:")
-    print("  - docs/README.md")
-    print("  - docs/site-type-mapping.md")
-    print("  - docs/quick-reference.md")
-    print("  - docs/search-guide.md")
-    print("  - docs/project-links.md")
+    print(f"\nGenerated files:")
+    print(f"  - docs/README.md")
+    print(f"  - docs/site-type-mapping.md")
+    print(f"  - docs/quick-reference.md")
+    print(f"  - docs/search-guide.md")
+    print(f"  - docs/project-links.md")
     print(f"  - docs/by-site-type/*.md ({len(grouped_projects)} files)")
     print(f"  - {created + updated} project CLAUDE.md files")
-    print("\n📖 Start here: docs/README.md\n")
+    print(f"\n📖 Start here: docs/README.md\n")
 
 
 if __name__ == "__main__":

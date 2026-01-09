@@ -3,13 +3,13 @@
 PostToolUse hook: Auto-format JS/TS/CSS/JSON/YAML/HTML/Vue/Svelte files with prettier
 """
 import json
-import shutil
-import subprocess
 import sys
+import subprocess
+import shutil
 from pathlib import Path
 
 # File extensions that prettier handles
-PRETTIER_EXTENSIONS = {'.js', '.jsx', '.ts', '.tsx', '.css', '.less', '.scss',
+PRETTIER_EXTENSIONS = {'.js', '.jsx', '.ts', '.tsx', '.css', '.less', '.scss', 
                       '.json', '.yml', '.yaml', '.html', '.vue', '.svelte'}
 
 def main():
@@ -25,7 +25,7 @@ def main():
             sys.exit(0)
 
         # Skip lock files and model.json
-        if ('lock' in py_file.name.lower() or
+        if ('lock' in py_file.name.lower() or 
             py_file.name == 'model.json'):
             sys.exit(0)
 

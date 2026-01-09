@@ -197,9 +197,9 @@ def main():
             is_valid, issues = validate_project(project_dir, args.prev, args.curr)
 
             if is_valid:
-                print("  ✓ Valid")
+                print(f"  ✓ Valid")
             else:
-                print("  ✗ Issues found:")
+                print(f"  ✗ Issues found:")
                 for issue in issues:
                     print(f"    - {issue}")
                 all_valid = False

@@ -18,8 +18,8 @@ import json
 import os
 import random
 import time
-from collections.abc import Callable
 from pathlib import Path
+from typing import Optional, Callable, TYPE_CHECKING
 
 # Lazy imports for Google libraries (only required when actually uploading)
 # This allows importing drive_uploader without google-auth installed
@@ -42,8 +42,8 @@ def _load_google_libs():
         from google.oauth2 import service_account as sa
         from google.oauth2.credentials import Credentials as creds
         from googleapiclient.discovery import build as bld
-        from googleapiclient.errors import HttpError as he
         from googleapiclient.http import MediaFileUpload as mfu
+        from googleapiclient.errors import HttpError as he
         service_account = sa
         Credentials = creds
         build = bld
@@ -83,8 +83,8 @@ class DriveUploader:
 
     def __init__(
         self,
-        credentials_path: str | None = None,
-        mapping_path: str | None = None,
+        credentials_path: Optional[str] = None,
+        mapping_path: Optional[str] = None,
         use_oauth: bool = False,
     ):
         """Initialize uploader.
@@ -266,8 +266,8 @@ class DriveUploader:
         self,
         file_path: str | Path,
         folder_id: str,
-        custom_name: str | None = None,
-        progress_callback: Callable[[float], None] | None = None,
+        custom_name: Optional[str] = None,
+        progress_callback: Optional[Callable[[float], None]] = None,
     ) -> dict:
         """Upload a file to Google Drive folder.
 
@@ -320,7 +320,7 @@ class DriveUploader:
     def _execute_resumable_upload(
         self,
         request,
-        progress_callback: Callable[[float], None] | None = None,
+        progress_callback: Optional[Callable[[float], None]] = None,
     ) -> dict:
         """Execute resumable upload with retry logic."""
         response = None
@@ -379,8 +379,8 @@ class DriveUploader:
 def upload_archive(
     project_name: str,
     curr_date: str,
-    base_path: str | Path | None = None,
-    progress_callback: Callable[[float], None] | None = None,
+    base_path: Optional[str | Path] = None,
+    progress_callback: Optional[Callable[[float], None]] = None,
     dry_run: bool = False,
     use_oauth: bool = False,
 ) -> dict:
@@ -416,7 +416,10 @@ def upload_archive(
         print(f"Uploaded: {result['webViewLink']}")
     """
     # Construct archive path: {base_path}/{curr_date}/{curr_date}.7z
-    base_path = Path(project_name) if base_path is None else Path(base_path)
+    if base_path is None:
+        base_path = Path(project_name)
+    else:
+        base_path = Path(base_path)
 
     archive_path = base_path / curr_date / f"{curr_date}.7z"
 
