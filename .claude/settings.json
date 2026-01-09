@@ -50,7 +50,7 @@
     ]
   },
   "enabledPlugins": {
-    "hookify@claude-plugins-official": true,
+    "hookify@claude-plugins-official": false,
     "typescript-lsp@claude-plugins-official": true,
     "general-dev@fcakyon-claude-plugins": false,
     "claude-mem@thedotmack": true,
@@ -58,7 +58,6 @@
     "compound-engineering@every-marketplace": true,
     "playwright-skill@playwright-skill": true,
     "auto-memory@severity1-marketplace": false,
-    "frontend-design@claude-code-plugins": true,
-    "hookify@claude-code-plugins": true
+    "frontend-design@claude-code-plugins": false
   }
 }
