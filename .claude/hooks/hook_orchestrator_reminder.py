@@ -15,7 +15,7 @@ def main():
 
     # Output the reminder message
     result = {
-        "continue": True,
+        "result": "continue",
         "message": "**Reminder:** Use the orchestrator skill for this if possible."
     }
 

@@ -6,7 +6,7 @@ import sys
 # Define validation rules as a list of (regex pattern, message) tuples
 VALIDATION_RULES = [
     (
-        r"\bgrep\b(?!.*\|)",
+        r"(?<![-\w])grep\b(?!.*\|)",  # Don't match ast-grep or similar compound commands
         "Use 'rg' (ripgrep) instead of 'grep' for better performance and features",
     ),
     (
