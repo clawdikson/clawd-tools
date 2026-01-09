@@ -32,6 +32,7 @@ dependencies = [
     "patchright>=1.57.2",
     "curl-cffi>=0.14.0",
     "core",
+    "fastexcel>=0.18.0",
 ]
 
 [build-system]

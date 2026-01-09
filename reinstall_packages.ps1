@@ -3,7 +3,7 @@
 
 Write-Host "Reinstalling core package..." -ForegroundColor Cyan
 Set-Location core
-python -m pip install -e . --force-reinstall --no-deps
+uv pip install -e . --force-reinstall --no-deps
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to install core package" -ForegroundColor Red
     exit 1
@@ -12,7 +12,7 @@ Set-Location ..
 
 Write-Host "`nReinstalling healthsparq package..." -ForegroundColor Cyan
 Set-Location healthsparq
-python -m pip install -e . --force-reinstall --no-deps
+uv pip install -e . --force-reinstall --no-deps
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to install healthsparq package" -ForegroundColor Red
     exit 1
