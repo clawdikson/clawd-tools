@@ -865,6 +865,7 @@ version = "0.1.0"
 source = { editable = "core" }
 dependencies = [
     { name = "camoufox", extra = ["geoip"] },
+    { name = "colorama" },
     { name = "curl-cffi" },
     { name = "fastjsonschema" },
     { name = "httpx" },
@@ -910,6 +911,7 @@ qa = [
 [package.metadata]
 requires-dist = [
     { name = "camoufox", extras = ["geoip"], specifier = ">=0.4.11" },
+    { name = "colorama", specifier = ">=0.4.6" },
     { name = "curl-cffi", specifier = ">=0.7.0" },
     { name = "fastjsonschema", specifier = ">=2.19.0" },
     { name = "fastjsonschema", marker = "extra == 'qa'", specifier = ">=2.19.0" },
