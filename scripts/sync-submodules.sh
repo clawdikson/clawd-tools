@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 #
-# Sync all submodules to their remote master branches
+# Sync submodules to the SHAs recorded in the parent repo.
 # Run from repo root: ./scripts/sync-submodules.sh
 #
-# This script handles the common "commits don't follow merge-base" conflict
-# by resetting submodules to origin/master.
+# Use scripts/bump-submodules.sh to move submodules to new refs.
 #
 # Options:
-#   --force    Reset even if there are local changes
-#   --pull     Also pull the main repo first
+#   --force    Discard local changes in submodules before syncing
+#   --pull     Also pull the main repo first (no remote submodule auto-advance)
 
 set -euo pipefail
 
@@ -35,7 +34,7 @@ for arg in "$@"; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --force    Reset even if there are local changes"
+            echo "  --force    Discard local changes in submodules before syncing"
             echo "  --pull     Also pull the main repo first"
             echo "  --help     Show this help message"
             exit 0
@@ -51,91 +50,63 @@ cd "$REPO_ROOT"
 # Optionally pull main repo first
 if [[ "$PULL" == true ]]; then
     echo -e "\n${YELLOW}Pulling main repository...${NC}"
-    git fetch origin
-
-    # Check if we're in a merge conflict state
-    if [[ -f ".git/MERGE_HEAD" ]]; then
-        echo -e "${YELLOW}Merge in progress, will resolve submodule conflicts...${NC}"
-    fi
+    git pull --recurse-submodules=on-demand
 fi
 
-# List of submodules to sync
-submodules=("core" "healthsparq" "sapphire" "output_generator")
+if [[ ! -f "$REPO_ROOT/.gitmodules" ]]; then
+    echo -e "${YELLOW}No .gitmodules file found. Nothing to sync.${NC}"
+    exit 0
+fi
 
-for submodule in "${submodules[@]}"; do
-    submodule_path="$REPO_ROOT/$submodule"
+list_submodules() {
+    git config -f "$REPO_ROOT/.gitmodules" --get-regexp '^submodule\..*\.path$' | while read -r key path; do
+        name="${key#submodule.}"
+        name="${name%.path}"
+        echo "$name|$path"
+    done
+}
 
-    if [[ ! -d "$submodule_path" ]]; then
-        echo -e "\n${GRAY}[$submodule] Not found, skipping...${NC}"
+dirty_submodules=()
+missing_submodules=()
+
+while IFS='|' read -r name path; do
+    if [[ -z "$path" ]]; then
         continue
     fi
 
-    echo -e "\n${CYAN}[$submodule] Syncing...${NC}"
-
-    cd "$submodule_path"
-
-    # Check for local changes
-    status=$(git status --porcelain)
-    if [[ -n "$status" && "$FORCE" != true ]]; then
-        echo -e "  ${YELLOW}WARNING: Local changes detected. Use --force to override.${NC}"
-        echo -e "  ${GRAY}$status${NC}"
-        cd "$REPO_ROOT"
+    if [[ ! -d "$REPO_ROOT/$path" ]]; then
+        missing_submodules+=("$path")
         continue
     fi
 
-    # Fetch and reset to origin/master
-    echo -e "  ${GRAY}Fetching origin...${NC}"
-    git fetch origin
-
-    echo -e "  ${GRAY}Resetting to origin/master...${NC}"
-    git reset --hard origin/master
-
-    current_commit=$(git rev-parse --short HEAD)
-    echo -e "  ${GREEN}Now at: $current_commit${NC}"
-
-    cd "$REPO_ROOT"
-done
-
-# Stage all submodule changes
-echo -e "\n${YELLOW}Staging submodule updates...${NC}"
-for submodule in "${submodules[@]}"; do
-    if [[ -d "$submodule" ]]; then
-        git add "$submodule" 2>/dev/null || true
+    status=$(git -C "$REPO_ROOT/$path" status --porcelain)
+    if [[ -n "$status" ]]; then
+        if [[ "$FORCE" == true ]]; then
+            echo -e "${YELLOW}[$name] Discarding local changes...${NC}"
+            git -C "$REPO_ROOT/$path" reset --hard
+        else
+            dirty_submodules+=("$name")
+        fi
     fi
-done
+done < <(list_submodules)
 
-# Check if we need to complete a merge
-if [[ -f ".git/MERGE_HEAD" ]]; then
-    echo -e "\n${YELLOW}Completing merge...${NC}"
-
-    # Stage any other conflicted files (accept theirs for non-submodule conflicts)
-    conflicts=$(git diff --name-only --diff-filter=U 2>/dev/null || true)
-    if [[ -n "$conflicts" ]]; then
-        echo -e "  ${GRAY}Resolving file conflicts...${NC}"
-        while IFS= read -r file; do
-            # Check if file is not a submodule
-            is_submodule=false
-            for sub in "${submodules[@]}"; do
-                if [[ "$file" == "$sub" ]]; then
-                    is_submodule=true
-                    break
-                fi
-            done
-
-            if [[ "$is_submodule" != true ]]; then
-                git checkout --theirs "$file" 2>/dev/null || true
-                git add "$file"
-            fi
-        done <<< "$conflicts"
-    fi
-
-    # Complete the merge
-    git commit -m "chore: merge remote changes and sync submodules"
-    echo -e "${GREEN}Merge completed!${NC}"
+if [[ ${#dirty_submodules[@]} -gt 0 ]]; then
+    echo -e "${RED}Submodules have local changes:${NC}"
+    printf '  - %s\n' "${dirty_submodules[@]}"
+    echo -e "${YELLOW}Commit, stash, or re-run with --force to discard changes.${NC}"
+    exit 1
 fi
+
+if [[ ${#missing_submodules[@]} -gt 0 ]]; then
+    echo -e "${YELLOW}Initializing missing submodules:${NC}"
+    printf '  - %s\n' "${missing_submodules[@]}"
+fi
+
+echo -e "\n${CYAN}Syncing submodules to recorded SHAs...${NC}"
+git submodule update --init --recursive
 
 echo -e "\n${CYAN}=== Sync Complete ===${NC}"
-git status --short
+git submodule status
 
 echo -e "\n${GRAY}To reinstall packages, run:${NC}"
 echo "  uv pip install -e ./core -e ./healthsparq --force-reinstall --no-deps"

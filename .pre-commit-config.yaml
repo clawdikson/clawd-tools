@@ -1,0 +1,73 @@
+repos:
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(audiobee_.*|old_code)/
+      - id: end-of-file-fixer
+        exclude: ^(audiobee_.*|old_code)/
+      - id: check-yaml
+        args: [--unsafe]  # Allow custom YAML tags
+      - id: check-json
+      - id: check-merge-conflict
+
+  # Ruff - fast Python linting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        exclude: ^(audiobee_.*|old_code|\.claude)/
+      - id: ruff-format
+        exclude: ^(audiobee_.*|old_code|\.claude)/
+
+  # Local hooks
+  - repo: local
+    hooks:
+      # Submodule management
+      - id: submodules-clean
+        name: Ensure submodules are clean
+        entry: scripts/check_submodules_clean.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: submodules-refs
+        name: Ensure submodules are on allowed refs or tags
+        entry: scripts/check_submodule_refs.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: submodules-remote
+        name: Ensure submodule commits exist on remote
+        entry: scripts/check_submodule_remote.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      # Config validation
+      - id: validate-healthsparq-configs
+        name: Validate HealthSparq configs
+        entry: .venv/bin/python -m healthsparq doctor
+        language: system
+        pass_filenames: false
+        files: ^healthsparq/configs/.*\.yaml$
+        stages: [pre-commit]
+
+      - id: validate-sapphire-configs
+        name: Validate Sapphire configs
+        entry: .venv/bin/python -m sapphire doctor
+        language: system
+        pass_filenames: false
+        files: ^sapphire/configs/.*\.yaml$
+        stages: [pre-commit]
+
+      # Type checking on core packages
+      - id: typecheck-core
+        name: Type check core packages
+        entry: .venv/bin/python -m pyright core/ healthsparq/ sapphire/ --outputjson
+        language: system
+        pass_filenames: false
+        files: ^(core|healthsparq|sapphire)/.*\.py$
+        stages: [pre-commit]
+        verbose: true

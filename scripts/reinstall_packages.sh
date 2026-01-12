@@ -4,7 +4,7 @@
 # Run from repo root: ./scripts/reinstall_packages.sh
 #
 # Options:
-#   --sync    Also sync submodules to origin/master first
+#   --sync    Also sync submodules to recorded SHAs first
 #   --all     Install all local packages (including sapphire)
 
 set -euo pipefail
@@ -32,7 +32,7 @@ for arg in "$@"; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --sync    Also sync submodules to origin/master first"
+            echo "  --sync    Also sync submodules to recorded SHAs first"
             echo "  --all     Install all local packages (including sapphire)"
             echo "  --help    Show this help message"
             exit 0

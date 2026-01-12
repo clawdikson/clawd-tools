@@ -39,6 +39,7 @@ dependencies = [
     "curl-cffi>=0.14.0",
     "core",
     "fastexcel>=0.18.0",
+    "textual>=0.70.0",
 ]
 
 [build-system]

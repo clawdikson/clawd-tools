@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# Pull repository and sync all submodules
+# Pull repository and sync submodules to recorded SHAs
 # Run from repo root: ./scripts/pull.sh
 #
-# This script handles the common submodule conflicts automatically.
+# This script avoids auto-advancing submodules to remote branches.
 #
 # Options:
 #   --reinstall    Also reinstall packages after pull
@@ -42,62 +42,26 @@ cd "$REPO_ROOT"
 echo -e "${CYAN}=== Git Pull with Submodules ===${NC}"
 
 # Step 1: Fetch everything
-echo -e "\n${YELLOW}[1/4] Fetching all remotes...${NC}"
-git fetch --all --recurse-submodules
+echo -e "\n${YELLOW}[1/3] Fetching all remotes...${NC}"
+git fetch --all --recurse-submodules=on-demand
 
-# Step 2: Update submodules to remote first (prevents conflicts)
-echo -e "\n${YELLOW}[2/4] Updating submodules to origin/master...${NC}"
-submodules=("core" "healthsparq" "sapphire" "output_generator")
-
-for sub in "${submodules[@]}"; do
-    if [[ -d "$sub" ]]; then
-        (
-            cd "$sub"
-            git fetch origin 2>/dev/null || true
-            git reset --hard origin/master 2>/dev/null || true
-            commit=$(git rev-parse --short HEAD)
-            echo -e "  ${GRAY}$sub -> $commit${NC}"
-        )
-    fi
-done
-
-# Step 3: Pull main repo (should be clean now)
-echo -e "\n${YELLOW}[3/4] Pulling main repository...${NC}"
-if ! git pull --no-recurse-submodules; then
-    # If pull failed, we might have a merge in progress
+# Step 2: Pull main repo (no auto-advance of submodules)
+echo -e "\n${YELLOW}[2/3] Pulling main repository...${NC}"
+if ! git pull --recurse-submodules=on-demand; then
     if [[ -f ".git/MERGE_HEAD" ]]; then
-        echo -e "  ${YELLOW}Resolving merge...${NC}"
-
-        # Stage submodules
-        for sub in "${submodules[@]}"; do
-            if [[ -d "$sub" ]]; then
-                git add "$sub" 2>/dev/null || true
-            fi
-        done
-
-        # Check for remaining conflicts
-        conflicts=$(git diff --name-only --diff-filter=U 2>/dev/null || true)
-        if [[ -n "$conflicts" ]]; then
-            echo -e "  ${RED}Remaining conflicts:${NC}"
-            echo -e "  ${RED}$conflicts${NC}"
-            echo -e "\n  ${YELLOW}Please resolve manually, then run:${NC}"
-            echo "  git add <files>"
-            echo "  git commit"
-            exit 1
-        fi
-
-        # Complete merge
-        git commit -m "chore: merge remote changes"
-        echo -e "  ${GREEN}Merge completed!${NC}"
-    else
-        echo -e "  ${RED}Pull failed!${NC}"
+        echo -e "  ${RED}Merge in progress. Resolve conflicts, then run:${NC}"
+        echo "  git add <files>"
+        echo "  git commit"
         exit 1
     fi
+
+    echo -e "  ${RED}Pull failed!${NC}"
+    exit 1
 fi
 
-# Step 4: Final submodule sync (in case pull updated pointers)
-echo -e "\n${YELLOW}[4/4] Final submodule sync...${NC}"
-git submodule update --init --recursive
+# Step 3: Sync submodules to recorded SHAs
+echo -e "\n${YELLOW}[3/3] Syncing submodules...${NC}"
+"$SCRIPT_DIR/sync-submodules.sh"
 
 echo -e "\n${GREEN}=== Pull Complete ===${NC}"
 git log --oneline -3

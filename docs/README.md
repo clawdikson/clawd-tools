@@ -103,6 +103,18 @@ python tools/xlsx_to_clickup.py email audiobee_bcbs_il --to recipient@example.co
 ./scripts/clone-submodules.sh --fresh
 ```
 
+### Submodule Updates (Pinned)
+
+```bash
+# Sync to recorded SHAs
+./scripts/sync-submodules.sh --pull
+
+# Bump to a new release tag
+./scripts/bump-submodules.sh --core v3.2.1 --healthsparq v2.0.4
+```
+
+See `SUBMODULE_POLICY.md` for the full workflow.
+
 ### Running Tests
 
 ```bash
@@ -142,6 +154,7 @@ bd sync               # Sync with git
 
 - [CLAUDE.md](CLAUDE.md) - Comprehensive project documentation for AI agents
 - [AGENTS.md](AGENTS.md) - Agent workflow instructions
+- [SUBMODULE_POLICY.md](SUBMODULE_POLICY.md) - Submodule workflow and bump policy
 - [docs/onboarding/](docs/onboarding/) - Developer onboarding guides
 - [CODE_STYLE.md](CODE_STYLE.md) - Coding conventions
 

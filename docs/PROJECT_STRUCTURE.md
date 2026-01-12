@@ -76,7 +76,9 @@ scraping/
 │   └── run_parallel.py      # Parallel scraper execution with retry logic
 │
 ├── scripts/                 # Development and setup scripts
-│   └── clone-submodules.sh  # Submodule management (init/update/fresh/shallow/standalone)
+│   ├── clone-submodules.sh  # Submodule management (init/update/fresh/shallow/standalone)
+│   ├── sync-submodules.sh   # Sync submodules to recorded SHAs
+│   └── bump-submodules.sh   # Bump submodules to explicit tags/branches
 │
 ├── projects/                # Project categorization for parallel execution
 │   └── api.txt              # API-type scrapers (37 Carrier projects)
