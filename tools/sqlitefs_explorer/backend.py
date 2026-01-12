@@ -395,3 +395,46 @@ class LazyTreeBackend:
                     yield row[0], bytes(data)
         finally:
             conn.close()
+
+    def search_paths_simple(self, query: str, limit: int = 100) -> list[dict]:
+        """Simple case-insensitive substring search on paths.
+
+        Args:
+            query: Search query (case-insensitive)
+            limit: Maximum results to return
+
+        Returns:
+            List of dicts with path, name, score, is_dir
+        """
+        query_lower = query.lower()
+        results = []
+
+        conn = self._get_readonly_conn()
+        try:
+            cursor = conn.execute(
+                """
+                SELECT path FROM files
+                WHERE lower(path) LIKE ?
+                ORDER BY path
+                LIMIT ?
+                """,
+                (f"%{query_lower}%", limit * 2),  # Get extra for scoring
+            )
+
+            for row in cursor:
+                path = row[0]
+                pos = path.lower().index(query_lower)
+                score = 1.0 - (pos / len(path)) * 0.5
+                name = path.rsplit("/", 1)[-1] if "/" in path else path
+                is_dir = self.is_directory(path)
+                results.append({
+                    "path": path,
+                    "name": name,
+                    "score": score,
+                    "is_dir": is_dir,
+                })
+        finally:
+            conn.close()
+
+        results.sort(key=lambda r: -r["score"])
+        return results[:limit]

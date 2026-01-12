@@ -11,7 +11,7 @@ from textual.widgets import Footer, Header, Static
 from tools.sqlitefs_explorer.backend import LazyTreeBackend
 from tools.sqlitefs_explorer.models import FilterConfig
 from tools.sqlitefs_explorer.widgets.filter import FilterModal
-from tools.sqlitefs_explorer.widgets.search import ContentSearchModal, PathSearchModal
+from tools.sqlitefs_explorer.widgets.search_results import SearchResultsWidget
 from tools.sqlitefs_explorer.widgets.tree import (
     DisplaySettings,
     FileSelected,
@@ -145,6 +145,20 @@ class SQLiteFSExplorerApp(App[None]):
         height: 1fr;
         width: 100%;
     }
+
+    /* Search mode: hide tree, show search results */
+    #search-results {
+        display: none;
+        height: 100%;
+    }
+
+    #tree-pane.search-mode #tree-scroll {
+        display: none;
+    }
+
+    #tree-pane.search-mode #search-results {
+        display: block;
+    }
     """
 
     BINDINGS = [
@@ -161,10 +175,9 @@ class SQLiteFSExplorerApp(App[None]):
         Binding("d", "toggle_date", "Toggle Date"),
         Binding("m", "toggle_metadata", "Toggle All Metadata"),
         Binding("S", "cycle_size_format", "Cycle Size Format", show=False),
-        # Search
-        Binding("/", "search_path", "Search"),
-        Binding("ctrl+f", "search_path", "Search", show=False),
-        Binding("ctrl+g", "search_content", "Content Search"),
+        # Search (two keybindings for two search types)
+        Binding("/", "search_fuzzy", "Path Search"),
+        Binding("ctrl+f", "search_content", "Content Search"),
         # Filter
         Binding("f", "open_filter", "Filter"),
         Binding("F", "clear_filter", "Clear Filter", show=False),
@@ -198,8 +211,6 @@ class SQLiteFSExplorerApp(App[None]):
         self._current_path = ""
         self._display_settings = DisplaySettings()
         self._active_filter: FilterConfig | None = None
-        self._search_results: list[str] = []
-        self._search_index = 0
 
     def compose(self) -> ComposeResult:
         """Compose the app layout."""
@@ -209,6 +220,7 @@ class SQLiteFSExplorerApp(App[None]):
             with Vertical(id="tree-pane"):
                 with ScrollableContainer(id="tree-scroll"):
                     yield VirtualFSTree(self.backend, id="tree")
+                yield SearchResultsWidget(self.backend, id="search-results")
 
             with Vertical(id="viewer-pane"):
                 yield JSONViewer(id="viewer")
@@ -442,50 +454,43 @@ class SQLiteFSExplorerApp(App[None]):
     # Search functionality (Phase 2B)
     # -------------------------------------------------------------------------
 
-    def action_search_path(self) -> None:
-        """Open path search modal."""
-        self.push_screen(
-            PathSearchModal(self.backend),
-            self._handle_path_search_result,
-        )
-
-    def _handle_path_search_result(self, result: str | None) -> None:
-        """Handle result from path search modal."""
-        if result:
-            self._current_path = result
-            # Navigate to the selected path in tree
-            tree = self.query_one("#tree", VirtualFSTree)
-            node = tree._find_node_by_path(result)
-            if node:
-                tree.select_node(node)
-            # Load file content
-            is_dir = self.backend.is_directory(result)
-            self._load_file_or_directory(result, is_dir)
+    def action_search_fuzzy(self) -> None:
+        """Enter fuzzy search mode (/)."""
+        self._enter_search_mode("fuzzy")
 
     def action_search_content(self) -> None:
-        """Open content search modal."""
-        self.push_screen(
-            ContentSearchModal(self.backend, search_type="any"),
-            self._handle_content_search_result,
-        )
+        """Enter content search mode (Ctrl+f)."""
+        self._enter_search_mode("content")
 
-    def _handle_content_search_result(self, results: list[str]) -> None:
-        """Handle result from content search modal."""
-        if results:
-            self._search_results = results
-            self._search_index = 0
-            self._navigate_to_search_result()
-            if len(results) > 1:
-                self.notify(f"Found {len(results)} matches. Use n/N to navigate.")
+    def _enter_search_mode(self, search_type: str) -> None:
+        """Enter inline search mode with specified type.
 
-    def _navigate_to_search_result(self) -> None:
-        """Navigate to current search result."""
-        if not self._search_results:
-            return
+        Args:
+            search_type: Either "fuzzy" or "simple"
+        """
+        tree_pane = self.query_one("#tree-pane")
+        tree_pane.add_class("search-mode")
+        search_widget = self.query_one("#search-results", SearchResultsWidget)
+        search_widget.set_search_type(search_type)
+        search_widget.clear_and_focus()
 
-        path = self._search_results[self._search_index]
-        self._current_path = path
-        self._load_file_or_directory(path, is_dir=False)
+    def on_search_results_widget_result_selected(
+        self, event: SearchResultsWidget.ResultSelected
+    ) -> None:
+        """Handle search result selection - stay in search mode."""
+        self._current_path = event.path
+        self._load_file_or_directory(event.path, event.is_dir)
+        # Stay in search mode to allow browsing multiple results
+        # User can press Escape to exit search mode
+
+    def on_search_results_widget_search_cancelled(
+        self, event: SearchResultsWidget.SearchCancelled
+    ) -> None:
+        """Exit search mode."""
+        tree_pane = self.query_one("#tree-pane")
+        tree_pane.remove_class("search-mode")
+        tree = self.query_one("#tree", VirtualFSTree)
+        tree.focus()
 
     def _load_file_or_directory(self, path: str, is_dir: bool) -> None:
         """Load and display a file or directory.

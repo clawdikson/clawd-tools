@@ -2,12 +2,11 @@
 
 from tools.sqlitefs_explorer.widgets.filter import FilterModal
 from tools.sqlitefs_explorer.widgets.search import (
-    ContentSearchModal,
-    PathSearchModal,
     SearchResult,
     fuzzy_score,
     content_matches,
 )
+from tools.sqlitefs_explorer.widgets.search_results import SearchResultsWidget
 from tools.sqlitefs_explorer.widgets.tree import (
     DisplaySettings,
     VirtualFSTree,
@@ -18,12 +17,11 @@ from tools.sqlitefs_explorer.widgets.tree import (
 from tools.sqlitefs_explorer.widgets.viewer import JSONViewer
 
 __all__ = [
-    "ContentSearchModal",
     "DisplaySettings",
     "FilterModal",
     "JSONViewer",
-    "PathSearchModal",
     "SearchResult",
+    "SearchResultsWidget",
     "VirtualFSTree",
     "content_matches",
     "format_date",
