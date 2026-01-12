@@ -1,20 +1,19 @@
 """JSON Viewer widget with syntax highlighting."""
 
-from typing import Any
+import json
 
-from rich.json import JSON
 from rich.text import Text
-from textual.widgets import Static
+from textual.widgets import RichLog
 
 
 # Size threshold for truncation warning (10MB)
 TRUNCATION_THRESHOLD = 10 * 1024 * 1024
 
 
-class JSONViewer(Static):
+class JSONViewer(RichLog):
     """Widget for displaying JSON data with syntax highlighting.
 
-    Uses rich.json.JSON for rendering with automatic formatting.
+    Uses RichLog for scrollable content display.
     Supports large JSON with optional truncation warning.
 
     Attributes:
@@ -26,8 +25,6 @@ class JSONViewer(Static):
     JSONViewer {
         background: $surface;
         padding: 1;
-        overflow-y: auto;
-        overflow-x: auto;
     }
     """
 
@@ -47,10 +44,35 @@ class JSONViewer(Static):
             id: Widget ID
             classes: CSS classes
         """
-        super().__init__(name=name, id=id, classes=classes)
+        super().__init__(name=name, id=id, classes=classes, wrap=False, markup=False, auto_scroll=False)
         self._data: dict | list | None = data
         self._truncation_warning: bool = False
         self._error: str | None = None
+
+    def _render_content(self) -> None:
+        """Render the current data to the log."""
+        self.clear()
+
+        if self._error:
+            self.write(Text(f"Error: {self._error}", style="red"))
+            return
+
+        if self._data is None:
+            self.write(Text("Select a file to view its contents", style="dim"))
+            return
+
+        try:
+            if self._truncation_warning:
+                self.write(Text(
+                    "Warning: Large JSON file. Display may be truncated.\n",
+                    style="yellow bold",
+                ))
+
+            # Use plain JSON string to avoid markup issues with HTML in values
+            json_str = json.dumps(self._data, indent=2, ensure_ascii=False)
+            self.write(json_str)
+        except Exception as e:
+            self.write(Text(f"Error rendering JSON: {e}", style="red"))
 
     def set_data(
         self,
@@ -68,9 +90,7 @@ class JSONViewer(Static):
         self._error = None
 
         if warn_truncation and data is not None:
-            # Estimate size by checking string representation length
             try:
-                import json
                 serialized = json.dumps(data)
                 self._truncation_warning = len(serialized) > TRUNCATION_THRESHOLD
             except (TypeError, ValueError):
@@ -78,7 +98,7 @@ class JSONViewer(Static):
         else:
             self._truncation_warning = False
 
-        self.refresh()
+        self._render_content()
 
     def set_error(self, error: str) -> None:
         """Set an error message to display.
@@ -89,35 +109,8 @@ class JSONViewer(Static):
         self._data = None
         self._error = error
         self._truncation_warning = False
-        self.refresh()
+        self._render_content()
 
-    def clear(self) -> None:
-        """Clear the viewer."""
-        self._data = None
-        self._error = None
-        self._truncation_warning = False
-        self.refresh()
-
-    def render(self) -> Any:
-        """Render the JSON data.
-
-        Returns:
-            Rich renderable object
-        """
-        if self._error:
-            return Text(f"Error: {self._error}", style="red")
-
-        if self._data is None:
-            return Text("Select a file to view its contents", style="dim")
-
-        try:
-            content = JSON.from_data(self._data, indent=2)
-            if self._truncation_warning:
-                warning = Text(
-                    "Warning: Large JSON file. Display may be truncated.\n\n",
-                    style="yellow bold",
-                )
-                return warning + content
-            return content
-        except Exception as e:
-            return Text(f"Error rendering JSON: {e}", style="red")
+    def on_mount(self) -> None:
+        """Initialize content on mount."""
+        self._render_content()

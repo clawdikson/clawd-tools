@@ -233,3 +233,165 @@ class LazyTreeBackend:
     def clear_cache(self) -> None:
         """Clear the children cache."""
         self._children_cache.clear()
+
+    def get_file_metadata(self, path: str) -> dict | None:
+        """Get metadata for a single file.
+
+        Args:
+            path: File path to get metadata for
+
+        Returns:
+            Dictionary with path, size, created_at, updated_at or None if not found
+        """
+        conn = self._get_readonly_conn()
+        try:
+            row = conn.execute(
+                """
+                SELECT
+                    path,
+                    length(data) as size,
+                    created_at,
+                    updated_at
+                FROM files
+                WHERE path = ?
+                """,
+                (path,),
+            ).fetchone()
+            if row:
+                return {
+                    "path": row[0],
+                    "size": row[1],
+                    "created_at": row[2],
+                    "updated_at": row[3],
+                }
+            return None
+        finally:
+            conn.close()
+
+    def get_children_with_metadata(self, prefix: str) -> list[dict]:
+        """Get children with size and date metadata for directory listing.
+
+        Returns aggregated metadata for each immediate child:
+        - For directories: total size, file count, newest update, oldest create
+        - For files: size, created_at, updated_at
+
+        Args:
+            prefix: Path prefix (empty string for root)
+
+        Returns:
+            List of child dictionaries sorted by (is_dir DESC, name ASC)
+        """
+        conn = self._get_readonly_conn()
+        try:
+            # Normalize prefix
+            if prefix:
+                normalized = prefix.rstrip("/") + "/"
+            else:
+                normalized = ""
+            prefix_len = len(normalized)
+
+            # Get all files under prefix with metadata
+            cursor = conn.execute(
+                """
+                SELECT
+                    path,
+                    length(data) as size,
+                    created_at,
+                    updated_at
+                FROM files
+                WHERE path LIKE ?
+                """,
+                (f"{normalized}%" if normalized else "%",),
+            )
+
+            # Build children with aggregated metadata
+            children: dict[str, dict] = {}
+
+            for row in cursor:
+                full_path = row[0]
+                relative = full_path[prefix_len:] if normalized else full_path
+
+                # Get immediate child name
+                if "/" in relative:
+                    child_name = relative.split("/")[0]
+                    child_path = f"{normalized}{child_name}" if normalized else child_name
+                    is_dir = True
+                else:
+                    child_name = relative
+                    child_path = full_path
+                    is_dir = False
+
+                if child_path not in children:
+                    children[child_path] = {
+                        "path": child_path,
+                        "name": child_name,
+                        "is_dir": is_dir,
+                        "size": 0,
+                        "file_count": 0,
+                        "newest_update": None,
+                        "oldest_create": None,
+                    }
+
+                # Aggregate stats
+                children[child_path]["size"] += row[1] or 0
+                children[child_path]["file_count"] += 1
+
+                # Track newest update
+                if row[3]:  # updated_at
+                    if children[child_path]["newest_update"] is None:
+                        children[child_path]["newest_update"] = row[3]
+                    else:
+                        children[child_path]["newest_update"] = max(
+                            children[child_path]["newest_update"], row[3]
+                        )
+
+                # Track oldest creation
+                if row[2]:  # created_at
+                    if children[child_path]["oldest_create"] is None:
+                        children[child_path]["oldest_create"] = row[2]
+                    else:
+                        children[child_path]["oldest_create"] = min(
+                            children[child_path]["oldest_create"], row[2]
+                        )
+
+            # Sort: directories first, then by name (case-insensitive)
+            return sorted(
+                children.values(),
+                key=lambda x: (not x["is_dir"], x["name"].lower()),
+            )
+        finally:
+            conn.close()
+
+    def iter_all_paths(self) -> Iterator[str]:
+        """Iterate all file paths in database.
+
+        Yields:
+            File path strings in sorted order
+        """
+        conn = self._get_readonly_conn()
+        try:
+            cursor = conn.execute("SELECT path FROM files ORDER BY path")
+            for row in cursor:
+                yield row[0]
+        finally:
+            conn.close()
+
+    def iter_all_files(self) -> Iterator[tuple[str, bytes]]:
+        """Iterate all files with content (for content search).
+
+        Yields:
+            Tuples of (path, data) where data is bytes
+        """
+        conn = self._get_readonly_conn()
+        try:
+            cursor = conn.execute("SELECT path, data FROM files ORDER BY path")
+            for row in cursor:
+                data = row[1]
+                if isinstance(data, bytes):
+                    yield row[0], data
+                elif isinstance(data, str):
+                    yield row[0], data.encode("utf-8")
+                else:
+                    yield row[0], bytes(data)
+        finally:
+            conn.close()
