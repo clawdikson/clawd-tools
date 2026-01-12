@@ -42,12 +42,15 @@ dependencies = [
     "textual>=0.70.0",
 ]
 
+[project.scripts]
+scrape = "tools.dashboard:main"
+
 [build-system]
 requires = ["setuptools>=68.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["healthsparq*"]
+include = ["healthsparq*", "tools*"]
 
 [tool.pytest.ini_options]
 testpaths = ["healthsparq/tests"]
@@ -134,7 +137,7 @@ ignore = [
 ".claude/skills.bak/**/*.py" = ["F821", "F841", "SIM102", "SIM108", "E741", "ARG005", "B007", "B023"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["healthsparq", "core", "shared_package"]
+known-first-party = ["healthsparq", "core", "shared_package", "tools"]
 
 [tool.ruff.format]
 quote-style = "double"
