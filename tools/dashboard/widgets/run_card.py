@@ -3,13 +3,16 @@
 Shows progress, phase, records, and duration for a single active run.
 """
 
+from __future__ import annotations
+
 import time
 
 from textual.app import ComposeResult
+from textual.containers import Vertical
 from textual.widgets import Static, ProgressBar
 
 
-class RunCard(Static):
+class RunCard(Vertical):
     """Card widget showing a running scraper's status.
 
     Displays:

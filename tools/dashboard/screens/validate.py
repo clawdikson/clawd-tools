@@ -4,17 +4,19 @@ Provides environment validation and security scanning
 with results display and fix suggestions.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.widgets import Button, DataTable, Select, Static
 
 from tools.dashboard.services.validator import Validator, ValidationResult, SecurityIssue
 from tools.dashboard.services.registry import ProjectRegistry
 
 
-class ValidateScreen(Static):
+class ValidateScreen(Container):
     """Validation tools screen.
 
     Shows:
@@ -27,13 +29,24 @@ class ValidateScreen(Static):
 
     DEFAULT_CSS = """
     ValidateScreen {
-        height: 100%;
+        layout: vertical;
+        height: 1fr;
+        width: 1fr;
         padding: 1;
     }
 
     #validate-header {
-        height: 4;
+        height: auto;
         margin-bottom: 1;
+    }
+
+    #validate-header Static {
+        width: auto;
+        padding-right: 1;
+    }
+
+    #validate-header #project-select {
+        width: 1fr;
     }
 
     #validate-actions {
@@ -63,24 +76,23 @@ class ValidateScreen(Static):
 
     def compose(self) -> ComposeResult:
         """Compose the validation screen layout."""
-        with Vertical():
-            with Horizontal(id="validate-header"):
-                yield Static("Project: ")
-                yield Select(
-                    [("Select a project", None)],
-                    id="project-select",
-                    allow_blank=True,
-                )
+        with Horizontal(id="validate-header"):
+            yield Static("Project: ")
+            yield Select(
+                [("Select a project", None)],
+                id="project-select",
+                allow_blank=True,
+            )
 
-            with Horizontal(id="validate-actions"):
-                yield Button("Validate Env", id="btn-validate-env", variant="primary")
-                yield Button("Security Scan", id="btn-security-scan")
-                yield Button("Validate All Projects", id="btn-validate-all")
+        with Horizontal(id="validate-actions"):
+            yield Button("Validate Env", id="btn-validate-env", variant="primary")
+            yield Button("Security Scan", id="btn-security-scan")
+            yield Button("Validate All Projects", id="btn-validate-all")
 
-            yield Static("", id="validate-summary")
+        yield Static("", id="validate-summary")
 
-            with VerticalScroll(id="validate-results"):
-                yield DataTable(id="results-table")
+        with VerticalScroll(id="validate-results"):
+            yield DataTable(id="results-table")
 
     def on_mount(self) -> None:
         """Initialize the screen."""

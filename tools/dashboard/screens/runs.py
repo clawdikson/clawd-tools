@@ -4,15 +4,17 @@ Shows all active scraper runs across terminals with progress,
 phase information, and record counts.
 """
 
+from __future__ import annotations
+
 from textual.app import ComposeResult
-from textual.containers import VerticalScroll
+from textual.containers import Container, VerticalScroll
 from textual.widgets import Static
 
 from tools.dashboard.widgets.run_card import RunCard
 from tools.dashboard.services.state import SharedState
 
 
-class RunsScreen(Static):
+class RunsScreen(Container):
     """Active runs monitor screen.
 
     Shows cards for each active scraper run with:
@@ -27,12 +29,14 @@ class RunsScreen(Static):
 
     DEFAULT_CSS = """
     RunsScreen {
-        height: 100%;
+        height: 1fr;
+        width: 1fr;
         padding: 1;
     }
 
     #runs-container {
         height: 100%;
+        width: 100%;
     }
 
     .no-runs-message {
@@ -58,6 +62,11 @@ class RunsScreen(Static):
         """Start refresh timer when mounted."""
         self.refresh_runs()
         self._refresh_timer = self.set_interval(2.0, self.refresh_runs)
+
+    def on_unmount(self) -> None:
+        """Stop refresh timer when unmounted."""
+        if self._refresh_timer is not None:
+            self._refresh_timer.stop()
 
     def refresh_runs(self) -> None:
         """Refresh the list of active runs."""

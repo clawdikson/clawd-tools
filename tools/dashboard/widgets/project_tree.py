@@ -4,6 +4,8 @@ Extends Textual's Tree widget to show projects organized by
 platform type (healthsparq, sapphire, standalone).
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import ClassVar
 

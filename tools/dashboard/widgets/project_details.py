@@ -3,6 +3,8 @@
 Shows project metadata, status, and available actions.
 """
 
+from __future__ import annotations
+
 from textual.app import ComposeResult
 from textual.widgets import Static
 

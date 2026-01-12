@@ -3,6 +3,8 @@
 Shows proxy health, CPU/memory usage, and current context.
 """
 
+from __future__ import annotations
+
 from textual.widgets import Static
 
 
@@ -61,10 +63,3 @@ class StatusBar(Static):
         if self._context:
             content += f" | {self._context}"
         self.update(content)
-
-    def render(self) -> str:
-        """Render the status bar."""
-        content = f"Proxy: {self._proxy_status}"
-        if self._context:
-            content += f" | {self._context}"
-        return content

@@ -4,14 +4,16 @@ Displays proxy configuration and other settings
 with option to modify theme.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from textual.app import ComposeResult
-from textual.containers import Vertical, VerticalScroll
+from textual.containers import Container, Vertical, VerticalScroll
 from textual.widgets import Static, Switch, Label
 
 
-class SettingsScreen(Static):
+class SettingsScreen(Container):
     """Settings configuration screen.
 
     Shows:
@@ -22,7 +24,8 @@ class SettingsScreen(Static):
 
     DEFAULT_CSS = """
     SettingsScreen {
-        height: 100%;
+        height: 1fr;
+        width: 1fr;
         padding: 1;
     }
 
