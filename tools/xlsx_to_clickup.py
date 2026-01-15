@@ -15,7 +15,7 @@ Usage:
     python tools/xlsx_to_clickup.py upload report.png --task CU12345
 
 Authentication:
-    Email: Uses Gmail OAuth (tools/oauth_credentials.json, same as Google Drive)
+    Email: Uses Gmail OAuth (tools/secrets/oauth_credentials.json, same as Google Drive)
            First run opens browser for login. Token saved to tools/gmail_token.json
 
 Environment Variables:
@@ -490,13 +490,13 @@ class EmailClient:
 
         Args:
             credentials_path: Path to OAuth client credentials JSON.
-                Defaults to tools/oauth_credentials.json
+                Defaults to tools/secrets/oauth_credentials.json
             token_path: Path to store OAuth tokens.
-                Defaults to tools/gmail_token.json
+                Defaults to tools/secrets/gmail_token.json
         """
         tools_dir = Path(__file__).parent
-        self.credentials_path = credentials_path or (tools_dir / "oauth_credentials.json")
-        self.token_path = token_path or (tools_dir / "gmail_token.json")
+        self.credentials_path = credentials_path or (tools_dir / "secrets" / "oauth_credentials.json")
+        self.token_path = token_path or (tools_dir / "secrets" / "gmail_token.json")
         self._service = None
 
     def _get_credentials(self):
@@ -855,7 +855,7 @@ def email(
     """Generate screenshot and send via Gmail (OAuth authentication).
 
     First run will open browser for Google login. Token is saved for future use.
-    Requires: tools/oauth_credentials.json (same as Google Drive upload)
+    Requires: tools/secrets/oauth_credentials.json (same as Google Drive upload)
 
     With --s3-upload: Also uploads JSONL to S3 and includes presigned URL + metadata in email.
     Requires: S3_BUCKET_NAME environment variable and AWS credentials.
@@ -889,7 +889,7 @@ def email(
             if cc:
                 typer.echo(f"  CC: {', '.join(cc)}")
             typer.echo(f"  Subject: {subject or f'State Counts Report: {project} ({date})'}")
-            typer.echo("  Auth: Gmail OAuth (tools/oauth_credentials.json)")
+            typer.echo("  Auth: Gmail OAuth (tools/secrets/oauth_credentials.json)")
             if s3_upload:
                 typer.echo(f"  S3 Upload: Enabled (expires in {s3_expires_in // 86400} days)")
                 typer.echo(f"  S3 Bucket: {os.environ.get('S3_BUCKET_NAME', '(not set)')}")
