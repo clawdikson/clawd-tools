@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""CLI for {{PROJECT_NAME}} scraper.
+
+Custom Carrier Architecture Pattern implementation.
+See docs/CUSTOM_ARCHITECTURE.md for the full specification.
+"""
+from pathlib import Path
+
+import typer
+
+from core.io import StorageBackend
+from core.logging import logger, setup_logging
+
+from pipeline import load_config, parse_phases, run_pipeline, show_metrics
+
+app = typer.Typer(name="{{PROJECT_SLUG}}", help="{{PROJECT_NAME}} provider scraper")
+
+
+@app.command()
+def run(
+    curr: str = typer.Option(..., "--curr", help="Current date (YYYYMMDD)"),
+    prev: str | None = typer.Option(None, "--prev", help="Previous date for comparison"),
+    phase: str | None = typer.Option(None, "-p", "--phase", help="Phase(s): 1, 1-3, 1,3,5"),
+    from_phase: int | None = typer.Option(None, "-f", "--from-phase", help="Run from this phase onwards"),
+    skip_phase: str | None = typer.Option(None, "-S", "--skip-phase", help="Skip these phases"),
+    storage: str = typer.Option("sqlite", "-s", "--storage", help="Storage backend"),
+    qa: bool = typer.Option(False, "--qa", help="Run QA validation phase"),
+    report: bool = typer.Option(False, "--report", help="Generate reports"),
+    fresh: bool = typer.Option(False, "--fresh", help="Ignore checkpoint, start fresh"),
+    debug: bool = typer.Option(False, "--debug", help="Debug mode: verbose + bypass validation"),
+    dry_run: bool = typer.Option(False, "-n", "--dry-run", help="Show what would run"),
+):
+    """Run the scraper pipeline."""
+    # Setup logging
+    setup_logging(
+        project_name="{{PROJECT_SLUG}}",
+        run_id=curr,
+        level="DEBUG" if debug else "INFO",
+    )
+
+    # Parse phase selection
+    phases_to_run = parse_phases(phase, from_phase, skip_phase)
+
+    # Run pipeline
+    result = run_pipeline(
+        curr_date=curr,
+        prev_date=prev,
+        phases=phases_to_run,
+        storage_backend=StorageBackend(storage),
+        run_qa=qa,
+        run_report=report,
+        fresh=fresh,
+        debug=debug,
+        dry_run=dry_run,
+    )
+
+    if result.success:
+        logger.info(f"Pipeline completed: {result.providers_count} providers")
+    else:
+        logger.error("Pipeline failed")
+        raise typer.Exit(1)
+
+
+@app.command()
+def validate():
+    """Validate project configuration."""
+    try:
+        config = load_config()
+        typer.echo(f"Config valid: {config['project']['name']}")
+        typer.echo(f"  States: {config['coverage']['states']}")
+        typer.echo(f"  Storage: {config['output']['storage_backend']}")
+        typer.echo(f"  Phases: collect={config['phases']['collect']}, enrich={config['phases']['enrich']}")
+    except Exception as e:
+        typer.echo(f"Config invalid: {e}", err=True)
+        raise typer.Exit(1)
+
+
+@app.command()
+def metrics(
+    date: str | None = typer.Option(None, "--date", help="Date to show metrics for"),
+):
+    """Show metrics from a run."""
+    show_metrics(date)
+
+
+if __name__ == "__main__":
+    app()

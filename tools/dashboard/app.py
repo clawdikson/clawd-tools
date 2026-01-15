@@ -10,13 +10,13 @@ Provides a tabbed interface for:
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Footer, Header, Static, TabbedContent, TabPane
+from textual.widgets import Footer, Header, TabbedContent, TabPane
 
+from tools.dashboard.screens.data import DataScreen
 from tools.dashboard.screens.projects import ProjectsScreen
 from tools.dashboard.screens.runs import RunsScreen
-from tools.dashboard.screens.data import DataScreen
-from tools.dashboard.screens.validate import ValidateScreen
 from tools.dashboard.screens.settings import SettingsScreen
+from tools.dashboard.screens.validate import ValidateScreen
 
 
 class DashboardApp(App[None]):

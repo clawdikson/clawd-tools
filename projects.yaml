@@ -401,9 +401,10 @@ projects:
     config_ref: healthsparq/configs/maine_community_health_options.yaml
 
   audiobee_mass_gen:
-    site_type: healthsparq
+    site_type: sapphire
     coverage: [aca]
     states: [MA, NH, RI]
+    notes: "Mass General Brigham - uses VitalsChoice/Sapphire platform"
     status: active
 
   audiobee_medica:

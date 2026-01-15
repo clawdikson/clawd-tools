@@ -13,13 +13,15 @@ Master plan for migrating 87 audiobee_* projects to use core/ packages.
 
 | Category | Count | Status |
 |----------|-------|--------|
-| **Already Migrated** | 4 | Complete |
-| **HealthSparq Platform** | 23 | Ready for migration |
-| **Sapphire Platform** | 11 | Ready for migration |
-| **Anthem Platform** | 4 | Needs platform library |
-| **UHC Platform** | 3 | Needs platform library |
-| **Other/Custom** | 42 | Needs individual analysis |
-| **Total** | 87 | |
+| **Already Migrated** | 4 | ✅ Complete |
+| **HealthSparq Platform** | 23 | 🟢 Ready (configs exist) |
+| **Sapphire Platform** | 11 | 🟡 Ready (need configs) |
+| **Anthem Platform** | 5 | 🔴 BLOCKED (no library) |
+| **UHC Platform** | 3 | 🔴 BLOCKED (no library) |
+| **Other/Custom** | 42 | 🟡 Needs analysis |
+| **Total** | 88 | |
+
+**Pre-Mortem Status**: 9 risks identified and mitigated (see Risk Mitigations section)
 
 ## Migration Priority
 
@@ -31,6 +33,237 @@ Projects requiring new platform library creation.
 
 ### Phase 3: Custom Migrations
 Projects with unique implementations needing individual analysis.
+
+---
+
+## Risk Mitigations (Pre-Mortem)
+
+### Rollback Strategy (Git Branches)
+
+Each migration uses a dedicated branch for safety:
+
+```bash
+# 1. Create migration branch
+git checkout -b migrate/{project_slug}
+
+# 2. Perform migration steps
+# - Create/update YAML config
+# - Test with library
+# - Archive legacy code
+
+# 3. Validate before merge
+python -m {platform} run {project} --curr $(date +%Y%m%d) --dry-run
+# Compare output with legacy run
+
+# 4. Merge to master only after validation
+git checkout master
+git merge migrate/{project_slug}
+
+# ROLLBACK: If issues found post-merge
+git revert HEAD  # Revert the merge commit
+# OR restore from archive/
+```
+
+### Output Comparison
+
+Before archiving legacy code, run comparison:
+
+```bash
+# Run legacy scraper
+cd audiobee_{project}
+python run.py --curr YYYYMMDD
+mv YYYYMMDD/ ../legacy_output/
+
+# Run library scraper
+python -m {platform} run {project} --curr YYYYMMDD
+
+# Compare outputs (manual for now)
+diff -r legacy_output/processed/ YYYYMMDD/processed/
+```
+
+### Custom Project Analysis Checklist
+
+For 42 "Custom" projects, follow this analysis process:
+
+1. **Platform Detection**
+   - [ ] Check for healthsparq/sapphire imports
+   - [ ] Check for anthem/sydneyhealth URLs
+   - [ ] Check for uhc/optum URLs
+   - [ ] Check for custom API patterns
+
+2. **Effort Assessment**
+   - [ ] Low: Config-only migration (uses known platform)
+   - [ ] Medium: Needs custom mapper but existing platform
+   - [ ] High: Needs new platform library or standalone
+
+3. **Recommendation**
+   - [ ] Migrate to existing platform
+   - [ ] Migrate to new platform (Anthem/UHC when available)
+   - [ ] Keep standalone with core/ dependencies
+   - [ ] Archive (if unused/dead)
+
+### Test Coverage Verification
+
+Before mass migration, verify platform library test coverage:
+
+```bash
+# Check healthsparq test coverage
+.venv/bin/pytest healthsparq/tests/ --cov=healthsparq --cov-report=term-missing
+
+# Check sapphire test coverage
+.venv/bin/pytest sapphire/tests/ --cov=sapphire --cov-report=term-missing
+
+# Minimum acceptable coverage: 70% for critical paths (phases 1-3)
+# If below threshold, add tests before migration
+```
+
+**Critical paths to verify:**
+- [ ] Phase 1 (search): County iteration, result parsing
+- [ ] Phase 2 (details): Provider detail fetching, error handling
+- [ ] Phase 3 (normalize): NPI deduplication, mapper injection
+- [ ] Config loading: YAML parsing, validation
+
+### Dead/Unused Project Detection
+
+Before migrating, check if project is actively used:
+
+```bash
+# Check last modification date
+ls -la audiobee_{project}/
+
+# Check git history for recent activity
+git log --oneline -5 -- audiobee_{project}/
+
+# Check if project has run output directories
+ls audiobee_{project}/*/processed/ 2>/dev/null | head -5
+```
+
+**Decision matrix:**
+| Last Modified | Git Activity | Output Exists | Action |
+|---------------|--------------|---------------|--------|
+| < 6 months | Active | Yes | Migrate |
+| 6-12 months | Some | Yes | Migrate (lower priority) |
+| > 12 months | None | No | Archive without migration |
+| Any | Any | No data ever | Confirm with team before archiving |
+
+### Output Difference Handling
+
+Library output may differ from legacy in acceptable ways:
+
+**Acceptable differences (don't block migration):**
+- Field ordering changes
+- Whitespace/formatting differences
+- Additional fields in library output
+- Sorted vs unsorted arrays (if content same)
+- Fixed bugs (more accurate data)
+
+**Blocking differences (must resolve):**
+- Missing providers (count regression)
+- Missing required fields
+- Changed NPI values
+- Significantly different field values
+
+**Handling expected differences:**
+```bash
+# Normalize both outputs before comparison
+jq -S '.' legacy_output.jsonl | sort > legacy_sorted.jsonl
+jq -S '.' library_output.jsonl | sort > library_sorted.jsonl
+
+# Compare provider counts first
+wc -l legacy_sorted.jsonl library_sorted.jsonl
+
+# Then field-level comparison
+diff legacy_sorted.jsonl library_sorted.jsonl | head -50
+```
+
+### Gradual Rollout Strategy
+
+Don't migrate all projects at once. Use phased approach:
+
+**Week 1: Pilot (2-3 projects)**
+- Choose 1 HealthSparq + 1 Sapphire project
+- Full validation including production comparison
+- Document any issues found
+
+**Week 2-3: HealthSparq batch (10 projects)**
+- Migrate in batches of 3-5 projects
+- Wait 24-48 hours between batches
+- Monitor for issues before next batch
+
+**Week 4-5: Sapphire batch (11 projects)**
+- Same batch approach
+- Validate against production data
+
+**Week 6+: Custom projects**
+- Analyze and migrate individually
+- Higher scrutiny per project
+
+### Blocked Projects (Anthem/UHC)
+
+These projects are **BLOCKED** until platform libraries exist:
+
+**Anthem Platform (5 projects) - BLOCKED:**
+- `audiobee_amerigroup`
+- `audiobee_anthem`
+- `audiobee_blueshield_ca`
+- `audiobee_elderplan`
+- `audiobee_healthy_blue`
+
+**UHC Platform (3 projects) - BLOCKED:**
+- `audiobee_uhc_behavioral_health`
+- `audiobee_uhc_individual`
+- `audiobee_uhc_medicaid`
+
+**Unblocking criteria:**
+1. Create `anthem/` platform library with:
+   - SydneyHealth API integration
+   - AnthemConfig in core/
+   - At least one working pilot project
+
+2. Create `uhc/` platform library with:
+   - Optum API integration
+   - UHCConfig in core/
+   - At least one working pilot project
+
+**Alternative path:** Keep these as standalone projects using only `core/` utilities.
+
+### Stale Plan Verification
+
+Before starting any migration, verify plan accuracy:
+
+```bash
+# Check actual HealthSparq configs
+ls healthsparq/configs/*.yaml | wc -l
+# Compare with INDEX.md count (should be ~24)
+
+# Check actual Sapphire configs
+ls sapphire/configs/*.yaml | wc -l
+# Compare with INDEX.md count (should be ~3, needs 11 more)
+
+# List projects that may already be migrated
+for cfg in healthsparq/configs/*.yaml; do
+  project=$(basename $cfg .yaml)
+  if [ -d "audiobee_${project}" ]; then
+    echo "VERIFY: $project has both config and legacy dir"
+  fi
+done
+```
+
+**Update INDEX.md if counts differ from plan.**
+
+### Pre-Mortem Findings (2026-01-11)
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| No rollback strategy | HIGH | Git branches per migration |
+| 42 custom projects unanalyzed | HIGH | Analysis checklist above |
+| Anthem/UHC libraries blocked | HIGH | Marked as BLOCKED, defined unblocking criteria |
+| No output comparison tooling | MEDIUM | Manual comparison + acceptable difference guide |
+| INDEX.md counts may be stale | MEDIUM | Verification script above |
+| Test coverage unknown | MEDIUM | Coverage check before mass migration |
+| Dead/unused projects | LOW | Activity check before migrating |
+| Output differences expected | MEDIUM | Acceptable vs blocking difference guide |
+| No gradual rollout | MEDIUM | Phased weekly rollout plan |
 
 ---
 

@@ -1,0 +1,124 @@
+2026-01-13 16:17:51.442 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:fetch_goto:259 | Goto fetch error | 0:00:16.666375
+2026-01-13 16:17:51.442 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:fetch_goto:259 | Goto fetch error | 0:00:16.666834
+2026-01-13 16:17:51.443 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:fetch_goto:259 | Goto fetch error | 0:00:16.667245
+2026-01-13 16:17:51.443 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:fetch_goto:259 | Goto fetch error | 0:00:16.667471
+2026-01-13 16:17:51.443 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:fetch_goto:259 | Goto fetch error | 0:00:16.667814
+2026-01-13 16:18:08.265 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:00:33.489511
+2026-01-13 16:19:23.314 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:00:16.264584
+2026-01-13 16:22:47.410 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:00:16.951475
+2026-01-13 16:23:06.746 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:00:36.286871
+2026-01-13 16:23:26.065 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:00:55.606202
+2026-01-13 16:23:45.383 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:01:14.924316
+2026-01-13 16:24:04.693 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:01:34.233964
+2026-01-13 16:24:07.695 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:402 | Failed to initialize session | 0:01:37.235857
+2026-01-13 16:35:28.579 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:17.073868
+2026-01-13 16:35:28.580 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:17.074242
+2026-01-13 16:35:28.580 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:17.074461
+2026-01-13 16:35:28.580 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:17.074846
+2026-01-13 16:35:28.580 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:17.075063
+2026-01-13 16:35:44.991 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:33.486047
+2026-01-13 16:35:44.992 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:33.486608
+2026-01-13 16:35:44.993 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:33.487255
+2026-01-13 16:35:44.993 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:33.487586
+2026-01-13 16:35:44.993 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:33.487875
+2026-01-13 16:36:01.086 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:49.580446
+2026-01-13 16:36:01.086 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:49.580835
+2026-01-13 16:36:01.087 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:49.581279
+2026-01-13 16:36:01.087 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:49.581627
+2026-01-13 16:36:01.087 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:49.581809
+2026-01-13 16:36:17.660 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:01:06.154986
+2026-01-13 16:36:17.661 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:01:06.155250
+2026-01-13 16:36:17.661 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:01:06.155494
+2026-01-13 16:36:17.661 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:01:06.155637
+2026-01-13 16:36:17.661 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:01:06.155763
+2026-01-13 16:37:21.524 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:16.825254
+2026-01-13 16:37:21.524 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:16.825539
+2026-01-13 16:37:21.524 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:16.825835
+2026-01-13 16:37:21.525 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:16.826106
+2026-01-13 16:37:21.525 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:16.826308
+2026-01-13 16:38:34.866 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error | 0:00:16.588848
+2026-01-13 16:38:34.866 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error | 0:00:16.589057
+2026-01-13 16:38:34.866 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error | 0:00:16.589239
+2026-01-13 16:38:34.867 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error | 0:00:16.589538
+2026-01-13 16:38:34.867 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error | 0:00:16.589932
+2026-01-13 16:40:04.162 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error: TypeError: Tab.get() got an unexpected keyword argument 'timeout' | 0:00:16.932343
+2026-01-13 16:40:04.163 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error: TypeError: Tab.get() got an unexpected keyword argument 'timeout' | 0:00:16.933373
+2026-01-13 16:40:04.164 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error: TypeError: Tab.get() got an unexpected keyword argument 'timeout' | 0:00:16.934028
+2026-01-13 16:40:04.165 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error: TypeError: Tab.get() got an unexpected keyword argument 'timeout' | 0:00:16.934980
+2026-01-13 16:40:04.166 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error: TypeError: Tab.get() got an unexpected keyword argument 'timeout' | 0:00:16.935992
+2026-01-13 16:40:04.190 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:handle_http_request:4896 | Error handling HTTP proxy request: [Errno 54] Connection reset by peer | 0:00:16.959998
+Traceback (most recent call last):
+
+  File "/Users/dikson/Work/ideon_scraping/scraping/audiobee_aetna_better_health_of_oklahoma/index_1.py", line 510, in <module>
+    asyncio.run(main())
+    │       │   └ <function main at 0x10c55fb00>
+    │       └ <function run at 0x104ef0900>
+    └ <module 'asyncio' from '/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/__init...
+
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           │      │   └ <coroutine object main at 0x10c516460>
+           │      └ <function Runner.run at 0x104f8ac00>
+           └ <asyncio.runners.Runner object at 0x10b560920>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           │    │     │                  └ <Task pending name='Task-1' coro=<main() running at /Users/dikson/Work/ideon_scraping/scraping/audiobee_aetna_better_health_o...
+           │    │     └ <function BaseEventLoop.run_until_complete at 0x104f88720>
+           │    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+           └ <asyncio.runners.Runner object at 0x10b560920>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/base_events.py", line 678, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x104f88680>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/base_events.py", line 645, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x104f8a480>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/base_events.py", line 1999, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x104ec7a60>
+    └ <Handle Task.task_wakeup(<_GatheringFu...et by peer')]>)>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle Task.task_wakeup(<_GatheringFu...et by peer')]>)>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle Task.task_wakeup(<_GatheringFu...et by peer')]>)>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle Task.task_wakeup(<_GatheringFu...et by peer')]>)>
+  File "/Users/dikson/Work/ideon_scraping/scraping/.venv/lib/python3.12/site-packages/nodriver/core/util.py", line 4660, in handle_request
+    return await self.handle_http_request(reader, writer)
+                 │    │                   │       └ <StreamWriter transport=<_SelectorSocketTransport closed fd=34> reader=<StreamReader exception=ConnectionResetError(54, 'Conn...
+                 │    │                   └ <StreamReader exception=ConnectionResetError(54, 'Connection reset by peer') transport=<_SelectorSocketTransport closed fd=34>>
+                 │    └ <function ProxyForwarder.handle_http_request at 0x10ac794e0>
+                 └ <nodriver.core.util.ProxyForwarder object at 0x10c5c6690>
+> File "/Users/dikson/Work/ideon_scraping/scraping/.venv/lib/python3.12/site-packages/nodriver/core/util.py", line 4874, in handle_http_request
+    await asyncio.gather(*pipe_tasks)
+          │       │       └ [<Task cancelled name='Task-124' coro=<ProxyForwarder.pipe() done, defined at /Users/dikson/Work/ideon_scraping/scraping/.ven...
+          │       └ <function gather at 0x104f81080>
+          └ <module 'asyncio' from '/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/__init...
+  File "/Users/dikson/Work/ideon_scraping/scraping/.venv/lib/python3.12/site-packages/nodriver/core/util.py", line 5032, in pipe
+    data = await asyncio.wait_for(reader.read(2**16), 1)
+                 │       │        │      └ <function StreamReader.read at 0x104f9a340>
+                 │       │        └ <StreamReader exception=ConnectionResetError(54, 'Connection reset by peer') transport=<_SelectorSocketTransport closed fd=34>>
+                 │       └ <function wait_for at 0x104f80c20>
+                 └ <module 'asyncio' from '/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/__init...
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+                 └ <coroutine object StreamReader.read at 0x10c61ee30>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/streams.py", line 713, in read
+    await self._wait_for_data('read')
+          │    └ <function StreamReader._wait_for_data at 0x104f9a160>
+          └ <StreamReader exception=ConnectionResetError(54, 'Connection reset by peer') transport=<_SelectorSocketTransport closed fd=34>>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/streams.py", line 545, in _wait_for_data
+    await self._waiter
+          │    └ None
+          └ <StreamReader exception=ConnectionResetError(54, 'Connection reset by peer') transport=<_SelectorSocketTransport closed fd=34>>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/selector_events.py", line 1013, in _read_ready__data_received
+    data = self._sock.recv(self.max_size)
+           │    │          │    └ 262144
+           │    │          └ <_SelectorSocketTransport closed fd=34>
+           │    └ None
+           └ <_SelectorSocketTransport closed fd=34>
+
+ConnectionResetError: [Errno 54] Connection reset by peer

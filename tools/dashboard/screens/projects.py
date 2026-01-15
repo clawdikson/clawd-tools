@@ -6,14 +6,11 @@ with details panel showing project information and actions.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from textual.app import ComposeResult
-from textual.containers import Container, Horizontal, Vertical
-from textual.widgets import Static
+from textual.containers import Container, Vertical
 
-from tools.dashboard.widgets.project_tree import ProjectTree, ProjectSelected
 from tools.dashboard.widgets.project_details import ProjectDetails
+from tools.dashboard.widgets.project_tree import ProjectSelected, ProjectTree
 
 
 class ProjectsScreen(Container):

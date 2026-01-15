@@ -1,0 +1,902 @@
+2026-01-13 16:17:34.864 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | N/A | core.logging.logger:setup_logging:268 | Logging initialized for audiobee_aetna_better_health_of_oklahoma (run_id: 20260113) | 0:00:00.088506
+2026-01-13 16:17:34.864 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | N/A | core.proxy.manager:__init__:85 | ProxyManager initialized with types: ['dataimpulse_session'] | 0:00:00.088802
+2026-01-13 16:17:34.865 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | N/A | __main__:main:475 | Starting scraper | 0:00:00.089605
+2026-01-13 16:17:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | N/A | __main__:producer:470 | Producer finished | 0:00:00.090398
+2026-01-13 16:17:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:118 | Initializing session | 0:00:00.090491
+2026-01-13 16:17:34.871 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc__6jytab5
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=50638 | 0:00:00.095299
+2026-01-13 16:17:35.662 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:00.886391
+2026-01-13 16:17:35.760 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://88954499167b4698f334__cr.us,ca:dfd6f490977e6ece@gw.dataimpulse.com:11641 | 0:00:00.984491
+2026-01-13 16:17:35.760 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:50693 | 0:00:00.984861
+2026-01-13 16:17:35.761 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://88954499167b4698f334__cr.us,ca:dfd6f490977e6ece@gw.dataimpulse.com:11641 | 0:00:00.985002
+2026-01-13 16:17:36.375 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:141 | Waiting for Akamai challenge... | 0:00:01.599898
+2026-01-13 16:17:51.440 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:158 | Session initialized successfully | 0:00:16.664808
+2026-01-13 16:17:51.441 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:worker:406 | Worker ready | 0:00:16.665563
+2026-01-13 16:17:51.441 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:worker:419 | Processing task | 0:00:16.665628
+2026-01-13 16:17:51.442 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:fetch_goto:259 | Goto fetch error | 0:00:16.666375
+2026-01-13 16:17:51.442 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:process_task:384 | Task completed | 0:00:16.666475
+2026-01-13 16:17:51.442 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:worker:419 | Processing task | 0:00:16.666565
+2026-01-13 16:17:51.442 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:fetch_goto:259 | Goto fetch error | 0:00:16.666834
+2026-01-13 16:17:51.442 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:process_task:384 | Task completed | 0:00:16.666908
+2026-01-13 16:17:51.443 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:worker:419 | Processing task | 0:00:16.666953
+2026-01-13 16:17:51.443 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:fetch_goto:259 | Goto fetch error | 0:00:16.667245
+2026-01-13 16:17:51.443 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:process_task:384 | Task completed | 0:00:16.667308
+2026-01-13 16:17:51.443 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:worker:419 | Processing task | 0:00:16.667354
+2026-01-13 16:17:51.443 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:fetch_goto:259 | Goto fetch error | 0:00:16.667471
+2026-01-13 16:17:51.443 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:process_task:384 | Task completed | 0:00:16.667635
+2026-01-13 16:17:51.443 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:worker:419 | Processing task | 0:00:16.667732
+2026-01-13 16:17:51.443 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:fetch_goto:259 | Goto fetch error | 0:00:16.667814
+2026-01-13 16:17:51.443 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:worker:432 | Refreshing session | 0:00:16.667873
+2026-01-13 16:17:51.444 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | core.proxy.providers.dataimpulse:mark_blocked:292 | DataImpulse port 11641 blocked for browser 0 | 0:00:16.668041
+2026-01-13 16:17:51.444 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 2859 successfully | 0:00:16.668300
+2026-01-13 16:17:51.444 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:118 | Initializing session | 0:00:16.668475
+2026-01-13 16:17:51.446 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_66jr4gkq
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=51428 | 0:00:16.670285
+2026-01-13 16:17:52.707 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:17.931360
+2026-01-13 16:17:52.710 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://88954499167b4698f334__cr.us,ca:dfd6f490977e6ece@gw.dataimpulse.com:12001 | 0:00:17.934192
+2026-01-13 16:17:52.710 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:51527 | 0:00:17.934302
+2026-01-13 16:17:52.710 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://88954499167b4698f334__cr.us,ca:dfd6f490977e6ece@gw.dataimpulse.com:12001 | 0:00:17.934351
+2026-01-13 16:17:53.261 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:141 | Waiting for Akamai challenge... | 0:00:18.485438
+2026-01-13 16:18:08.265 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:00:33.489511
+2026-01-13 16:18:08.265 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 3077 successfully | 0:00:33.489798
+2026-01-13 16:18:08.265 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | core.proxy.providers.dataimpulse:mark_blocked:292 | DataImpulse port 12001 blocked for browser 0 | 0:00:33.489881
+2026-01-13 16:18:11.266 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:118 | Initializing session | 0:00:36.490689
+2026-01-13 16:18:11.268 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_263jio3z
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=52361 | 0:00:36.492206
+2026-01-13 16:18:12.025 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:37.249231
+2026-01-13 16:18:12.032 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://88954499167b4698f334__cr.us,ca:dfd6f490977e6ece@gw.dataimpulse.com:12973 | 0:00:37.255962
+2026-01-13 16:18:12.032 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:52423 | 0:00:37.256262
+2026-01-13 16:18:12.032 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://88954499167b4698f334__cr.us,ca:dfd6f490977e6ece@gw.dataimpulse.com:12973 | 0:00:37.256325
+2026-01-13 16:18:12.585 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:141 | Waiting for Akamai challenge... | 0:00:37.809809
+2026-01-13 16:19:07.131 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | N/A | core.logging.logger:setup_logging:268 | Logging initialized for audiobee_aetna_better_health_of_oklahoma (run_id: 20260113) | 0:00:00.080687
+2026-01-13 16:19:07.131 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | N/A | core.proxy.manager:__init__:85 | ProxyManager initialized with types: ['dataimpulse_session'] | 0:00:00.080927
+2026-01-13 16:19:07.131 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | N/A | __main__:main:475 | Starting scraper | 0:00:00.081579
+2026-01-13 16:19:07.132 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | N/A | __main__:producer:470 | Producer finished | 0:00:00.082325
+2026-01-13 16:19:07.132 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:118 | Initializing session | 0:00:00.082401
+2026-01-13 16:19:07.134 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_pjg4piui
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=55009 | 0:00:00.084594
+2026-01-13 16:19:07.658 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:00.608176
+2026-01-13 16:19:07.696 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://88954499167b4698f334__cr.us,ca:dfd6f490977e6ece@gw.dataimpulse.com:17106 | 0:00:00.645694
+2026-01-13 16:19:07.696 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:55045 | 0:00:00.645836
+2026-01-13 16:19:07.696 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://88954499167b4698f334__cr.us,ca:dfd6f490977e6ece@gw.dataimpulse.com:17106 | 0:00:00.645887
+2026-01-13 16:19:08.310 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:141 | Waiting for Akamai challenge... | 0:00:01.260424
+2026-01-13 16:19:23.314 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:00:16.264584
+2026-01-13 16:19:23.315 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 4318 successfully | 0:00:16.265302
+2026-01-13 16:19:23.315 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260113 | worker_0 | core.proxy.providers.dataimpulse:mark_blocked:292 | DataImpulse port 17106 blocked for browser 0 | 0:00:16.265495
+2026-01-13 16:22:30.563 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.logging.logger:setup_logging:268 | Logging initialized for audiobee_aetna_better_health_of_oklahoma (run_id: 20260108) | 0:00:00.104622
+2026-01-13 16:22:30.564 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.proxy.manager:__init__:85 | ProxyManager initialized with types: ['smartproxy_session'] | 0:00:00.104929
+2026-01-13 16:22:30.564 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:main:475 | Starting scraper | 0:00:00.105604
+2026-01-13 16:22:30.565 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:producer:470 | Producer finished | 0:00:00.106374
+2026-01-13 16:22:30.565 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:118 | Initializing session | 0:00:00.106448
+2026-01-13 16:22:30.570 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_6nh_kos_
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=59325 | 0:00:00.110950
+2026-01-13 16:22:31.578 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:01.119467
+2026-01-13 16:22:31.684 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_f0knzzxm:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.225324
+2026-01-13 16:22:31.684 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:59346 | 0:00:01.225540
+2026-01-13 16:22:31.684 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_f0knzzxm:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.225615
+2026-01-13 16:22:32.402 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:141 | Waiting for Akamai challenge... | 0:00:01.943411
+2026-01-13 16:22:47.410 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:00:16.951475
+2026-01-13 16:22:47.411 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 7725 successfully | 0:00:16.952073
+2026-01-13 16:22:47.411 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_f0knzzxm blocked, replaced with session_ssh5ypr5 | 0:00:16.952391
+2026-01-13 16:22:50.413 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:118 | Initializing session | 0:00:19.953949
+2026-01-13 16:22:50.416 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_s8k3md5y
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=59477 | 0:00:19.957451
+2026-01-13 16:22:51.176 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:20.717392
+2026-01-13 16:22:51.179 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_7spgcexl:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:20.719954
+2026-01-13 16:22:51.179 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:59511 | 0:00:20.720064
+2026-01-13 16:22:51.179 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_7spgcexl:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:20.720151
+2026-01-13 16:22:51.719 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:141 | Waiting for Akamai challenge... | 0:00:21.259985
+2026-01-13 16:23:06.746 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:00:36.286871
+2026-01-13 16:23:06.746 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 7999 successfully | 0:00:36.287300
+2026-01-13 16:23:06.747 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_7spgcexl blocked, replaced with session_57m6ulk6 | 0:00:36.287858
+2026-01-13 16:23:09.749 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:118 | Initializing session | 0:00:39.290005
+2026-01-13 16:23:09.752 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_a7bpu4zm
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=59640 | 0:00:39.293341
+2026-01-13 16:23:10.513 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:40.054770
+2026-01-13 16:23:10.516 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_brqlswpj:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:40.057793
+2026-01-13 16:23:10.517 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:59690 | 0:00:40.057907
+2026-01-13 16:23:10.517 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_brqlswpj:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:40.058028
+2026-01-13 16:23:11.058 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:141 | Waiting for Akamai challenge... | 0:00:40.599612
+2026-01-13 16:23:26.065 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:00:55.606202
+2026-01-13 16:23:26.065 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 8232 successfully | 0:00:55.606731
+2026-01-13 16:23:26.066 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_brqlswpj blocked, replaced with session_iu0tzlrb | 0:00:55.607006
+2026-01-13 16:23:29.067 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:118 | Initializing session | 0:00:58.608535
+2026-01-13 16:23:29.070 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_sjxksbcq
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=59808 | 0:00:58.611078
+2026-01-13 16:23:29.831 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:59.372298
+2026-01-13 16:23:29.835 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_intkgavj:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:59.375929
+2026-01-13 16:23:29.835 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:59839 | 0:00:59.376321
+2026-01-13 16:23:29.835 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_intkgavj:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:59.376430
+2026-01-13 16:23:30.378 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:141 | Waiting for Akamai challenge... | 0:00:59.919702
+2026-01-13 16:23:45.383 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:01:14.924316
+2026-01-13 16:23:45.383 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 8462 successfully | 0:01:14.924620
+2026-01-13 16:23:45.383 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_intkgavj blocked, replaced with session_ub4u79ki | 0:01:14.924803
+2026-01-13 16:23:48.385 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:118 | Initializing session | 0:01:17.926207
+2026-01-13 16:23:48.387 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_4aqybfb3
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=59978 | 0:01:17.928527
+2026-01-13 16:23:49.144 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:01:18.685625
+2026-01-13 16:23:49.147 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_ub4u79ki:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:01:18.687993
+2026-01-13 16:23:49.147 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:60005 | 0:01:18.688071
+2026-01-13 16:23:49.147 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_ub4u79ki:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:01:18.688160
+2026-01-13 16:23:49.687 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:141 | Waiting for Akamai challenge... | 0:01:19.228489
+2026-01-13 16:24:04.693 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:166 | Session initialization failed | 0:01:34.233964
+2026-01-13 16:24:04.693 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 8689 successfully | 0:01:34.234343
+2026-01-13 16:24:04.693 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_ub4u79ki blocked, replaced with session_uq2q8lir | 0:01:34.234546
+2026-01-13 16:24:07.695 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:402 | Failed to initialize session | 0:01:37.235857
+2026-01-13 16:24:07.695 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:main:487 | Scraper finished | 0:01:37.236647
+2026-01-13 16:24:07.696 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.proxy.manager:cleanup:256 | ProxyManager cleanup complete | 0:01:37.236901
+2026-01-13 16:35:11.660 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.logging.logger:setup_logging:268 | Logging initialized for audiobee_aetna_better_health_of_oklahoma (run_id: 20260108) | 0:00:00.154491
+2026-01-13 16:35:11.661 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.proxy.manager:__init__:85 | ProxyManager initialized with types: ['smartproxy_session'] | 0:00:00.155870
+2026-01-13 16:35:11.664 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:main:490 | Starting scraper | 0:00:00.159039
+2026-01-13 16:35:11.667 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:producer:485 | Producer finished | 0:00:00.161705
+2026-01-13 16:35:11.667 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:00.162032
+2026-01-13 16:35:11.675 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_x9_k0tpb
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=62741 | 0:00:00.169476
+2026-01-13 16:35:12.956 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:01.450735
+2026-01-13 16:35:12.962 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_ayy3ls9c:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.456781
+2026-01-13 16:35:12.962 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:62772 | 0:00:01.456984
+2026-01-13 16:35:12.962 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_ayy3ls9c:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.457076
+2026-01-13 16:35:13.511 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:02.005607
+2026-01-13 16:35:28.578 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:161 | Session initialized successfully | 0:00:17.072448
+2026-01-13 16:35:28.578 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:421 | Worker ready | 0:00:17.072907
+2026-01-13 16:35:28.578 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:17.072978
+2026-01-13 16:35:28.579 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:17.073868
+2026-01-13 16:35:28.579 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:17.073980
+2026-01-13 16:35:28.579 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:17.074037
+2026-01-13 16:35:28.580 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:17.074242
+2026-01-13 16:35:28.580 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:17.074314
+2026-01-13 16:35:28.580 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:17.074353
+2026-01-13 16:35:28.580 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:17.074461
+2026-01-13 16:35:28.580 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:17.074624
+2026-01-13 16:35:28.580 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:17.074681
+2026-01-13 16:35:28.580 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:17.074846
+2026-01-13 16:35:28.580 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:17.074917
+2026-01-13 16:35:28.580 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:17.074954
+2026-01-13 16:35:28.580 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:17.075063
+2026-01-13 16:35:28.580 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:447 | Refreshing session | 0:00:17.075125
+2026-01-13 16:35:28.581 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_ayy3ls9c blocked, replaced with session_4wis4bn9 | 0:00:17.075243
+2026-01-13 16:35:28.581 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 16359 successfully | 0:00:17.075372
+2026-01-13 16:35:28.581 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:17.075447
+2026-01-13 16:35:28.582 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_upzh2cvx
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=62942 | 0:00:17.076920
+2026-01-13 16:35:29.344 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:17.839102
+2026-01-13 16:35:29.347 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_hvo4gh94:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:17.841572
+2026-01-13 16:35:29.347 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:62973 | 0:00:17.841659
+2026-01-13 16:35:29.347 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_hvo4gh94:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:17.841715
+2026-01-13 16:35:29.887 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:18.381410
+2026-01-13 16:35:44.991 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:161 | Session initialized successfully | 0:00:33.485637
+2026-01-13 16:35:44.991 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:33.486047
+2026-01-13 16:35:44.991 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:33.486144
+2026-01-13 16:35:44.992 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:33.486193
+2026-01-13 16:35:44.992 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:33.486608
+2026-01-13 16:35:44.992 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:33.486924
+2026-01-13 16:35:44.992 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:33.487119
+2026-01-13 16:35:44.993 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:33.487255
+2026-01-13 16:35:44.993 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:33.487363
+2026-01-13 16:35:44.993 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:33.487410
+2026-01-13 16:35:44.993 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:33.487586
+2026-01-13 16:35:44.993 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:33.487650
+2026-01-13 16:35:44.993 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:33.487692
+2026-01-13 16:35:44.993 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:33.487875
+2026-01-13 16:35:44.993 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:447 | Refreshing session | 0:00:33.487948
+2026-01-13 16:35:44.993 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_hvo4gh94 blocked, replaced with session_4gjk6jlf | 0:00:33.488023
+2026-01-13 16:35:44.993 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 16586 successfully | 0:00:33.488127
+2026-01-13 16:35:44.994 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:33.488287
+2026-01-13 16:35:44.995 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_tnwwclja
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=63150 | 0:00:33.489411
+2026-01-13 16:35:45.425 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:33.919385
+2026-01-13 16:35:45.453 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_ioyjq3py:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:33.947378
+2026-01-13 16:35:45.453 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:63172 | 0:00:33.947760
+2026-01-13 16:35:45.453 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_ioyjq3py:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:33.947839
+2026-01-13 16:35:46.010 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:34.504678
+2026-01-13 16:36:01.085 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:161 | Session initialized successfully | 0:00:49.579711
+2026-01-13 16:36:01.086 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:49.580446
+2026-01-13 16:36:01.086 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:49.580540
+2026-01-13 16:36:01.086 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:49.580604
+2026-01-13 16:36:01.086 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:49.580835
+2026-01-13 16:36:01.086 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:49.580947
+2026-01-13 16:36:01.086 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:49.581071
+2026-01-13 16:36:01.087 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:49.581279
+2026-01-13 16:36:01.087 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:49.581379
+2026-01-13 16:36:01.087 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:49.581430
+2026-01-13 16:36:01.087 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:49.581627
+2026-01-13 16:36:01.087 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:49.581696
+2026-01-13 16:36:01.087 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:49.581737
+2026-01-13 16:36:01.087 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:49.581809
+2026-01-13 16:36:01.087 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:447 | Refreshing session | 0:00:49.581871
+2026-01-13 16:36:01.087 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_ioyjq3py blocked, replaced with session_rsy3tuzq | 0:00:49.581985
+2026-01-13 16:36:01.087 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 16794 successfully | 0:00:49.582145
+2026-01-13 16:36:01.088 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:49.582254
+2026-01-13 16:36:01.089 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_4d1tno0h
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=63392 | 0:00:49.583723
+2026-01-13 16:36:01.952 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:50.446428
+2026-01-13 16:36:01.965 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_4gjk6jlf:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:50.459243
+2026-01-13 16:36:01.965 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:63416 | 0:00:50.459423
+2026-01-13 16:36:01.965 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_4gjk6jlf:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:50.459567
+2026-01-13 16:36:02.578 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:51.072533
+2026-01-13 16:36:17.660 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:161 | Session initialized successfully | 0:01:06.154761
+2026-01-13 16:36:17.660 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:01:06.154986
+2026-01-13 16:36:17.660 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:01:06.155074
+2026-01-13 16:36:17.660 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:01:06.155119
+2026-01-13 16:36:17.661 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:01:06.155250
+2026-01-13 16:36:17.661 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:01:06.155310
+2026-01-13 16:36:17.661 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:01:06.155346
+2026-01-13 16:36:17.661 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:01:06.155494
+2026-01-13 16:36:17.661 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:01:06.155546
+2026-01-13 16:36:17.661 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:01:06.155577
+2026-01-13 16:36:17.661 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:01:06.155637
+2026-01-13 16:36:17.661 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:01:06.155682
+2026-01-13 16:36:17.661 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:01:06.155711
+2026-01-13 16:36:17.661 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:01:06.155763
+2026-01-13 16:36:17.661 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:447 | Refreshing session | 0:01:06.155815
+2026-01-13 16:36:17.661 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_4gjk6jlf blocked, replaced with session_fqg7ci8c | 0:01:06.155882
+2026-01-13 16:36:17.661 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 17341 successfully | 0:01:06.156154
+2026-01-13 16:36:17.662 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:01:06.156341
+2026-01-13 16:36:17.664 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_xxzpxjp2
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=63596 | 0:01:06.158285
+2026-01-13 16:36:18.424 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:01:06.918780
+2026-01-13 16:36:18.427 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_fqg7ci8c:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:01:06.921931
+2026-01-13 16:36:18.427 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:63645 | 0:01:06.922064
+2026-01-13 16:36:18.427 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_fqg7ci8c:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:01:06.922136
+2026-01-13 16:36:18.973 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:01:07.467318
+2026-01-13 16:37:04.815 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.logging.logger:setup_logging:268 | Logging initialized for audiobee_aetna_better_health_of_oklahoma (run_id: 20260108) | 0:00:00.116775
+2026-01-13 16:37:04.816 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.proxy.manager:__init__:85 | ProxyManager initialized with types: ['smartproxy_session'] | 0:00:00.117816
+2026-01-13 16:37:04.818 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:main:490 | Starting scraper | 0:00:00.119428
+2026-01-13 16:37:04.820 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:producer:485 | Producer finished | 0:00:00.121491
+2026-01-13 16:37:04.820 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:00.121674
+2026-01-13 16:37:04.825 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_lwo7e9qb
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=63834 | 0:00:00.126398
+2026-01-13 16:37:05.865 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:01.166536
+2026-01-13 16:37:05.899 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_958owm2g:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.199968
+2026-01-13 16:37:05.899 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:63855 | 0:00:01.200156
+2026-01-13 16:37:05.899 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_958owm2g:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.200231
+2026-01-13 16:37:06.455 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:01.756065
+2026-01-13 16:37:21.522 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:161 | Session initialized successfully | 0:00:16.823727
+2026-01-13 16:37:21.523 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:421 | Worker ready | 0:00:16.824607
+2026-01-13 16:37:21.523 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:16.824676
+2026-01-13 16:37:21.524 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:16.825254
+2026-01-13 16:37:21.524 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:16.825339
+2026-01-13 16:37:21.524 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:16.825384
+2026-01-13 16:37:21.524 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:16.825539
+2026-01-13 16:37:21.524 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:16.825638
+2026-01-13 16:37:21.524 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:16.825687
+2026-01-13 16:37:21.524 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:16.825835
+2026-01-13 16:37:21.525 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:16.825966
+2026-01-13 16:37:21.525 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:16.826008
+2026-01-13 16:37:21.525 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:16.826106
+2026-01-13 16:37:21.525 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:399 | Task completed | 0:00:16.826176
+2026-01-13 16:37:21.525 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:434 | Processing task | 0:00:16.826214
+2026-01-13 16:37:21.525 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:269 | Goto fetch error | 0:00:16.826308
+2026-01-13 16:37:21.525 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:447 | Refreshing session | 0:00:16.826359
+2026-01-13 16:37:21.525 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_958owm2g blocked, replaced with session_gjf9ai9a | 0:00:16.826492
+2026-01-13 16:37:21.525 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 18205 successfully | 0:00:16.826717
+2026-01-13 16:37:21.525 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:16.826846
+2026-01-13 16:37:21.528 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_xr7ewtvd
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=64041 | 0:00:16.829819
+2026-01-13 16:37:22.305 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:17.606613
+2026-01-13 16:37:22.308 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_8un986nq:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:17.609570
+2026-01-13 16:37:22.308 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:64070 | 0:00:17.609673
+2026-01-13 16:37:22.308 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_8un986nq:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:17.609823
+2026-01-13 16:37:22.849 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:18.150582
+2026-01-13 16:38:18.371 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.logging.logger:setup_logging:268 | Logging initialized for audiobee_aetna_better_health_of_oklahoma (run_id: 20260108) | 0:00:00.093709
+2026-01-13 16:38:18.371 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.proxy.manager:__init__:85 | ProxyManager initialized with types: ['smartproxy_session'] | 0:00:00.094372
+2026-01-13 16:38:18.373 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:main:493 | Starting scraper | 0:00:00.095799
+2026-01-13 16:38:18.374 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:producer:488 | Producer finished | 0:00:00.097400
+2026-01-13 16:38:18.375 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:00.097624
+2026-01-13 16:38:18.382 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_7q_7ucx7
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=64338 | 0:00:00.104565
+2026-01-13 16:38:19.170 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:00.892745
+2026-01-13 16:38:19.184 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_obzolnoy:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:00.907323
+2026-01-13 16:38:19.185 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:64367 | 0:00:00.907655
+2026-01-13 16:38:19.185 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_obzolnoy:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:00.907824
+2026-01-13 16:38:19.797 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:01.519682
+2026-01-13 16:38:34.865 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:161 | Session initialized successfully | 0:00:16.587781
+2026-01-13 16:38:34.865 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:424 | Worker ready | 0:00:16.588285
+2026-01-13 16:38:34.865 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:437 | Processing task | 0:00:16.588354
+2026-01-13 16:38:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... | 0:00:16.588791
+2026-01-13 16:38:34.866 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error | 0:00:16.588848
+2026-01-13 16:38:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:402 | Task completed | 0:00:16.588917
+2026-01-13 16:38:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:437 | Processing task | 0:00:16.588954
+2026-01-13 16:38:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... | 0:00:16.589025
+2026-01-13 16:38:34.866 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error | 0:00:16.589057
+2026-01-13 16:38:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:402 | Task completed | 0:00:16.589119
+2026-01-13 16:38:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:437 | Processing task | 0:00:16.589153
+2026-01-13 16:38:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... | 0:00:16.589208
+2026-01-13 16:38:34.866 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error | 0:00:16.589239
+2026-01-13 16:38:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:402 | Task completed | 0:00:16.589290
+2026-01-13 16:38:34.866 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:437 | Processing task | 0:00:16.589322
+2026-01-13 16:38:34.867 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... | 0:00:16.589495
+2026-01-13 16:38:34.867 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error | 0:00:16.589538
+2026-01-13 16:38:34.867 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:402 | Task completed | 0:00:16.589592
+2026-01-13 16:38:34.867 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:437 | Processing task | 0:00:16.589627
+2026-01-13 16:38:34.867 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... | 0:00:16.589895
+2026-01-13 16:38:34.867 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error | 0:00:16.589932
+2026-01-13 16:38:34.867 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:450 | Refreshing session | 0:00:16.590054
+2026-01-13 16:38:34.867 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_obzolnoy blocked, replaced with session_t4rd7ksp | 0:00:16.590209
+2026-01-13 16:38:34.867 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 19262 successfully | 0:00:16.590432
+2026-01-13 16:38:34.868 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:16.590524
+2026-01-13 16:38:34.870 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_qaa80k5x
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=64522 | 0:00:16.593239
+2026-01-13 16:38:35.714 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:17.436490
+2026-01-13 16:38:35.743 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_fimztyl1:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:17.465650
+2026-01-13 16:38:35.743 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:64545 | 0:00:17.466157
+2026-01-13 16:38:35.743 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_fimztyl1:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:17.466399
+2026-01-13 16:38:36.302 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:18.024591
+2026-01-13 16:39:47.342 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.logging.logger:setup_logging:268 | Logging initialized for audiobee_aetna_better_health_of_oklahoma (run_id: 20260108) | 0:00:00.111578
+2026-01-13 16:39:47.342 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.proxy.manager:__init__:85 | ProxyManager initialized with types: ['smartproxy_session'] | 0:00:00.112345
+2026-01-13 16:39:47.343 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:main:491 | Starting scraper | 0:00:00.113407
+2026-01-13 16:39:47.346 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:producer:486 | Producer finished | 0:00:00.115897
+2026-01-13 16:39:47.346 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:00.116212
+2026-01-13 16:39:47.353 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_tgqellbk
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=65010 | 0:00:00.122538
+2026-01-13 16:39:48.311 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:01.081331
+2026-01-13 16:39:48.463 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_1ozmjl4u:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.233248
+2026-01-13 16:39:48.464 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:65044 | 0:00:01.233448
+2026-01-13 16:39:48.464 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_1ozmjl4u:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.233545
+2026-01-13 16:39:49.073 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:01.842636
+2026-01-13 16:40:04.161 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:161 | Session initialized successfully | 0:00:16.930648
+2026-01-13 16:40:04.161 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:422 | Worker ready | 0:00:16.931333
+2026-01-13 16:40:04.162 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:435 | Processing task | 0:00:16.931431
+2026-01-13 16:40:04.162 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... (tab type: Tab) | 0:00:16.932102
+2026-01-13 16:40:04.162 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error: TypeError: Tab.get() got an unexpected keyword argument 'timeout' | 0:00:16.932343
+2026-01-13 16:40:04.163 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:400 | Task completed | 0:00:16.932907
+2026-01-13 16:40:04.163 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:435 | Processing task | 0:00:16.933036
+2026-01-13 16:40:04.163 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... (tab type: Tab) | 0:00:16.933242
+2026-01-13 16:40:04.163 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error: TypeError: Tab.get() got an unexpected keyword argument 'timeout' | 0:00:16.933373
+2026-01-13 16:40:04.164 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:400 | Task completed | 0:00:16.933551
+2026-01-13 16:40:04.164 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:435 | Processing task | 0:00:16.933636
+2026-01-13 16:40:04.164 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... (tab type: Tab) | 0:00:16.933944
+2026-01-13 16:40:04.164 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error: TypeError: Tab.get() got an unexpected keyword argument 'timeout' | 0:00:16.934028
+2026-01-13 16:40:04.164 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:400 | Task completed | 0:00:16.934108
+2026-01-13 16:40:04.164 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:435 | Processing task | 0:00:16.934209
+2026-01-13 16:40:04.165 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... (tab type: Tab) | 0:00:16.934626
+2026-01-13 16:40:04.165 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error: TypeError: Tab.get() got an unexpected keyword argument 'timeout' | 0:00:16.934980
+2026-01-13 16:40:04.165 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_task:400 | Task completed | 0:00:16.935130
+2026-01-13 16:40:04.166 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:435 | Processing task | 0:00:16.935435
+2026-01-13 16:40:04.166 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... (tab type: Tab) | 0:00:16.935748
+2026-01-13 16:40:04.166 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:272 | Goto fetch error: TypeError: Tab.get() got an unexpected keyword argument 'timeout' | 0:00:16.935992
+2026-01-13 16:40:04.166 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:448 | Refreshing session | 0:00:16.936285
+2026-01-13 16:40:04.167 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | core.proxy.session_manager:mark_blocked:95 | Proxy session_1ozmjl4u blocked, replaced with session_y1ve94bu | 0:00:16.936713
+2026-01-13 16:40:04.167 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:stop:685 | terminated browser with pid 20618 successfully | 0:00:16.937223
+2026-01-13 16:40:04.168 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:16.937776
+2026-01-13 16:40:04.172 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_jj3222fq
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=65338 | 0:00:16.942150
+2026-01-13 16:40:04.190 | ERROR    | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:handle_http_request:4896 | Error handling HTTP proxy request: [Errno 54] Connection reset by peer | 0:00:16.959998
+Traceback (most recent call last):
+
+  File "/Users/dikson/Work/ideon_scraping/scraping/audiobee_aetna_better_health_of_oklahoma/index_1.py", line 510, in <module>
+    asyncio.run(main())
+    │       │   └ <function main at 0x10c55fb00>
+    │       └ <function run at 0x104ef0900>
+    └ <module 'asyncio' from '/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/__init...
+
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           │      │   └ <coroutine object main at 0x10c516460>
+           │      └ <function Runner.run at 0x104f8ac00>
+           └ <asyncio.runners.Runner object at 0x10b560920>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           │    │     │                  └ <Task pending name='Task-1' coro=<main() running at /Users/dikson/Work/ideon_scraping/scraping/audiobee_aetna_better_health_o...
+           │    │     └ <function BaseEventLoop.run_until_complete at 0x104f88720>
+           │    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+           └ <asyncio.runners.Runner object at 0x10b560920>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/base_events.py", line 678, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x104f88680>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/base_events.py", line 645, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x104f8a480>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/base_events.py", line 1999, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x104ec7a60>
+    └ <Handle Task.task_wakeup(<_GatheringFu...et by peer')]>)>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle Task.task_wakeup(<_GatheringFu...et by peer')]>)>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle Task.task_wakeup(<_GatheringFu...et by peer')]>)>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle Task.task_wakeup(<_GatheringFu...et by peer')]>)>
+  File "/Users/dikson/Work/ideon_scraping/scraping/.venv/lib/python3.12/site-packages/nodriver/core/util.py", line 4660, in handle_request
+    return await self.handle_http_request(reader, writer)
+                 │    │                   │       └ <StreamWriter transport=<_SelectorSocketTransport closed fd=34> reader=<StreamReader exception=ConnectionResetError(54, 'Conn...
+                 │    │                   └ <StreamReader exception=ConnectionResetError(54, 'Connection reset by peer') transport=<_SelectorSocketTransport closed fd=34>>
+                 │    └ <function ProxyForwarder.handle_http_request at 0x10ac794e0>
+                 └ <nodriver.core.util.ProxyForwarder object at 0x10c5c6690>
+> File "/Users/dikson/Work/ideon_scraping/scraping/.venv/lib/python3.12/site-packages/nodriver/core/util.py", line 4874, in handle_http_request
+    await asyncio.gather(*pipe_tasks)
+          │       │       └ [<Task cancelled name='Task-124' coro=<ProxyForwarder.pipe() done, defined at /Users/dikson/Work/ideon_scraping/scraping/.ven...
+          │       └ <function gather at 0x104f81080>
+          └ <module 'asyncio' from '/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/__init...
+  File "/Users/dikson/Work/ideon_scraping/scraping/.venv/lib/python3.12/site-packages/nodriver/core/util.py", line 5032, in pipe
+    data = await asyncio.wait_for(reader.read(2**16), 1)
+                 │       │        │      └ <function StreamReader.read at 0x104f9a340>
+                 │       │        └ <StreamReader exception=ConnectionResetError(54, 'Connection reset by peer') transport=<_SelectorSocketTransport closed fd=34>>
+                 │       └ <function wait_for at 0x104f80c20>
+                 └ <module 'asyncio' from '/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/__init...
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+                 └ <coroutine object StreamReader.read at 0x10c61ee30>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/streams.py", line 713, in read
+    await self._wait_for_data('read')
+          │    └ <function StreamReader._wait_for_data at 0x104f9a160>
+          └ <StreamReader exception=ConnectionResetError(54, 'Connection reset by peer') transport=<_SelectorSocketTransport closed fd=34>>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/streams.py", line 545, in _wait_for_data
+    await self._waiter
+          │    └ None
+          └ <StreamReader exception=ConnectionResetError(54, 'Connection reset by peer') transport=<_SelectorSocketTransport closed fd=34>>
+  File "/Users/dikson/.local/share/uv/python/cpython-3.12.10-macos-aarch64-none/lib/python3.12/asyncio/selector_events.py", line 1013, in _read_ready__data_received
+    data = self._sock.recv(self.max_size)
+           │    │          │    └ 262144
+           │    │          └ <_SelectorSocketTransport closed fd=34>
+           │    └ None
+           └ <_SelectorSocketTransport closed fd=34>
+
+ConnectionResetError: [Errno 54] Connection reset by peer
+2026-01-13 16:40:04.960 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:17.730050
+2026-01-13 16:40:04.972 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_oiuwvbj7:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:17.742260
+2026-01-13 16:40:04.973 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:65374 | 0:00:17.742621
+2026-01-13 16:40:04.973 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_oiuwvbj7:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:17.742804
+2026-01-13 16:40:05.584 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:18.354133
+2026-01-13 16:40:34.915 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.logging.logger:setup_logging:268 | Logging initialized for audiobee_aetna_better_health_of_oklahoma (run_id: 20260108) | 0:00:00.140271
+2026-01-13 16:40:34.916 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.proxy.manager:__init__:85 | ProxyManager initialized with types: ['smartproxy_session'] | 0:00:00.140799
+2026-01-13 16:40:34.917 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:main:491 | Starting scraper | 0:00:00.141914
+2026-01-13 16:40:34.919 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:producer:486 | Producer finished | 0:00:00.143997
+2026-01-13 16:40:34.919 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:00.144147
+2026-01-13 16:40:34.926 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc__oj475hm
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=49395 | 0:00:00.150716
+2026-01-13 16:40:36.021 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:01.245976
+2026-01-13 16:40:36.119 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_8hzrms86:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.344636
+2026-01-13 16:40:36.120 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:49439 | 0:00:01.345155
+2026-01-13 16:40:36.121 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_8hzrms86:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.345995
+2026-01-13 16:40:36.757 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:01.982617
+2026-01-13 16:40:51.855 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:161 | Session initialized successfully | 0:00:17.079747
+2026-01-13 16:40:51.855 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:422 | Worker ready | 0:00:17.080302
+2026-01-13 16:40:51.855 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:worker:435 | Processing task | 0:00:17.080401
+2026-01-13 16:40:51.856 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... | 0:00:17.081328
+2026-01-13 16:41:00.176 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:252 | Navigation complete | 0:00:25.401089
+2026-01-13 16:41:01.003 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_page:344 | Page fetched | 0:00:26.228507
+2026-01-13 16:41:02.388 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... | 0:00:27.613603
+2026-01-13 16:41:10.674 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:252 | Navigation complete | 0:00:35.898825
+2026-01-13 16:41:11.199 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_page:344 | Page fetched | 0:00:36.424568
+2026-01-13 16:41:12.954 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... | 0:00:38.179684
+2026-01-13 16:41:21.646 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:252 | Navigation complete | 0:00:46.871096
+2026-01-13 16:41:22.162 | WARNING  | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_with_validation:288 | Invalid HTML | 0:00:47.386864
+2026-01-13 16:41:22.162 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... | 0:00:47.387462
+2026-01-13 16:41:31.005 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:252 | Navigation complete | 0:00:56.230256
+2026-01-13 16:41:31.877 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:process_page:344 | Page fetched | 0:00:57.101701
+2026-01-13 16:41:33.399 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:fetch_goto:249 | Navigating to: https://www.aetnabetterhealth.com/oklahoma/find-provider?provsearch=true&name=&M... | 0:00:58.624486
+2026-01-13 16:42:21.194 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.logging.logger:setup_logging:268 | Logging initialized for audiobee_aetna_better_health_of_oklahoma (run_id: 20260108) | 0:00:00.123205
+2026-01-13 16:42:21.194 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | core.proxy.manager:__init__:85 | ProxyManager initialized with types: ['smartproxy_session'] | 0:00:00.123533
+2026-01-13 16:42:21.195 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:main:491 | Starting scraper | 0:00:00.124249
+2026-01-13 16:42:21.196 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | N/A | __main__:producer:486 | Producer finished | 0:00:00.125600
+2026-01-13 16:42:21.196 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:121 | Initializing session | 0:00:00.125683
+2026-01-13 16:42:21.199 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:407 | starting
+	executable :/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+arguments:
+--remote-allow-origins=*
+	--no-first-run
+	--no-service-autorun
+	--no-default-browser-check
+	--homepage=about:blank
+	--no-pings
+	--password-store=basic
+	--disable-infobars
+	--disable-breakpad
+	--disable-dev-shm-usage
+	--disable-session-crashed-bubble
+	--disable-search-engine-choice-screen
+	--user-data-dir=/var/folders/h_/cq44kxd51f99j70y3z2r0qv40000gn/T/uc_dmt5oq66
+	--disable-session-crashed-bubble
+	--disable-features=IsolateOrigins,site-per-process
+	--remote-debugging-host=127.0.0.1
+	--remote-debugging-port=50920 | 0:00:00.128601
+2026-01-13 16:42:22.209 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.browser:start:454 | enabling autodiscover targets | 0:00:01.138080
+2026-01-13 16:42:22.307 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4640 | http proxy with authentication is requested : http://smart-e2di53t3kwj5_area-US_life-10_session-session_umnx6xap:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.236552
+2026-01-13 16:42:22.308 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4644 | starting forward proxy on 127.0.0.1:50961 | 0:00:01.236976
+2026-01-13 16:42:22.308 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | nodriver.core.util:__init__:4645 | which forwards to http://smart-e2di53t3kwj5_area-US_life-10_session-session_umnx6xap:jxkYx5bcuFRglcj3@us.smartproxy.net:3120 | 0:00:01.237169
+2026-01-13 16:42:22.925 | INFO     | audiobee_aetna_better_health_of_oklahoma | 20260108 | worker_0 | __main__:initialize:144 | Waiting for Akamai challenge... | 0:00:01.854512

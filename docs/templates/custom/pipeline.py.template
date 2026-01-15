@@ -1,0 +1,403 @@
+"""Pipeline orchestration with metrics and recovery.
+
+Custom Carrier Architecture Pattern - Pipeline Template.
+See docs/CUSTOM_ARCHITECTURE.md for the full specification.
+"""
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable
+import json
+import time
+
+import typer
+import yaml
+from dotenv import load_dotenv
+from pydantic import BaseModel, Field, field_validator
+
+from core.io import StorageBackend
+from core.logging import logger
+from core.mapper import default_mapper, run_normalize
+from core.qa import run_validation, run_comparison, generate_report, generate_samples
+
+from collector import CollectorConfig, run_collect_sync
+
+
+# =============================================================================
+# Configuration Models (Strict Pydantic Validation)
+# =============================================================================
+
+
+class ProjectConfig(BaseModel):
+    """Project metadata configuration."""
+
+    name: str
+    slug: str
+    version: str = "1.0"
+
+
+class CoverageConfig(BaseModel):
+    """Coverage area configuration."""
+
+    states: list[str] = Field(..., min_length=1)
+
+    @field_validator("states")
+    @classmethod
+    def validate_states(cls, v):
+        valid_states = {
+            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+            "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+            "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+            "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+            "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"
+        }
+        for state in v:
+            if state.upper() not in valid_states:
+                raise ValueError(f"Invalid state: {state}")
+        return [s.upper() for s in v]
+
+
+class FullConfig(BaseModel):
+    """Complete project configuration."""
+
+    project: ProjectConfig
+    site: dict
+    coverage: CoverageConfig
+    carrier_config: dict = Field(default_factory=dict)
+    phases: dict
+    concurrency: dict = Field(default_factory=dict)
+    output: dict = Field(default_factory=dict)
+    session: dict = Field(default_factory=dict)
+    thresholds: dict = Field(default_factory=dict)
+
+
+# =============================================================================
+# Configuration Loading
+# =============================================================================
+
+
+def load_config() -> dict:
+    """Load and validate config.yaml with .env support."""
+    # Load .env files in order of precedence
+    for env_path in [".env", "../.env", Path.home() / ".env"]:
+        if Path(env_path).exists():
+            load_dotenv(env_path)
+            break
+
+    with open("config.yaml") as f:
+        raw_config = yaml.safe_load(f)
+
+    # Strict Pydantic validation
+    validated = FullConfig(**raw_config)
+    return validated.model_dump()
+
+
+# =============================================================================
+# Result Types
+# =============================================================================
+
+
+@dataclass
+class PipelineResult:
+    """Result of the entire pipeline run."""
+
+    success: bool
+    providers_count: int
+    phase_results: dict[int, Any]
+    metrics: dict
+
+
+@dataclass
+class PhaseMetrics:
+    """Metrics for a single phase."""
+
+    phase: int
+    started_at: str
+    completed_at: str
+    duration_seconds: float
+    records_processed: int
+    records_per_second: float
+    errors_count: int
+
+
+# =============================================================================
+# Metrics Management
+# =============================================================================
+
+
+def write_metrics(base_dir: Path, curr_date: str, metrics: list[PhaseMetrics]):
+    """Write metrics.json for the run."""
+    metrics_file = base_dir / curr_date / "metrics.json"
+    metrics_file.parent.mkdir(parents=True, exist_ok=True)
+
+    data = {
+        "run_date": curr_date,
+        "generated_at": datetime.now().isoformat(),
+        "phases": [
+            {
+                "phase": m.phase,
+                "started_at": m.started_at,
+                "completed_at": m.completed_at,
+                "duration_seconds": m.duration_seconds,
+                "records_processed": m.records_processed,
+                "records_per_second": m.records_per_second,
+                "errors_count": m.errors_count,
+            }
+            for m in metrics
+        ],
+    }
+    metrics_file.write_text(json.dumps(data, indent=2))
+
+
+def show_metrics(date: str | None = None):
+    """CLI command to display metrics."""
+    base_dir = Path(".")
+
+    if date:
+        metrics_file = base_dir / date / "metrics.json"
+    else:
+        # Find latest run
+        dates = sorted([
+            d.name for d in base_dir.iterdir()
+            if d.is_dir() and d.name.isdigit() and len(d.name) == 8
+        ])
+        if not dates:
+            typer.echo("No runs found")
+            return
+        metrics_file = base_dir / dates[-1] / "metrics.json"
+
+    if not metrics_file.exists():
+        typer.echo(f"No metrics found at {metrics_file}")
+        return
+
+    data = json.loads(metrics_file.read_text())
+    typer.echo(f"\nMetrics for run: {data['run_date']}")
+    typer.echo(f"Generated: {data['generated_at']}\n")
+
+    for phase in data["phases"]:
+        typer.echo(f"Phase {phase['phase']}:")
+        typer.echo(f"  Duration: {phase['duration_seconds']:.1f}s")
+        typer.echo(f"  Records: {phase['records_processed']}")
+        typer.echo(f"  Rate: {phase['records_per_second']:.1f}/sec")
+        typer.echo(f"  Errors: {phase['errors_count']}")
+        typer.echo()
+
+
+# =============================================================================
+# Phase Selection
+# =============================================================================
+
+
+def parse_phases(
+    phase: str | None,
+    from_phase: int | None,
+    skip_phase: str | None
+) -> set[int]:
+    """Parse phase selection arguments.
+
+    Supports:
+    - Single: "1"
+    - List: "1,3,5"
+    - Range: "1-3"
+    - Combined: "1-3,5"
+    - From: from_phase=2 -> {2,3,4,5,6}
+    - Skip: skip_phase="2" -> {1,3,4,5,6}
+    """
+    if phase:
+        phases = set()
+        for part in phase.split(","):
+            if "-" in part:
+                start, end = map(int, part.split("-"))
+                phases.update(range(start, end + 1))
+            else:
+                phases.add(int(part))
+        return phases
+
+    if from_phase:
+        return set(range(from_phase, 7))
+
+    # Default: phases 1-3
+    all_phases = {1, 2, 3}
+
+    if skip_phase:
+        for p in skip_phase.split(","):
+            all_phases.discard(int(p))
+
+    return all_phases
+
+
+# =============================================================================
+# Pipeline Execution
+# =============================================================================
+
+
+def run_pipeline(
+    curr_date: str,
+    prev_date: str | None = None,
+    phases: set[int] | None = None,
+    storage_backend: StorageBackend = StorageBackend.SQLITE,
+    mapper: Callable | None = None,
+    run_qa: bool = False,
+    run_report: bool = False,
+    fresh: bool = False,
+    debug: bool = False,
+    dry_run: bool = False,
+) -> PipelineResult:
+    """Execute the scraper pipeline."""
+    config = load_config()
+    phases_to_run = phases or {1, 2, 3}
+    phase_results = {}
+    all_metrics = []
+    base_dir = Path(".")
+
+    if dry_run:
+        logger.info(f"DRY RUN - would execute phases: {sorted(phases_to_run)}")
+        return PipelineResult(True, 0, {}, {})
+
+    # -------------------------------------------------------------------------
+    # Phase 1: Collect
+    # -------------------------------------------------------------------------
+    if 1 in phases_to_run:
+        logger.info("Phase 1: Starting collection")
+        start_time = time.time()
+        started_at = datetime.now().isoformat()
+
+        collector_config = CollectorConfig(
+            base_url=config["site"]["base_url"],
+            states=config["coverage"]["states"],
+            max_workers=config.get("concurrency", {}).get("max_workers", 50),
+            storage_backend=storage_backend.value,
+            output_dir=base_dir,
+            carrier_config=config.get("carrier_config", {}),
+        )
+        result = run_collect_sync(collector_config, curr_date, fresh=fresh)
+        phase_results[1] = result
+
+        duration = time.time() - start_time
+        all_metrics.append(PhaseMetrics(
+            phase=1,
+            started_at=started_at,
+            completed_at=datetime.now().isoformat(),
+            duration_seconds=duration,
+            records_processed=result.records_collected,
+            records_per_second=result.records_collected / duration if duration > 0 else 0,
+            errors_count=len(result.errors or []),
+        ))
+
+        if not result.success:
+            logger.error("Phase 1 failed")
+            write_metrics(base_dir, curr_date, all_metrics)
+            return PipelineResult(False, 0, phase_results, {})
+
+        logger.info(f"Phase 1 complete: {result.records_collected} records")
+
+    # -------------------------------------------------------------------------
+    # Phase 2: Enrich (optional)
+    # -------------------------------------------------------------------------
+    if 2 in phases_to_run and config["phases"].get("enrich"):
+        logger.info("Phase 2: Starting enrichment")
+        # TODO: Implement enrichment phase if needed
+        # Similar pattern to Phase 1 with checkpointing
+        pass
+
+    # -------------------------------------------------------------------------
+    # Phase 3: Normalize
+    # -------------------------------------------------------------------------
+    if 3 in phases_to_run:
+        logger.info("Phase 3: Starting normalization")
+        start_time = time.time()
+        started_at = datetime.now().isoformat()
+
+        # Config-driven input path
+        input_subdir = config["phases"].get("normalize_input", "collected")
+        input_dir = base_dir / curr_date / "raw" / input_subdir
+
+        # Strict validation: fail if input empty
+        if not input_dir.exists() or not any(input_dir.iterdir()):
+            raise ValueError(f"Phase 3 input path empty or missing: {input_dir}")
+
+        # Load custom mapper if configured
+        if mapper is None and config["phases"].get("custom_mapper"):
+            try:
+                from mapper import custom_mapper
+                mapper = custom_mapper
+            except ImportError:
+                logger.warning("custom_mapper not found, using default")
+
+        output_file = base_dir / curr_date / "processed" / f"{config['project']['slug']}-{curr_date}.jsonl"
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+
+        result = run_normalize(
+            input_dir=input_dir,
+            output_file=output_file,
+            mapper=mapper or default_mapper,
+            halt_on_error=not debug,
+        )
+        phase_results[3] = result
+
+        duration = time.time() - start_time
+        all_metrics.append(PhaseMetrics(
+            phase=3,
+            started_at=started_at,
+            completed_at=datetime.now().isoformat(),
+            duration_seconds=duration,
+            records_processed=result.get("records_normalized", 0),
+            records_per_second=result.get("records_normalized", 0) / duration if duration > 0 else 0,
+            errors_count=result.get("validation_errors", 0),
+        ))
+
+        logger.info(f"Phase 3 complete: {result.get('records_normalized', 0)} records")
+
+    # -------------------------------------------------------------------------
+    # Phase 4: QA (validation + comparison)
+    # -------------------------------------------------------------------------
+    if 4 in phases_to_run or run_qa:
+        logger.info("Phase 4: Running QA")
+        curr_file = base_dir / curr_date / "processed" / f"{config['project']['slug']}-{curr_date}.jsonl"
+        prev_file = None
+
+        if prev_date:
+            prev_file = base_dir / prev_date / "processed" / f"{config['project']['slug']}-{prev_date}.jsonl"
+
+        validation_result = run_validation(curr_file)
+        phase_results[4] = {"validation": validation_result}
+
+        if prev_file and prev_file.exists():
+            comparison_result = run_comparison(curr_file, prev_file)
+            phase_results[4]["comparison"] = comparison_result
+            phase_results[4]["churn"] = {
+                "added": comparison_result.get("added_count", 0),
+                "removed": comparison_result.get("removed_count", 0),
+                "removed_providers": comparison_result.get("removed_providers", []),
+            }
+
+        logger.info("Phase 4 complete")
+
+    # -------------------------------------------------------------------------
+    # Phase 5: Report
+    # -------------------------------------------------------------------------
+    if 5 in phases_to_run or run_report:
+        logger.info("Phase 5: Generating reports")
+        curr_file = base_dir / curr_date / "processed" / f"{config['project']['slug']}-{curr_date}.jsonl"
+
+        report_result = generate_report(curr_file)
+        samples_result = generate_samples(curr_file, count=20)
+        phase_results[5] = {"report": report_result, "samples": samples_result}
+
+        logger.info("Phase 5 complete")
+
+    # -------------------------------------------------------------------------
+    # Write Metrics
+    # -------------------------------------------------------------------------
+    write_metrics(base_dir, curr_date, all_metrics)
+
+    providers_count = phase_results.get(3, {}).get("records_normalized", 0)
+    return PipelineResult(
+        success=all(
+            r.get("success", True) if isinstance(r, dict) else getattr(r, "success", True)
+            for r in phase_results.values()
+        ),
+        providers_count=providers_count,
+        phase_results=phase_results,
+        metrics={"phases": [m.__dict__ for m in all_metrics]},
+    )

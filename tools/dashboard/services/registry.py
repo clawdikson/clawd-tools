@@ -104,13 +104,18 @@ class ProjectRegistry:
             status=status,
         )
 
+    # Cache for platform configs (class-level)
+    _healthsparq_projects: set[str] | None = None
+    _sapphire_projects: set[str] | None = None
+
     def _detect_platform(self, project_path: Path) -> str:
         """Detect platform type for a project.
 
         Detection order:
         1. Check for .healthsparq or .sapphire marker files
         2. Check SCRAPER_SITE_TYPE in .env file
-        3. Default to standalone
+        3. Check if project has config in healthsparq/configs/ or sapphire/configs/
+        4. Default to standalone
 
         Args:
             project_path: Path to project directory
@@ -137,7 +142,43 @@ class ProjectRegistry:
             except Exception:
                 pass
 
+        # Check for config files in platform libraries
+        # Project name: audiobee_<config_name> -> config_name.yaml
+        project_name = project_path.name
+        if project_name.startswith("audiobee_"):
+            config_name = project_name[9:]  # Remove "audiobee_" prefix
+
+            # Load platform project sets if not cached
+            if self._healthsparq_projects is None:
+                self._load_platform_configs()
+
+            if config_name in self._healthsparq_projects:
+                return "healthsparq"
+            if config_name in self._sapphire_projects:
+                return "sapphire"
+
         return "standalone"
+
+    def _load_platform_configs(self) -> None:
+        """Load project names from platform config directories."""
+        ProjectRegistry._healthsparq_projects = set()
+        ProjectRegistry._sapphire_projects = set()
+
+        # Load healthsparq configs
+        hs_configs = self.root_path / "healthsparq" / "configs"
+        if hs_configs.exists():
+            for config_file in hs_configs.glob("*.yaml"):
+                name = config_file.stem
+                if not name.startswith("_"):  # Skip _base.yaml
+                    ProjectRegistry._healthsparq_projects.add(name)
+
+        # Load sapphire configs
+        sp_configs = self.root_path / "sapphire" / "configs"
+        if sp_configs.exists():
+            for config_file in sp_configs.glob("*.yaml"):
+                name = config_file.stem
+                if not name.startswith("_"):
+                    ProjectRegistry._sapphire_projects.add(name)
 
     def _get_latest_run(self, project_path: Path) -> str | None:
         """Find the latest run date directory.
