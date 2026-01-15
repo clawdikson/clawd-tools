@@ -5,7 +5,7 @@ This module provides S3 upload capabilities for JSONL files.
 Used by xlsx_to_clickup.py for enhanced email reports.
 
 Configuration (in order of precedence):
-    1. tools/aws_credentials.json (recommended)
+    1. tools/secrets/aws_credentials.json (recommended)
     2. Environment variables:
        - S3_BUCKET_NAME: Target S3 bucket
        - AWS_ACCESS_KEY_ID: AWS access key
@@ -14,7 +14,7 @@ Configuration (in order of precedence):
     3. ~/.aws/credentials (boto3 default)
 
 Setup:
-    1. Copy tools/aws_credentials.example.json to tools/aws_credentials.json
+    1. Copy tools/aws_credentials.example.json to tools/secrets/aws_credentials.json
     2. Fill in your AWS credentials and bucket name
 """
 
@@ -37,7 +37,7 @@ except ImportError:
 # =============================================================================
 
 # Path to credentials file (relative to this file)
-CREDENTIALS_FILE = Path(__file__).parent / "aws_credentials.json"
+CREDENTIALS_FILE = Path(__file__).parent / "secrets" / "aws_credentials.json"
 
 
 def _load_credentials_file() -> dict | None:
@@ -77,7 +77,7 @@ class S3Config:
         """Load S3 configuration from credentials file or environment.
 
         Precedence:
-            1. tools/aws_credentials.json
+            1. tools/secrets/aws_credentials.json
             2. Environment variables
             3. ~/.aws/credentials (handled by boto3)
         """
@@ -89,7 +89,7 @@ class S3Config:
             if not bucket:
                 raise ValueError(
                     "bucket_name not set in aws_credentials.json.\n"
-                    "Add it to tools/aws_credentials.json"
+                    "Add it to tools/secrets/aws_credentials.json"
                 )
             return cls(
                 bucket_name=bucket,
@@ -103,7 +103,7 @@ class S3Config:
         if not bucket:
             raise ValueError(
                 "S3 not configured. Either:\n"
-                "  1. Copy tools/aws_credentials.example.json to tools/aws_credentials.json\n"
+                "  1. Copy tools/aws_credentials.example.json to tools/secrets/aws_credentials.json\n"
                 "  2. Or set S3_BUCKET_NAME environment variable"
             )
         return cls(
@@ -165,7 +165,7 @@ class S3Uploader:
             if self.config.access_key_id and self.config.secret_access_key:
                 client_kwargs['aws_access_key_id'] = self.config.access_key_id
                 client_kwargs['aws_secret_access_key'] = self.config.secret_access_key
-                logger.debug("Using credentials from aws_credentials.json")
+                logger.debug("Using credentials from secrets/aws_credentials.json")
 
             self._client = boto3_client.client(
                 's3',
