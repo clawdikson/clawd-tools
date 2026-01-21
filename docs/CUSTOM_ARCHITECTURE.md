@@ -4,149 +4,439 @@ This document defines a standardized architecture pattern for custom carrier scr
 
 > **Note**: This is a convention-based pattern, not a shared package. Each project has its own codebase but follows the same architecture.
 
+> **Reference Implementation**: See `audiobee_peak/` for a complete working example.
+
 ## Quick Reference
 
 | Component | Purpose |
 |-----------|---------|
 | `run.py` | Typer CLI entry point |
 | `config.yaml` | Project configuration |
-| `collector.py` | Phase 1: Data collection with checkpointing |
-| `enricher.py` | Phase 2: Data enrichment (optional) |
-| `mapper.py` | Custom normalization mapping (optional) |
 | `pipeline.py` | Phase orchestration |
+| `src/collector.py` | Phase 1: Data collection with checkpointing |
+| `src/mapper.py` | Phase 3: Custom normalization mapping |
+| `src/checkpoint.py` | SQLite checkpoint for resume capability |
 
 ## Standard Project Structure
 
 ```
 audiobee_{carrier}/
-├── run.py                   # Typer CLI entry point (required)
-├── config.yaml              # Project configuration (required)
-├── collector.py             # Phase 1: Data collection (required)
-├── enricher.py              # Phase 2: Data enrichment (optional)
-├── mapper.py                # Custom normalization mapper (optional)
-├── pipeline.py              # Phase orchestration (recommended)
-├── utils.py                 # Project-specific utilities (optional)
-├── pyproject.toml           # Dependencies with extras
-├── .env                     # Secrets (gitignored)
-├── data/                    # Static data (specialties, networks)
+├── run.py                      # Typer CLI entry point (required)
+├── config.yaml                 # Project configuration (required)
+├── pipeline.py                 # Phase orchestration (required)
+├── pyproject.toml              # Dependencies
+├── CLAUDE.md                   # Project documentation
+├── .gitignore                  # Ignore output dirs, __pycache__, .env
+│
+├── src/                        # Source code directory
+│   ├── __init__.py             # Package exports
+│   ├── collector.py            # Phase 1: Data collection (required)
+│   ├── mapper.py               # Phase 3: Normalization mapping (optional)
+│   ├── checkpoint.py           # SQLite checkpoint class (required)
+│   └── {api_client}.py         # API-specific client (optional)
+│
+├── archive/                    # Old/legacy files (for reference)
 │   └── ...
-└── {YYYYMMDD}/              # Output directories (auto-created)
-    ├── checkpoint.db        # SQLite checkpoint for resume
-    ├── metrics.json         # Phase metrics
+│
+└── {YYYYMMDD}/                 # Output directories (auto-created, gitignored)
+    ├── checkpoint.db           # SQLite checkpoint for resume
+    ├── logs/                   # Run logs
     ├── raw/
-    │   ├── collected/       # Phase 1 output
-    │   └── enriched/        # Phase 2 output
+    │   └── {index}.db          # SQLite stores for collected data
     └── processed/
-        └── {slug}-{date}.jsonl
+        ├── {slug}-{date}.jsonl           # Final output
+        ├── {slug}-sample-{date}-*.json   # Sample files
+        ├── {slug}-debug_data-{date}.xlsx # Debug data report
+        └── {slug}-debug_specialty_network-{date}.xlsx
 ```
 
 ## 5-Phase Pipeline
 
 ```
 Phase 1 (Collect)     → Phase 2 (Enrich)    → Phase 3 (Normalize)
-collector.py            enricher.py           core.mapper + mapper.py
+src/collector.py        (optional/skip)       src/mapper.py + core.mapper
 PROJECT-SPECIFIC        PROJECT-SPECIFIC      SHARED + custom hooks
-+ mandatory checkpoint  (optional)            Halts on validation error
++ mandatory checkpoint                        NPI dedup, schema mapping
 
-Phase 4 (QA)          → Phase 5 (Report)    → Phase 6 (Recovery)
-core.qa                 core.qa               Triggered by churn
-SHARED                  SHARED                AUTO if providers missing
-Tracks provider churn
+Phase 4 (QA)          → Phase 5 (Report)
+core.qa.validate        core.qa.sample + core.qa.generate_debug_reports
+SHARED                  SHARED
+Schema validation       Samples + Debug Excel reports
 ```
 
 | Phase | File | Responsibility | Checkpointing |
 |-------|------|----------------|---------------|
-| 1 | `collector.py` | Fetch raw provider data | **Mandatory** |
-| 2 | `enricher.py` | Enrich with additional details | **Mandatory** if present |
-| 3 | `mapper.py` + core | NPI dedup, schema mapping | N/A |
-| 4 | core.qa | Validation, comparison, churn tracking | N/A |
-| 5 | core.qa | Excel reports, samples, metrics CLI | N/A |
-| 6 | project-specific | Recovery of missing providers | N/A |
+| 1 | `src/collector.py` | Fetch raw provider data | **Mandatory** |
+| 2 | `src/enricher.py` | Enrich with additional details | **Mandatory** if present |
+| 3 | `src/mapper.py` + core | NPI dedup, schema mapping | N/A |
+| 4 | core.qa | Validation, comparison | N/A |
+| 5 | core.qa | Samples, debug Excel reports | N/A |
 
 ## CLI Interface
 
 ```bash
-# Basic run (auto-resumes from checkpoint)
-python run.py run --curr 20260114
+# Full pipeline (auto-resumes from checkpoint)
+.venv/bin/python audiobee_peak/run.py run --curr 20260121
 
-# Fresh run (ignore checkpoint)
-python run.py run --curr 20260114 --fresh
+# Fresh run (clear checkpoint)
+.venv/bin/python audiobee_peak/run.py run --curr 20260121 --fresh
 
-# With previous date (enables comparison + recovery)
-python run.py run --curr 20260114 --prev 20260107
+# With previous date (enables comparison)
+.venv/bin/python audiobee_peak/run.py run --curr 20260121 --prev 20260115
 
 # Phase control
-python run.py run --curr 20260114 --phase 1        # Phase 1 only
-python run.py run --curr 20260114 --phase 1-3      # Phases 1-3
-python run.py run --curr 20260114 --phase 1,3,5    # Specific phases
-python run.py run --curr 20260114 --from-phase 3   # From phase 3 onwards
-python run.py run --curr 20260114 --skip-phase 2   # Skip phase 2
+.venv/bin/python audiobee_peak/run.py run --curr 20260121 --phase 1        # Phase 1 only
+.venv/bin/python audiobee_peak/run.py run --curr 20260121 --phase 1-5      # Phases 1-5
+.venv/bin/python audiobee_peak/run.py run --curr 20260121 --phase 1,3,5    # Specific phases
 
 # QA and reporting
-python run.py run --curr 20260114 --qa             # Include QA phase
-python run.py run --curr 20260114 --report         # Include report phase
+.venv/bin/python audiobee_peak/run.py run --curr 20260121 --qa             # Include QA phase
+.venv/bin/python audiobee_peak/run.py run --curr 20260121 --report         # Include report phase
 
-# Debug mode (verbose logging + bypass validation halt)
-python run.py run --curr 20260114 --debug
+# Dry run (show what would happen)
+.venv/bin/python audiobee_peak/run.py run --curr 20260121 --dry-run
+
+# Individual phase commands
+.venv/bin/python audiobee_peak/run.py collect --curr 20260121
+.venv/bin/python audiobee_peak/run.py normalize --curr 20260121
 
 # View metrics
-python run.py metrics                              # Latest run
-python run.py metrics --date 20260114              # Specific date
+.venv/bin/python audiobee_peak/run.py metrics                              # Latest run
+.venv/bin/python audiobee_peak/run.py metrics --date 20260121              # Specific date
 
-# Validation
-python run.py validate
+# Validation (test config and API connectivity)
+.venv/bin/python audiobee_peak/run.py validate
 ```
 
 ## Configuration (config.yaml)
 
 ```yaml
 project:
-  name: "Harvard Pilgrim"
-  slug: "harvard_pilgrim"
+  name: "Peak Health"
+  slug: "audiobee_peak"
   version: "1.0"
 
 site:
-  base_url: "https://api.harvardpilgrim.org"
-  auth_type: oauth  # none, cookie, bearer, oauth, basic
+  base_url: "https://api.example.com"
+  auth_type: none  # none, cookie, bearer, oauth, basic
+
+# API-specific configuration
+algolia:
+  app_id: "APP_ID"
+  api_key: "API_KEY"
+  indices:
+    - IndexName1
+    - IndexName2
 
 coverage:
-  states: [MA, ME, NH, CT]
-
-# Carrier-specific configuration (nested allowed)
-carrier_config:
-  oauth:
-    client_id: "${HPHC_CLIENT_ID}"
-    client_secret: "${HPHC_CLIENT_SECRET}"
-    scopes: ["read:providers"]
-  custom_headers:
-    X-Api-Version: "2.0"
+  states: [NV]
+  network_name: "Network Name"
+  network_filter: "networks:'Medicare'"
 
 phases:
   collect: true
-  enrich: false
-  custom_mapper: true
+  enrich: false  # Skip if not needed
   normalize_input: collected  # or 'enriched' if Phase 2 runs
 
 concurrency:
-  max_workers: 50
-  batch_size: 1000
+  max_concurrent: 5
+  hits_per_page: 1000
 
 output:
   storage_backend: sqlite
-  separate_by_product: false
-  phase1_output: collected
-  phase2_output: enriched
 
-session:
-  browser_type: null  # camoufox, playwright, patchright, null for API-only
-  proxy_types: [smartproxy_session]
-  timeout_ms: 30000
+qa:
+  churn_threshold_percent: 5  # Alert if >5% providers dropped
+  sample_count: 10
 
-# Optional sanity thresholds for QA
-thresholds:
-  min_providers: 10000
-  max_providers: 500000
-  max_churn_percent: 10
+# Environment variable overrides (PROJECT_* prefix):
+# PROJECT_HITS_PER_PAGE, PROJECT_CHURN_THRESHOLD, etc.
+```
+
+## Key Implementation Patterns
+
+### run.py - Typer CLI
+
+```python
+#!/usr/bin/env python
+"""CLI for {Carrier} scraper pipeline."""
+
+import asyncio
+from pathlib import Path
+from typing import Optional
+
+import typer
+from core.logging import setup_logging
+
+app = typer.Typer(name="audiobee_carrier", help="Carrier provider scraper.")
+
+@app.command()
+def run(
+    curr: str = typer.Option(..., "--curr", help="Current date (YYYYMMDD)"),
+    prev: Optional[str] = typer.Option(None, "--prev", help="Previous date for comparison"),
+    phase: Optional[str] = typer.Option(None, "--phase", help="Phases to run (1,3,4,5 or 1-5)"),
+    fresh: bool = typer.Option(False, "--fresh", help="Clear checkpoint and start fresh"),
+    qa: bool = typer.Option(False, "--qa", help="Run QA after normalize"),
+    report: bool = typer.Option(False, "--report", help="Run report phase"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would happen"),
+):
+    """Run scraper pipeline."""
+    setup_logging(project_name="audiobee_carrier", run_id=curr)
+    from pipeline import run_pipeline, parse_phases
+
+    phases = parse_phases(phase)
+    if qa and 4 not in phases:
+        phases.append(4)
+    if report and 5 not in phases:
+        phases.append(5)
+
+    asyncio.run(run_pipeline(curr, prev, phases, fresh, dry_run))
+
+@app.command()
+def validate():
+    """Validate config and test API connectivity."""
+    # Test API connection
+    ...
+
+@app.command()
+def metrics(date: Optional[str] = None):
+    """Show collection metrics."""
+    from src.checkpoint import Checkpoint
+    # Load and display metrics
+    ...
+
+if __name__ == "__main__":
+    app()
+```
+
+### src/checkpoint.py - Resume Capability
+
+```python
+"""SQLite-based checkpoint for collection resume capability."""
+
+import sqlite3
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+
+@dataclass
+class Checkpoint:
+    """SQLite checkpoint for tracking collection progress."""
+
+    db_path: Path
+
+    def __post_init__(self):
+        self.db_path = Path(self.db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(str(self.db_path))
+        self._create_schema()
+
+    def _create_schema(self):
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS collected_pages (
+                index_name TEXT NOT NULL,
+                page_num INTEGER NOT NULL,
+                collected_at TEXT NOT NULL,
+                hits_count INTEGER DEFAULT 0,
+                PRIMARY KEY (index_name, page_num)
+            )
+        """)
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS collection_metadata (
+                index_name TEXT PRIMARY KEY,
+                total_hits INTEGER,
+                total_pages INTEGER,
+                started_at TEXT,
+                completed_at TEXT
+            )
+        """)
+        self._conn.commit()
+
+    def is_collected(self, index_name: str, page: int) -> bool:
+        cursor = self._conn.execute(
+            "SELECT 1 FROM collected_pages WHERE index_name = ? AND page_num = ?",
+            (index_name, page),
+        )
+        return cursor.fetchone() is not None
+
+    def mark_collected(self, index_name: str, page: int, hits_count: int = 0):
+        self._conn.execute(
+            "INSERT OR REPLACE INTO collected_pages VALUES (?, ?, ?, ?)",
+            (index_name, page, datetime.utcnow().isoformat(), hits_count),
+        )
+        self._conn.commit()
+
+    def get_progress(self, index_name: str) -> dict:
+        # Return collection progress
+        ...
+
+    def close(self):
+        if self._conn:
+            self._conn.close()
+```
+
+### src/collector.py - Data Collection
+
+```python
+"""Phase 1: Collect data from API."""
+
+from dataclasses import dataclass
+from pathlib import Path
+from tqdm import tqdm
+
+from core.io import create_store
+from .checkpoint import Checkpoint
+
+@dataclass
+class CollectorResult:
+    index_name: str
+    total_hits: int
+    pages_collected: int
+    hits_collected: int
+
+async def collect_index(
+    index_name: str,
+    store,
+    checkpoint: Checkpoint,
+    client,
+    config,
+    dry_run: bool = False,
+) -> CollectorResult:
+    """Collect all pages from an index with checkpoint resume."""
+
+    progress = checkpoint.get_progress(index_name)
+    if progress.get("is_complete"):
+        return CollectorResult(...)  # Already done
+
+    page = 0
+    while page < total_pages:
+        if checkpoint.is_collected(index_name, page):
+            page += 1
+            continue
+
+        # Fetch page
+        response = await client.search(index_name, page)
+
+        # Store results
+        store.put(f"{index_name}/page_{page:04d}.json", response)
+        checkpoint.mark_collected(index_name, page, len(response["hits"]))
+
+        page += 1
+
+    return CollectorResult(...)
+
+async def run_collect_phase(output_dir: Path, config, fresh: bool = False):
+    """Run collection for all configured indices."""
+    checkpoint = Checkpoint(output_dir / "checkpoint.db")
+    if fresh:
+        checkpoint.clear()
+
+    for index_name in config.indices:
+        store = create_store(str(output_dir / "raw" / f"{index_name.lower()}.db"))
+        await collect_index(index_name, store, checkpoint, ...)
+        store.close()
+
+    checkpoint.close()
+```
+
+### src/mapper.py - Normalization
+
+```python
+"""Phase 3: Normalize data to Ideon schema."""
+
+from core.mapper import normalize_zip_code, normalize_phone
+from core.io import create_store, JSONLWriter
+
+def map_record(record: dict, source_index: str) -> dict:
+    """Map API record to Ideon schema."""
+
+    # Determine provider type
+    provider_type = "individual"
+    if "Facilities" in source_index:
+        provider_type = "organization"
+
+    # Map NPI based on provider type
+    if provider_type == "organization":
+        npi = record.get("npiTypeII")
+    else:
+        npi = record.get("npi") or record.get("objectID")
+
+    return {
+        "networks": [{"name": NETWORK_NAME, "tier": None}],
+        "provider": {
+            "unparsed_name": record.get("displayName", ""),
+            "provider_type": provider_type,
+            "npi": npi if is_valid_npi(npi) else None,
+            ...
+        },
+        "addresses": [map_address(loc) for loc in record.get("locations", [])],
+        "specialties": [...],
+        ...
+    }
+
+async def run_normalize_phase(output_dir: Path, curr_date: str):
+    """Normalize collected data to Ideon schema."""
+
+    # Read from raw stores, deduplicate by NPI, write to JSONL
+    providers_by_npi = {}
+
+    for index_name in indices:
+        store = create_store(str(output_dir / "raw" / f"{index_name.lower()}.db"))
+        for key, page_data in store:
+            for hit in page_data.get("hits", []):
+                mapped = map_record(hit, index_name)
+                npi = mapped["provider"]["npi"]
+                if npi:
+                    providers_by_npi[npi] = mapped
+        store.close()
+
+    output_file = output_dir / "processed" / f"slug-{curr_date}.jsonl"
+    with JSONLWriter(str(output_file)) as writer:
+        for record in providers_by_npi.values():
+            writer.write(record)
+```
+
+### pipeline.py - Phase Orchestration
+
+```python
+"""Phase orchestration for scraper pipeline."""
+
+from pathlib import Path
+from core.qa import validate, sample, generate_debug_reports
+
+async def run_phase_4(output_dir: Path, curr_date: str, prev_date: str | None):
+    """Phase 4: QA validation."""
+    output_file = output_dir / "processed" / f"slug-{curr_date}.jsonl"
+    result = validate(str(output_file))
+    return {"validation": result}
+
+async def run_phase_5(output_dir: Path, curr_date: str, config):
+    """Phase 5: Generate samples and debug reports."""
+    output_file = output_dir / "processed" / f"slug-{curr_date}.jsonl"
+    processed_dir = output_dir / "processed"
+
+    # Generate samples
+    sample(str(output_file), output_dir=str(processed_dir), count=config.sample_count)
+
+    # Generate debug reports
+    generate_debug_reports(
+        jsonl_path=str(output_file),
+        output_dir=str(processed_dir),
+        curr_date=curr_date,
+    )
+
+async def run_pipeline(curr_date: str, prev_date: str | None, phases: list[int], ...):
+    """Run the scraper pipeline."""
+    output_dir = Path(__file__).parent / curr_date
+
+    if 1 in phases:
+        await run_phase_1(output_dir, config, fresh, dry_run)
+    if 3 in phases:
+        await run_phase_3(output_dir, curr_date)
+    if 4 in phases:
+        await run_phase_4(output_dir, curr_date, prev_date)
+    if 5 in phases:
+        await run_phase_5(output_dir, curr_date, config)
 ```
 
 ## Key Design Decisions
@@ -158,147 +448,78 @@ thresholds:
 | Failure recovery | **Mandatory checkpointing** - all collectors must implement resume |
 | Checkpoint format | **SQLite** - inside date folder (20260114/checkpoint.db) |
 | Resume behavior | **Auto-resume default** - always resume if checkpoint exists, `--fresh` to override |
-| Provider churn | **Always trigger recovery** - any missing providers attempt recovery |
 
 ### Validation & Error Handling
 
 | Decision | Choice |
 |----------|--------|
 | Phase 3 validation failure | **Halt phase** - stop immediately on schema error |
-| Debug mode | **Full debug mode** - `--debug` enables verbose logging + validation bypass |
+| Debug mode | **--dry-run flag** - show what would happen without executing |
 | Config validation | **Strict Pydantic** - full validation at load, fail fast |
-| Phase 3 input path | **Strict validation** - fail if input path empty or missing |
 
 ### Standards & Interfaces
 
 | Decision | Choice |
 |----------|--------|
-| Anti-bot integration | **Standard interface** in `core.antibot` (Capsolver) |
-| Logging | **Use core.logging** - mandatory, flexible format |
-| Progress reporting | **Mandatory tqdm** from `core.progress` with nested bars |
-| Retry strategy | **Standard in core.session** - 5 retries, 500ms base, exponential backoff |
-| Metrics | **Mandatory** - write to metrics.json + CLI summary command |
+| CLI framework | **Typer** - always use Typer for CLI args |
+| Logging | **Use core.logging** - mandatory Loguru-based logging |
+| Progress reporting | **tqdm** - with nested bars for phases |
+| Retry strategy | **tenacity** - 3 retries, exponential backoff |
 
-### Configuration
-
-| Decision | Choice |
-|----------|--------|
-| Storage keys | **Flexible keys** - project decides, document in config |
-| Config extension | **carrier_config section** - explicit section, allows nesting |
-| Secrets | **.env file support** - check .env, ../.env, ~/.env in order |
-| Sanity thresholds | **Optional** - can define in config, Phase 4 uses if present |
-
-### Technical Requirements
+### NPI Mapping
 
 | Decision | Choice |
 |----------|--------|
-| Python version | **3.12+ required** |
-| Project dependencies | **pyproject.toml extras** - grouped by feature + carrier bundles |
-| Concurrency model | **Project implements** - each collector decides |
-| Date semantics | **Single date only** - one run per date |
+| Individual providers | Use `npi` field, fallback to `objectID` |
+| Organizations | Use `npiTypeII` field |
+| Invalid NPI | Include record with `npi: null` |
 
 ## Core Module Dependencies
 
-| Module | Purpose | Status |
-|--------|---------|--------|
-| `core.logging` | Loguru-based logging with trace_id | ✅ Available |
-| `core.io` | DataStore abstraction (SQLite/JSON/JSONL) | ✅ Available |
-| `core.session` | Browser/HTTP session with retry | ✅ Available |
-| `core.mapper` | NPI dedup, schema validation | ✅ Available |
-| `core.qa` | Validation, comparison, reporting | ✅ Available |
-| `core.progress` | Nested tqdm progress bars | ✅ Available |
-| `core.antibot` | reCAPTCHA solving (Capsolver) | ✅ Available |
+| Module | Purpose | Usage |
+|--------|---------|-------|
+| `core.logging` | Loguru-based logging | `setup_logging()`, `logger` |
+| `core.io` | DataStore abstraction | `create_store()`, `JSONLWriter` |
+| `core.mapper` | Normalization utilities | `normalize_zip_code()`, `normalize_phone()` |
+| `core.qa` | Validation & reporting | `validate()`, `sample()`, `generate_debug_reports()` |
 
-## Usage Examples
+## .gitignore Template
 
-### Importing Core Modules
-
-```python
-# Progress bars
-from core.progress import create_progress_bar, tqdm_logging
-
-with tqdm_logging():
-    for state in create_progress_bar(states, desc="States", position=0):
-        for county in create_progress_bar(counties, desc="Counties", position=1, leave=False):
-            process(state, county)
-
-# CAPTCHA solving
-from core.antibot import create_solver
-
-solver = create_solver()
-result = await solver.solve_recaptcha_v2(
-    site_key="6Le-xxx",
-    page_url="https://example.com",
-)
-token = result.token
-
-# Logging
-from core.logging import logger, setup_logging, set_trace_id
-
-setup_logging(project_name="harvard_pilgrim", run_id="20260114")
-set_trace_id(f"provider_{npi}")
-logger.info("Processing provider")
-
-# Storage
-from core.io import create_store, BackendType
-
-store = create_store("raw_data.db", backend=BackendType.SQLITE)
-store.put("provider/123.json", {"npi": "123", ...})
-```
-
-### Checkpointing Pattern
-
-```python
-class Checkpoint:
-    """SQLite-based checkpoint for resume capability."""
-
-    def __init__(self, db_path: Path):
-        self.conn = sqlite3.connect(db_path)
-        self._init_tables()
-
-    def _init_tables(self):
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS collected_ids (
-                record_id TEXT PRIMARY KEY,
-                collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        self.conn.commit()
-
-    def is_collected(self, record_id: str) -> bool:
-        cur = self.conn.execute(
-            "SELECT 1 FROM collected_ids WHERE record_id = ?", (record_id,)
-        )
-        return cur.fetchone() is not None
-
-    def mark_collected(self, record_id: str):
-        self.conn.execute(
-            "INSERT OR REPLACE INTO collected_ids (record_id) VALUES (?)",
-            (record_id,)
-        )
-        self.conn.commit()
+```gitignore
+20*
+.env
+__pycache__/
+*.pyc
+.DS_Store
 ```
 
 ## Migration Checklist
 
 For each audiobee_* project:
 
-1. **Create `config.yaml`** with strict Pydantic schema
-2. **Create `collector.py`** with mandatory checkpointing
-3. **Create `pipeline.py`** with phase orchestration
-4. **Create `run.py`** with Typer CLI
-5. **Create `pyproject.toml`** with extras
-6. **Delete legacy files**: config.py, index_*.py, run_all.py
-7. **Test**:
-   - `python run.py validate`
-   - `python run.py run --curr YYYYMMDD --dry-run`
-   - Kill mid-run, verify resume with `--curr` (same date)
-   - `python run.py metrics`
+1. **Create directory structure**: `src/`, `archive/`
+2. **Create `config.yaml`** with project configuration
+3. **Create `src/checkpoint.py`** with SQLite checkpoint
+4. **Create `src/collector.py`** with mandatory checkpointing
+5. **Create `src/mapper.py`** if custom mapping needed
+6. **Create `pipeline.py`** with phase orchestration
+7. **Create `run.py`** with Typer CLI
+8. **Create `pyproject.toml`** with dependencies
+9. **Create `CLAUDE.md`** with project documentation
+10. **Create `.gitignore`** for output dirs
+11. **Move legacy files** to `archive/`
+12. **Test**:
+    - `python run.py validate`
+    - `python run.py run --curr YYYYMMDD --dry-run`
+    - `python run.py run --curr YYYYMMDD`
+    - Kill mid-run, verify resume works
+    - `python run.py metrics`
 
 ## See Also
 
-- `healthsparq/CLAUDE.md` - Reference implementation for 6-phase pipeline
-- `core/progress/CLAUDE.md` - Progress bar documentation
-- `core/antibot/CLAUDE.md` - CAPTCHA solving documentation
+- `audiobee_peak/` - Reference implementation
+- `audiobee_peak/CLAUDE.md` - Full project documentation
+- `healthsparq/CLAUDE.md` - HealthSparq library pattern
 - `core/io/CLAUDE.md` - DataStore abstraction
+- `core/qa/CLAUDE.md` - QA module documentation
 - `core/logging/CLAUDE.md` - Logging system
