@@ -10,3 +10,6 @@
 [submodule "sapphire"]
 	path = sapphire
 	url = https://bitbucket.org/productaudiobee/sapphire.git
+[submodule "audiobee_peak"]
+	path = audiobee_peak
+	url = https://bitbucket.org/productaudiobee/audiobee_peak.git
