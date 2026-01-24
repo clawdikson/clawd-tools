@@ -253,17 +253,42 @@ def generate_screenshot(
     if not summary_rows:
         raise ValueError(f"No summary data found in: {xlsx_path}")
 
-    # Create figure with matplotlib
-    fig, ax = plt.subplots(figsize=(8, 3), facecolor="white")
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, len(summary_rows) + 1)
+    # Helper to wrap long state lists
+    def wrap_states(value: str, max_per_line: int = 12) -> str:
+        """Wrap comma-separated state list to multiple lines."""
+        if "," not in value or value.count(",") < max_per_line:
+            return value
+        parts = [s.strip() for s in value.split(",")]
+        lines = []
+        for i in range(0, len(parts), max_per_line):
+            lines.append(", ".join(parts[i:i + max_per_line]))
+        return "\n".join(lines)
+
+    # Process summary rows - wrap states if needed
+    processed_rows = []
+    extra_height = 0
+    for label, value in summary_rows:
+        if "States" in label and value.count(",") >= 12:
+            wrapped = wrap_states(value, max_per_line=12)
+            line_count = wrapped.count("\n") + 1
+            extra_height += (line_count - 1) * 0.8  # Add extra height for wrapped lines
+            processed_rows.append((label, wrapped, line_count))
+        else:
+            processed_rows.append((label, value, 1))
+
+    # Create figure with matplotlib - wider and taller for more content
+    fig_height = 3 + extra_height
+    fig, ax = plt.subplots(figsize=(12, fig_height), facecolor="white")
+    ax.set_xlim(0, 12)
+    total_rows = len(processed_rows) + extra_height
+    ax.set_ylim(0, total_rows + 1)
     ax.axis("off")
 
     # Add a subtle background box
     bg_box = FancyBboxPatch(
         (0.1, 0.3),
-        9.8,
-        len(summary_rows) + 0.4,
+        11.8,
+        total_rows + 0.4,
         boxstyle="round,pad=0.02,rounding_size=0.1",
         facecolor="#f8f9fa",
         edgecolor="#dee2e6",
@@ -272,8 +297,8 @@ def generate_screenshot(
     ax.add_patch(bg_box)
 
     # Render each row
-    y_pos = len(summary_rows)
-    for label, value in summary_rows:
+    y_pos = total_rows
+    for label, value, line_count in processed_rows:
         # Label on left (bold, dark gray)
         ax.text(
             0.3,
@@ -282,21 +307,21 @@ def generate_screenshot(
             fontsize=11,
             fontweight="bold",
             color="#333333",
-            verticalalignment="center",
+            verticalalignment="top" if line_count > 1 else "center",
             fontfamily="sans-serif",
         )
         # Value on right (regular, dark blue)
         ax.text(
-            5.0,
+            4.5,
             y_pos,
             value,
             fontsize=11,
             fontweight="normal",
             color="#1a5276",
-            verticalalignment="center",
+            verticalalignment="top" if line_count > 1 else "center",
             fontfamily="sans-serif",
         )
-        y_pos -= 1
+        y_pos -= line_count
 
     # Adjust layout
     plt.tight_layout(pad=0.5)
