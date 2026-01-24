@@ -31,6 +31,7 @@ import tempfile
 import time
 from email import encoders
 from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
@@ -39,6 +40,8 @@ from typing import Annotated
 import pandas as pd
 import requests
 import typer
+
+DEFAULT_RECIPIENTS = ["operations@audiobee.ai"]
 
 try:
     from core.logging import logger
@@ -159,6 +162,7 @@ def parse_run_timestamps(xlsx_path: Path) -> dict:
         "first_file_created": None,
         "last_file_created": None,
         "run_duration_seconds": 0,
+        "run_start_str": "",
         "run_ended_str": "",
     }
 
@@ -170,6 +174,8 @@ def parse_run_timestamps(xlsx_path: Path) -> dict:
             result["first_file_created"] = datetime.strptime(
                 timestamp_str, "%d/%m/%Y %H:%M:%S"
             )
+            # Format as YYYY-MM-DD HH:MM:SS with -0330 timezone (Newfoundland)
+            result["run_start_str"] = result["first_file_created"].strftime("%Y-%m-%d %H:%M:%S") + " -0330"
         except (ValueError, IndexError) as e:
             logger.warning(f"Failed to parse A8: {cell_a8} - {e}")
 
@@ -206,7 +212,7 @@ def generate_screenshot(
     dpi: int = 150,
     sheet_name: str | None = None,
 ) -> Path:
-    """Generate PNG screenshot from XLSX file - compact summary format.
+    """Generate PNG screenshot from XLSX file.
 
     Creates a clean summary image showing:
     - In-scope States
@@ -226,7 +232,7 @@ def generate_screenshot(
         ValueError: If Excel file is empty
     """
     import matplotlib.pyplot as plt
-    from matplotlib.patches import FancyBboxPatch
+    from matplotlib.patches import Rectangle
 
     # Read Excel file
     df = pd.read_excel(
@@ -239,13 +245,12 @@ def generate_screenshot(
     if df.empty:
         raise ValueError(f"Excel file is empty: {xlsx_path}")
 
-    # Extract summary rows (first 5 rows contain the key stats)
+    # Extract summary rows (first 5 rows: States + Provider counts only)
     summary_rows = []
     for idx, row in df.iterrows():
         desc = str(row.get("Description", "")).strip()
         data = str(row.get("Data", "")).strip()
         if desc and desc != "nan" and idx < 5:
-            # Clean up description (remove trailing colon for cleaner display)
             label = desc.rstrip(":")
             value = data if data and data != "nan" else ""
             summary_rows.append((label, value))
@@ -253,78 +258,84 @@ def generate_screenshot(
     if not summary_rows:
         raise ValueError(f"No summary data found in: {xlsx_path}")
 
-    # Helper to wrap long state lists
-    def wrap_states(value: str, max_per_line: int = 12) -> str:
-        """Wrap comma-separated state list to multiple lines."""
-        if "," not in value or value.count(",") < max_per_line:
-            return value
-        parts = [s.strip() for s in value.split(",")]
-        lines = []
-        for i in range(0, len(parts), max_per_line):
-            lines.append(", ".join(parts[i:i + max_per_line]))
-        return "\n".join(lines)
-
-    # Process summary rows - wrap states if needed
+    # Wrap states to multiple lines (10 per line)
     processed_rows = []
-    extra_height = 0
     for label, value in summary_rows:
-        if "States" in label and value.count(",") >= 12:
-            wrapped = wrap_states(value, max_per_line=12)
-            line_count = wrapped.count("\n") + 1
-            extra_height += (line_count - 1) * 0.8  # Add extra height for wrapped lines
-            processed_rows.append((label, wrapped, line_count))
-        else:
-            processed_rows.append((label, value, 1))
+        if "States" in label:
+            states = [s.strip() for s in value.split(",")]
+            if len(states) > 10:
+                lines = []
+                for i in range(0, len(states), 10):
+                    lines.append(", ".join(states[i:i + 10]))
+                value = "\n".join(lines)
+        processed_rows.append((label, value))
 
-    # Create figure with matplotlib - wider and taller for more content
-    fig_height = 3 + extra_height
-    fig, ax = plt.subplots(figsize=(12, fig_height), facecolor="white")
-    ax.set_xlim(0, 12)
-    total_rows = len(processed_rows) + extra_height
-    ax.set_ylim(0, total_rows + 1)
+    # Layout constants (in inches)
+    line_height = 0.18
+    row_padding = 0.08  # Padding above/below text in each row
+    font_size = 10
+    fig_width = 8.0
+    label_x = 0.15
+    value_x = 4.2
+
+    # Calculate row heights
+    row_heights = []
+    for label, value in processed_rows:
+        lines = value.count("\n") + 1
+        row_heights.append(lines * line_height + 2 * row_padding)
+
+    total_height = sum(row_heights)
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(fig_width, total_height), facecolor="white")
+    ax.set_xlim(0, fig_width)
+    ax.set_ylim(0, total_height)
     ax.axis("off")
 
-    # Add a subtle background box
-    bg_box = FancyBboxPatch(
-        (0.1, 0.3),
-        11.8,
-        total_rows + 0.4,
-        boxstyle="round,pad=0.02,rounding_size=0.1",
-        facecolor="#f8f9fa",
-        edgecolor="#dee2e6",
-        linewidth=1,
-    )
-    ax.add_patch(bg_box)
+    # Alternating row colors
+    colors = ["#f8f9fa", "#ffffff"]  # Light gray and white
 
-    # Render each row
-    y_pos = total_rows
-    for label, value, line_count in processed_rows:
-        # Label on left (bold, dark gray)
+    # Render rows from top to bottom
+    y_pos = total_height
+    for idx, ((label, value), row_height) in enumerate(zip(processed_rows, row_heights)):
+        # Draw row background
+        bg_color = colors[idx % 2]
+        rect = Rectangle(
+            (0, y_pos - row_height),
+            fig_width,
+            row_height,
+            facecolor=bg_color,
+            edgecolor="none",
+        )
+        ax.add_patch(rect)
+
+        # Text y position (vertically centered in row)
+        lines = value.count("\n") + 1
+        content_height = lines * line_height
+        text_y = y_pos - row_padding - (content_height / 2)
+
+        # Label
         ax.text(
-            0.3,
-            y_pos,
-            f"{label}:",
-            fontsize=11,
+            label_x, text_y,
+            label,
+            fontsize=font_size,
             fontweight="bold",
             color="#333333",
-            verticalalignment="top" if line_count > 1 else "center",
+            verticalalignment="center",
             fontfamily="sans-serif",
         )
-        # Value on right (regular, dark blue)
-        ax.text(
-            4.5,
-            y_pos,
-            value,
-            fontsize=11,
-            fontweight="normal",
-            color="#1a5276",
-            verticalalignment="top" if line_count > 1 else "center",
-            fontfamily="sans-serif",
-        )
-        y_pos -= line_count
 
-    # Adjust layout
-    plt.tight_layout(pad=0.5)
+        # Value
+        ax.text(
+            value_x, text_y,
+            value,
+            fontsize=font_size,
+            color="#1a5276",
+            verticalalignment="center",
+            fontfamily="sans-serif",
+        )
+
+        y_pos -= row_height
 
     # Generate output path if not provided
     if output_path is None:
@@ -337,7 +348,7 @@ def generate_screenshot(
         bbox_inches="tight",
         facecolor="white",
         edgecolor="none",
-        pad_inches=0.2,
+        pad_inches=0.05,
     )
     plt.close(fig)
 
@@ -585,16 +596,18 @@ class EmailClient:
         attachment_path: Path | None = None,
         attachment_name: str | None = None,
         cc: list[str] | None = None,
+        inline_image: bool = True,
     ) -> dict:
-        """Send an email with optional attachment via Gmail API.
+        """Send an email with optional inline image via Gmail API.
 
         Args:
             to: List of recipient email addresses
             subject: Email subject
-            body: Email body (plain text)
-            attachment_path: Path to file to attach
-            attachment_name: Custom filename for attachment
+            body: Email body (plain text, will be converted to HTML if inline_image)
+            attachment_path: Path to image file
+            attachment_name: Custom filename for image
             cc: List of CC email addresses
+            inline_image: If True, embed image in body; if False, attach as file
 
         Returns:
             Gmail API response with message id and thread id
@@ -602,30 +615,64 @@ class EmailClient:
         Raises:
             Exception: If email fails to send
         """
-        # Create message
-        msg = MIMEMultipart()
-        msg["To"] = ", ".join(to)
-        msg["Subject"] = subject
+        has_image = attachment_path and attachment_path.exists()
 
-        if cc:
-            msg["Cc"] = ", ".join(cc)
+        if has_image and inline_image:
+            # Create multipart/related for inline image
+            msg = MIMEMultipart("related")
+            msg["To"] = ", ".join(to)
+            msg["Subject"] = subject
+            if cc:
+                msg["Cc"] = ", ".join(cc)
 
-        # Add body
-        msg.attach(MIMEText(body, "plain"))
+            # Create alternative part for HTML
+            msg_alternative = MIMEMultipart("alternative")
+            msg.attach(msg_alternative)
 
-        # Add attachment if provided
-        if attachment_path and attachment_path.exists():
+            # Plain text version
+            msg_alternative.attach(MIMEText(body, "plain"))
+
+            # HTML version with inline image
+            html_body = body.replace("\n", "<br>\n")
+            html_content = f"""<html>
+<body>
+<p>{html_body}</p>
+<br>
+<img src="cid:report_image" style="max-width: 100%; height: auto;">
+</body>
+</html>"""
+            msg_alternative.attach(MIMEText(html_content, "html"))
+
+            # Attach image inline with Content-ID
             with open(attachment_path, "rb") as f:
-                part = MIMEBase("application", "octet-stream")
-                part.set_payload(f.read())
-                encoders.encode_base64(part)
+                img = MIMEImage(f.read())
+                img.add_header("Content-ID", "<report_image>")
+                img.add_header("Content-Disposition", "inline", filename=attachment_name or attachment_path.name)
+                msg.attach(img)
 
-                filename = attachment_name or attachment_path.name
-                part.add_header(
-                    "Content-Disposition",
-                    f"attachment; filename={filename}",
-                )
-                msg.attach(part)
+        else:
+            # Standard email (no image or attachment-style)
+            msg = MIMEMultipart()
+            msg["To"] = ", ".join(to)
+            msg["Subject"] = subject
+            if cc:
+                msg["Cc"] = ", ".join(cc)
+
+            msg.attach(MIMEText(body, "plain"))
+
+            # Add as attachment if provided and not inline
+            if has_image and not inline_image:
+                with open(attachment_path, "rb") as f:
+                    part = MIMEBase("application", "octet-stream")
+                    part.set_payload(f.read())
+                    encoders.encode_base64(part)
+
+                    filename = attachment_name or attachment_path.name
+                    part.add_header(
+                        "Content-Disposition",
+                        f"attachment; filename={filename}",
+                    )
+                    msg.attach(part)
 
         # Encode message for Gmail API
         raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
@@ -724,15 +771,14 @@ def run(
 
             typer.echo(typer.style("Upload successful!", fg=typer.colors.GREEN))
 
-            # Add comment if provided (or default comment with metadata)
-            if True:
-                full_comment = (
-                    f"{comment or 'State counts report'}\n\n"
-                    f"Project: {project}\n"
-                    f"Date: {date}"
-                )
-                client.add_comment(task_id, full_comment)
-                typer.echo("Comment added")
+            # Add comment with metadata
+            full_comment = (
+                f"{comment or 'State counts report'}\n\n"
+                f"Project: {project}\n"
+                f"Date: {date}"
+            )
+            client.add_comment(task_id, full_comment)
+            typer.echo("Comment added")
 
         finally:
             # Cleanup temp file
@@ -959,8 +1005,6 @@ def email(
 # Programmatic API (for run_all.py integration)
 # =============================================================================
 
-DEFAULT_RECIPIENTS = ["operations@audiobee.ai", "dikson@audiobee.ai"]
-
 
 def send_report_email(
     project_name: str,
@@ -1043,9 +1087,9 @@ def send_report_email(
     email_body = body or (
         f"Project: {project_name}\n"
         f"Run Date: {curr_date}\n"
+        f"Run Start: {run_timestamps['run_start_str']}\n"
         f"Run Ended: {run_timestamps['run_ended_str']}\n"
-        f"Run Duration: {run_timestamps['run_duration_seconds']} seconds\n"
-        f"Source: {xlsx_path.name}"
+        f"Run Duration: {run_timestamps['run_duration_seconds']}"
     )
 
     # S3 upload results (populated if upload_to_s3=True and succeeds)
