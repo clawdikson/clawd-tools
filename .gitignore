@@ -18,6 +18,7 @@ healthsparq-server/
 audiobee_*/
 .venv/
 *.egg-info/
+uv.lock
 .coverage
 *.7z
 *.db
