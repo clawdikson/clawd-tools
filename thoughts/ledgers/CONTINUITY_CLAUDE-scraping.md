@@ -1,6 +1,6 @@
 # Session: scraping
 
-Updated: 2026-01-15T03:27:57.327Z
+Updated: 2026-01-27T20:53:04.967Z
 
 ## Goal
 
@@ -55,7 +55,12 @@ Success criteria:
 
 ## Key Decisions
 
-(None yet - will be populated as decisions are made)
+### Git Submodule Structure (2026-01-15)
+Each `audiobee_*` folder is a **separate git submodule**, not just a directory. When committing changes:
+- Navigate into the specific `audiobee_*` folder first
+- Commit within that submodule's git context
+- The parent repo only tracks submodule references
+- Same applies to `core/`, `healthsparq/`, `sapphire/` - all are submodules
 
 ## State
 

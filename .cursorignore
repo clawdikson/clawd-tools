@@ -1,0 +1,56 @@
+# Date-versioned output directories (contains raw scraped data)
+**/20*
+
+# Virtual environments
+**/.venv
+**/venv
+
+# Python artifacts
+**/__pycache__
+**/*.egg-info
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Data and output directories
+**/data
+**/output
+**/raw
+**/processed
+**/logs
+
+# Legacy/archive directories
+**/old_code
+**/other_code
+**/archive
+**/profiles
+**/logger
+
+# Deprecated directories
+old_code
+healthsparq-server
+output_generator
+
+# Large binary files
+*.7z
+*.zip
+*.db
+*.sqlite
+*.sqlite3
+
+# Node modules
+**/node_modules
+
+# IDE and tool caches
+.idea
+.serena
+.bv
+.claude/cache
+.claude/auto-memory
+
+# Secrets
+**/service-account*.json
+secrets
+.env

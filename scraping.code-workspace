@@ -5,7 +5,6 @@
   // Open with: code scraping.code-workspace
   // This provides organized views of the codebase without moving files.
   // ==========================================================================
-  
   "folders": [
     {
       "name": "📁 Root",
@@ -32,7 +31,6 @@
       "path": "docs"
     }
   ],
-  
   "settings": {
     // Hide duplicated folders from root view since they have dedicated sections
     "files.exclude": {
@@ -41,7 +39,6 @@
       "sapphire": true,
       "tools": true,
       "docs": true,
-      
       // Standard exclusions
       "**/__pycache__": true,
       "**/*.egg-info": true,
@@ -53,7 +50,6 @@
       ".idea": true,
       "**/.DS_Store": true
     },
-    
     // Search exclusions
     "search.exclude": {
       "**/audiobee_*/20*": true,
@@ -62,7 +58,6 @@
       "**/uv.lock": true,
       "**/node_modules": true
     },
-    
     // Python settings
     "python.analysis.extraPaths": [
       "${workspaceFolder:📁 Root}",
@@ -70,7 +65,6 @@
       "${workspaceFolder:🏥 HealthSparq Library}"
     ]
   },
-  
   "extensions": {
     "recommendations": [
       "ms-python.python",
@@ -80,7 +74,6 @@
       "yzhang.markdown-all-in-one"
     ]
   },
-  
   "launch": {
     "version": "0.2.0",
     "configurations": [
@@ -100,7 +93,9 @@
         "type": "debugpy",
         "request": "launch",
         "module": "healthsparq",
-        "args": ["--help"],
+        "args": [
+          "--help"
+        ],
         "console": "integratedTerminal",
         "cwd": "${workspaceFolder:📁 Root}"
       },
@@ -109,7 +104,9 @@
         "type": "debugpy",
         "request": "launch",
         "program": "${workspaceFolder:📁 Root}/tools/project_registry.py",
-        "args": ["stats"],
+        "args": [
+          "stats"
+        ],
         "console": "integratedTerminal"
       }
     ]
