@@ -36,3 +36,5 @@ uv.lock
 **/service-account*.json
 secrets
 *.egg-info/
+
+browser_data*/

@@ -13,6 +13,15 @@ Scraping monorepo for healthcare provider directory data extraction. Contains 95
 - `sapphire/` - ProviderFinderOnline platform library (15 projects)
 - `audiobee_*/` - Individual scraper projects (various platforms)
 
+## CRITICAL: audiobee_* Projects Are Standalone Git Repos
+
+**All `audiobee_*/` folders are independent git repositories**, not subdirectories of this monorepo.
+
+- They are gitignored in the parent repo (`.gitignore: audiobee_*/`)
+- Each has its own git history and remote (typically Bitbucket)
+- To commit changes: `cd audiobee_<project>` then use git commands there
+- Do NOT try to commit audiobee changes from the parent scraping repo
+
 ## Build & Run Commands
 
 ```bash
@@ -127,6 +136,114 @@ Each module has its own CLAUDE.md with detailed API patterns:
 - `sapphire/CLAUDE.md` - CLI, library API, phase details
 - `core/*/CLAUDE.md` - Module-specific patterns (io, session, proxy, etc.)
 
+
+## Codemap
+
+```
+scraping/
+├── core/                           # Shared utilities package (v3.0)
+│   ├── __init__.py                 # Public API exports
+│   ├── exceptions.py               # SharedPackageError hierarchy
+│   ├── config/                     # Pydantic Settings configuration
+│   │   ├── base.py                 # BaseConfig (SCRAPER_* env prefix)
+│   │   ├── proxy.py                # ProxySettings with SecretStr
+│   │   ├── factory.py              # load_config() factory
+│   │   └── {healthsparq,sapphire,carrier,anthem}.py
+│   ├── io/                         # DataStore abstraction
+│   │   ├── base.py                 # DataStore Protocol + BackendType enum
+│   │   ├── factory.py              # create_store() auto-detection
+│   │   ├── jsonl.py                # JSONLStore + BoundedSet dedup
+│   │   ├── json_files.py           # JSONFileStore (debugging)
+│   │   └── sqlite_fs.py            # SQLiteStore (15x faster)
+│   ├── logging/                    # Loguru-based logging
+│   │   └── logger.py               # setup_logging(), trace_id
+│   ├── proxy/                      # Multi-provider proxy orchestration
+│   │   ├── base.py                 # ProxyType enum, ProxyConfig
+│   │   ├── manager.py              # ProxyManager round-robin
+│   │   └── providers/              # SmartProxy, DataImpulse, Decodo, VPN
+│   ├── session/                    # Browser/HTTP session management
+│   │   ├── browser_session.py      # BrowserSession (Patchright/Camoufox)
+│   │   ├── http_session.py         # HttpSession (curl_cffi)
+│   │   └── resilient_session.py    # ResilientBrowserSession auto-recovery
+│   ├── qa/                         # Validation, comparison, reporting
+│   │   ├── validator.py            # fastjsonschema validation
+│   │   ├── comparison.py           # Polars-based diff analysis
+│   │   ├── reporter.py             # Excel state reports
+│   │   └── debug_reports.py        # Debug Excel generation
+│   └── mapper/                     # Data normalization
+│       ├── normalize.py            # ZIP/phone normalization
+│       └── schema.py               # JSON schema validation
+│
+├── healthsparq/                    # HealthSparq platform library (23 projects)
+│   ├── __init__.py                 # Public API: run_scraper_sync, load_config
+│   ├── api.py                      # ScraperResult, PhaseResult dataclasses
+│   ├── cli.py                      # Typer CLI + create_project_cli()
+│   ├── config/                     # YAML config loading
+│   │   ├── schema.py               # HealthSparqProjectConfig Pydantic model
+│   │   └── loader.py               # load_config(), list_projects()
+│   ├── core/                       # HealthSparq-specific
+│   │   ├── healthsparq_api.py      # HealthSpark API wrapper
+│   │   ├── session.py              # Two-step session (browser→HTTP)
+│   │   └── storage.py              # create_phase_store()
+│   ├── phases/                     # 6-phase pipeline
+│   │   ├── search.py               # Phase 1: County-by-county discovery
+│   │   ├── details.py              # Phase 2: Provider detail extraction
+│   │   ├── normalize.py            # Phase 3: NPI dedup + schema mapping
+│   │   ├── qa.py                   # Phase 4: Validation + comparison
+│   │   ├── report.py               # Phase 5: Excel + samples
+│   │   └── recovery.py             # Phase 6: Missing provider recovery
+│   ├── configs/                    # Project YAML configs (23 projects)
+│   └── templates/                  # Project scaffolding templates
+│
+├── sapphire/                       # Sapphire/PFO platform library (15 projects)
+│   ├── __init__.py                 # Public API: run_scraper_sync, load_config
+│   ├── api.py                      # ScraperResult, PhaseResult dataclasses
+│   ├── cli.py                      # Typer CLI + create_project_cli()
+│   ├── config/                     # YAML config loading
+│   │   ├── schema.py               # SapphireProjectConfig Pydantic model
+│   │   └── loader.py               # load_config(), list_projects()
+│   ├── core/                       # Sapphire-specific
+│   │   ├── sapphire_api.py         # SapphireAPI browser wrapper
+│   │   ├── session.py              # Browser queue management
+│   │   └── storage.py              # create_phase_store()
+│   ├── phases/                     # 5-phase pipeline
+│   │   ├── discovery.py            # Phase 1: Geographic facet queries
+│   │   ├── details.py              # Phase 2: Provider detail fetching
+│   │   ├── normalize.py            # Phase 3: NPI dedup + schema mapping
+│   │   ├── qa.py                   # Phase 4: Validation + comparison
+│   │   └── report.py               # Phase 5: Excel + samples
+│   ├── mappers/                    # Project-specific mappers
+│   └── configs/                    # Project YAML configs (15 projects)
+│
+├── audiobee_*/                     # Individual scraper projects (95+)
+│   │                               # Three patterns:
+│   │                               #
+│   │  ─── healthsparq-based (thin wrapper) ───
+│   ├── audiobee_medica_sg/         # Example: HealthSparq library project
+│   │   ├── run.py                  # CLI entry point (create_project_cli)
+│   │   ├── mapper.py               # Custom normalization logic
+│   │   └── config.yaml             # Project configuration
+│   │                               #
+│   │  ─── sapphire-based (legacy + library) ───
+│   ├── audiobee_molina/            # Example: Sapphire/PFO project
+│   │   ├── index_0.py              # Legacy: Provider ID discovery
+│   │   ├── index_1_v3.py           # Legacy: Provider detail fetching
+│   │   ├── 3_map_json_to_ideon_format.py  # Legacy: Normalization
+│   │   ├── playwright_queue_session.py    # Browser queue management
+│   │   └── config.yaml             # Sapphire config
+│   │                               #
+│   │  ─── carrier-type (custom) ───
+│   └── audiobee_multiplan/         # Example: Custom carrier project
+│       ├── index_0.py              # Discovery script
+│       ├── index_1.py              # Details script
+│       ├── index_2.py              # Processing script
+│       ├── index_3.py              # Normalization script
+│       └── config.py               # Custom configuration
+│
+├── output_generator/               # Legacy output processing tools
+├── scripts/                        # Utility scripts
+└── tools/                          # Development tools
+```
 
 ## Debugging Learnings
 

@@ -23,6 +23,9 @@ import ast
 import json
 import subprocess
 import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -30,6 +33,15 @@ from typing import Annotated
 
 import typer
 import yaml
+from loguru import logger
+
+# Configure loguru for better output
+logger.remove()
+logger.add(
+    sys.stderr,
+    format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{message}</cyan>",
+    level="INFO",
+)
 
 app = typer.Typer(
     name="generate-docs",
@@ -43,6 +55,7 @@ REPO_ROOT = Path(__file__).parent.parent
 @dataclass
 class ModuleInfo:
     """Information about a Python module."""
+
     path: Path
     name: str
     docstring: str | None = None
@@ -54,6 +67,7 @@ class ModuleInfo:
 @dataclass
 class PackageStructure:
     """Structure information for a package."""
+
     name: str
     path: Path
     modules: list[ModuleInfo] = field(default_factory=list)
@@ -178,7 +192,9 @@ def get_tldr_structure(path: Path) -> str | None:
 def generate(
     package_path: Annotated[Path, typer.Argument(help="Path to package directory")],
     output: Annotated[Path | None, typer.Option("--output", "-o", help="Output file path")] = None,
-    include_private: Annotated[bool, typer.Option("--private", help="Include private members")] = False,
+    include_private: Annotated[
+        bool, typer.Option("--private", help="Include private members")
+    ] = False,
 ) -> None:
     """Generate API documentation for a Python package.
 
@@ -209,7 +225,9 @@ def generate(
         if module.classes:
             context_parts.append(f"Classes: {', '.join(c.split(':')[0] for c in module.classes)}")
         if module.functions:
-            context_parts.append(f"Functions: {', '.join(f.split(':')[0] for f in module.functions)}")
+            context_parts.append(
+                f"Functions: {', '.join(f.split(':')[0] for f in module.functions)}"
+            )
         context_parts.append("")
 
     if tldr_output:
@@ -230,7 +248,8 @@ Generate documentation that includes:
 4. Usage examples
 5. Common patterns
 
-Output ONLY the Markdown content, no explanations or preamble."""
+Output ONLY the Markdown content, no explanations or preamble.
+Reference docs/SCRAPER_DOCUMENTATION.md for examples of how to structure the documentation."""
 
     typer.echo("Generating documentation with Claude...")
 
@@ -348,7 +367,7 @@ def schema(
     Extracts Pydantic model definitions and generates human-readable documentation.
     """
     if platform not in ["healthsparq", "sapphire"]:
-        typer.echo(f"Error: Platform must be 'healthsparq' or 'sapphire'", err=True)
+        typer.echo("Error: Platform must be 'healthsparq' or 'sapphire'", err=True)
         raise typer.Exit(1)
 
     schema_path = REPO_ROOT / platform / "config" / "schema.py"
@@ -415,7 +434,10 @@ platform: {platform}
 @app.command("readme")
 def generate_readme(
     project_path: Annotated[Path, typer.Argument(help="Path to project directory")],
-    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output file (default: README.md in project)")] = None,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Output file (default: README.md in project)"),
+    ] = None,
 ) -> None:
     """Generate or update a project README.md using AI.
 
@@ -481,7 +503,10 @@ Output ONLY the Markdown content, no explanations or preamble."""
 @app.command("claude-md")
 def generate_claude_md(
     project_path: Annotated[Path, typer.Argument(help="Path to project or package directory")],
-    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output file (default: CLAUDE.md in project)")] = None,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Output file (default: CLAUDE.md in project)"),
+    ] = None,
 ) -> None:
     """Generate or update a CLAUDE.md file for Claude Code context.
 
@@ -508,11 +533,11 @@ def generate_claude_md(
     context_parts = [f"Project: {project_path.name}"]
 
     if structure:
-        context_parts.append(f"Type: Python package")
+        context_parts.append("Type: Python package")
         context_parts.append(f"Modules: {len(structure.modules)}")
         context_parts.append(f"Subpackages: {', '.join(structure.subpackages)}")
     else:
-        context_parts.append(f"Type: Project directory")
+        context_parts.append("Type: Project directory")
 
     if tldr_output:
         context_parts.append(f"\nCode structure:\n{tldr_output[:2000]}")
@@ -549,6 +574,329 @@ Output ONLY the Markdown content, no explanations or preamble."""
     output_path = output or (project_path / "CLAUDE.md")
     output_path.write_text(doc_content)
     typer.echo(f"✓ CLAUDE.md written to: {output_path}")
+
+
+# Thread-safe counter for progress tracking
+_progress_lock = threading.Lock()
+_progress = {"completed": 0, "failed": 0, "skipped": 0, "total": 0, "total_time": 0.0}
+
+
+SCRAPER_DOC_PROMPT = """Analyze the scraper in {site_path} and create SCRAPER_DOCUMENTATION.md.
+
+Read all Python files (*.py), config files (config.yaml, config.py), and data files.
+Document the scraper following this exact structure:
+
+## 1. Overview
+Create a table with:
+- Project Name
+- States covered
+- Lines of Business (LOB)
+- Update Frequency
+- Site Type (healthsparq, sapphire, carrier, etc.)
+
+## 2. Pipeline Steps
+Create an ASCII flowchart showing the script execution order:
+- 0_*.py → 1_*.py → 2_*.py → etc.
+- Or run.py → mapper.py for library-based scrapers
+Show what each script does.
+
+## 3. API Details
+Document:
+- Base URL
+- Key endpoints
+- Sample request/response (if visible in code)
+
+## 4. Search Strategy
+Explain how providers are discovered:
+- ZIP codes, coordinates, radius
+- Specialty iteration
+- Pagination approach
+
+## 5. Networks
+Create a table of network codes and their descriptions (if found in config or code).
+
+## 6. Mapping
+Document:
+- Input format (raw API response structure)
+- Output format (Ideon schema fields)
+- NPI merge/dedup logic
+
+## 7. AutoQA (if applicable)
+Document dropped NPI recovery workflow if the scraper has QA/recovery phases.
+
+## 8. Directory Structure
+Show the file tree of the project.
+
+## 9. Configuration
+Document config.py or config.yaml settings with descriptions.
+
+## 10. Proxy Configuration
+Document proxy setup if configured.
+
+## 11. Running Instructions
+How to run the scraper with example commands.
+
+## 12. QA Functions
+List QA utilities used (validation, comparison, sampling).
+
+Write the documentation to {site_path}/SCRAPER_DOCUMENTATION.md"""
+
+
+def generate_scraper_doc(
+    site_name: str, repo_root: Path, max_retries: int = 2
+) -> tuple[str, str, str, float]:
+    """Generate documentation for a single scraper site.
+
+    Args:
+        site_name: Name of the audiobee_* directory
+        repo_root: Path to the repository root
+        max_retries: Number of retries on failure
+
+    Returns:
+        Tuple of (site_name, status, message, elapsed_seconds)
+        status is one of: 'completed', 'skipped', 'failed'
+    """
+    start_time = time.time()
+    site_path = repo_root / site_name
+    doc_path = site_path / "SCRAPER_DOCUMENTATION.md"
+
+    # Skip if documentation already exists
+    if doc_path.exists():
+        return (site_name, "skipped", "Documentation already exists", 0.0)
+
+    # Skip if directory doesn't exist
+    if not site_path.exists():
+        return (site_name, "failed", "Directory not found", 0.0)
+
+    # Count files in directory for context
+    py_files = list(site_path.glob("*.py"))
+    config_files = list(site_path.glob("config.*"))
+    logger.info(f"🚀 STARTING {site_name} ({len(py_files)} .py files, {len(config_files)} config files)")
+
+    prompt = SCRAPER_DOC_PROMPT.format(site_path=site_path)
+
+    for attempt in range(max_retries + 1):
+        attempt_start = time.time()
+        if attempt > 0:
+            logger.warning(f"🔄 RETRY {attempt}/{max_retries} for {site_name}")
+
+        try:
+            logger.debug(f"📝 Invoking Claude CLI for {site_name} (attempt {attempt + 1})")
+            result = subprocess.run(
+                ["claude", "-p", prompt, "--max-turns", "5"],
+                capture_output=True,
+                text=True,
+                timeout=300,  # 5 minute timeout per site
+                cwd=str(repo_root),
+            )
+            attempt_elapsed = time.time() - attempt_start
+
+            if result.returncode == 0:
+                # Check if documentation was created
+                if doc_path.exists():
+                    doc_size = doc_path.stat().st_size
+                    total_elapsed = time.time() - start_time
+                    logger.success(
+                        f"✅ COMPLETED {site_name} in {total_elapsed:.1f}s "
+                        f"(doc size: {doc_size / 1024:.1f}KB)"
+                    )
+                    return (site_name, "completed", f"Generated ({doc_size / 1024:.1f}KB)", total_elapsed)
+                else:
+                    # Claude completed but didn't write the file
+                    logger.error(f"❌ {site_name}: Claude finished but no file created")
+                    if attempt < max_retries:
+                        continue
+                    return (site_name, "failed", "Claude completed but file not created", time.time() - start_time)
+            else:
+                error_msg = result.stderr[:200] if result.stderr else "Unknown error"
+                logger.error(f"❌ {site_name}: Claude error after {attempt_elapsed:.1f}s - {error_msg}")
+                if attempt < max_retries:
+                    time.sleep(2)  # Brief pause before retry
+                    continue
+                return (site_name, "failed", f"Claude error: {error_msg}", time.time() - start_time)
+
+        except subprocess.TimeoutExpired:
+            logger.error(f"⏰ TIMEOUT {site_name} after 5 minutes (attempt {attempt + 1})")
+            if attempt < max_retries:
+                continue
+            return (site_name, "failed", "Timeout after 5 minutes", time.time() - start_time)
+        except FileNotFoundError:
+            logger.critical(f"🚫 Claude CLI not found!")
+            return (site_name, "failed", "Claude CLI not found", time.time() - start_time)
+        except Exception as e:
+            logger.error(f"💥 EXCEPTION {site_name}: {type(e).__name__}: {str(e)[:100]}")
+            if attempt < max_retries:
+                continue
+            return (site_name, "failed", f"Exception: {str(e)[:200]}", time.time() - start_time)
+
+    return (site_name, "failed", "Max retries exceeded", time.time() - start_time)
+
+
+def update_progress(status: str, site_name: str, message: str, elapsed: float = 0.0) -> None:
+    """Update and log progress in a thread-safe manner."""
+    with _progress_lock:
+        _progress[status] += 1
+        _progress["total_time"] += elapsed
+        completed = _progress["completed"]
+        failed = _progress["failed"]
+        skipped = _progress["skipped"]
+        total = _progress["total"]
+        processed = completed + failed + skipped
+
+        # Calculate progress percentage
+        pct = (processed / total * 100) if total > 0 else 0
+
+        # Progress bar
+        bar_width = 20
+        filled = int(bar_width * processed / total) if total > 0 else 0
+        bar = "█" * filled + "░" * (bar_width - filled)
+
+        status_icon = {"completed": "✅", "failed": "❌", "skipped": "⏭️"}[status]
+        elapsed_str = f" ({elapsed:.1f}s)" if elapsed > 0 else ""
+
+        logger.info(
+            f"[{bar}] {pct:5.1f}% ({processed}/{total}) | "
+            f"{status_icon} {site_name}{elapsed_str}"
+        )
+
+        # Log running totals every 10 completions
+        if processed % 10 == 0 and processed > 0:
+            avg_time = _progress["total_time"] / completed if completed > 0 else 0
+            logger.info(
+                f"📊 Progress: {completed} completed, {failed} failed, {skipped} skipped | "
+                f"Avg time: {avg_time:.1f}s/site"
+            )
+
+
+@app.command("scrapers")
+def generate_all_scraper_docs(
+    workers: Annotated[int, typer.Option("--workers", "-w", help="Number of parallel workers")] = 4,
+    sites_file: Annotated[
+        Path | None, typer.Option("--sites", "-s", help="Path to sites.txt file")
+    ] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Show what would be done without executing")
+    ] = False,
+) -> None:
+    """Generate SCRAPER_DOCUMENTATION.md for all audiobee_* sites in parallel.
+
+    Uses Claude Code CLI to analyze each scraper and generate comprehensive documentation.
+    Skips sites that already have SCRAPER_DOCUMENTATION.md.
+
+    Example:
+        python scripts/generate_docs.py scrapers --workers 4
+        python scripts/generate_docs.py scrapers --dry-run
+    """
+    global _progress
+
+    # Determine sites file path
+    if sites_file is None:
+        sites_file = REPO_ROOT / "scripts" / "sites.txt"
+
+    if not sites_file.exists():
+        typer.echo(f"Error: Sites file not found: {sites_file}", err=True)
+        typer.echo(
+            "Create it with: ls -d audiobee_*/ | sed 's/\\/$//' > scripts/sites.txt", err=True
+        )
+        raise typer.Exit(1)
+
+    # Read sites from file
+    sites = [line.strip() for line in sites_file.read_text().splitlines() if line.strip()]
+
+    if not sites:
+        typer.echo("Error: No sites found in sites.txt", err=True)
+        raise typer.Exit(1)
+
+    # Check which sites need documentation
+    sites_to_process = []
+    sites_to_skip = []
+
+    for site in sites:
+        doc_path = REPO_ROOT / site / "SCRAPER_DOCUMENTATION.md"
+        if doc_path.exists():
+            sites_to_skip.append(site)
+        elif not (REPO_ROOT / site).exists():
+            logger.warning(f"Directory not found: {site}")
+        else:
+            sites_to_process.append(site)
+
+    typer.echo(f"\n{'=' * 60}")
+    typer.echo("Scraper Documentation Generator")
+    typer.echo(f"{'=' * 60}")
+    typer.echo(f"Total sites: {len(sites)}")
+    typer.echo(f"Already documented: {len(sites_to_skip)}")
+    typer.echo(f"To process: {len(sites_to_process)}")
+    typer.echo(f"Workers: {workers}")
+    typer.echo(f"{'=' * 60}\n")
+
+    if dry_run:
+        typer.echo("DRY RUN - Sites that would be processed:")
+        for site in sites_to_process:
+            typer.echo(f"  - {site}")
+        typer.echo("\nSites that would be skipped (already documented):")
+        for site in sites_to_skip[:10]:
+            typer.echo(f"  - {site}")
+        if len(sites_to_skip) > 10:
+            typer.echo(f"  ... and {len(sites_to_skip) - 10} more")
+        return
+
+    if not sites_to_process:
+        typer.echo("All sites already have documentation. Nothing to do.")
+        return
+
+    # Reset progress
+    _progress = {"completed": 0, "failed": 0, "skipped": 0, "total": len(sites_to_process), "total_time": 0.0}
+
+    # Process sites in parallel
+    results = {"completed": [], "failed": [], "skipped": []}
+
+    overall_start = time.time()
+    logger.info(f"🏁 Starting documentation generation for {len(sites_to_process)} sites with {workers} workers")
+    logger.info(f"📋 Sites queue: {', '.join(sites_to_process[:5])}{'...' if len(sites_to_process) > 5 else ''}")
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        # Submit all tasks
+        futures = {
+            executor.submit(generate_scraper_doc, site, REPO_ROOT): site
+            for site in sites_to_process
+        }
+        logger.info(f"📤 Submitted {len(futures)} tasks to thread pool")
+
+        for future in as_completed(futures):
+            site_name, status, message, elapsed = future.result()
+            results[status].append((site_name, message, elapsed))
+            update_progress(status, site_name, message, elapsed)
+
+    overall_elapsed = time.time() - overall_start
+
+    # Summary
+    typer.echo(f"\n{'=' * 60}")
+    typer.echo("📊 SUMMARY")
+    typer.echo(f"{'=' * 60}")
+    typer.echo(f"✅ Completed: {len(results['completed'])}")
+    typer.echo(f"❌ Failed: {len(results['failed'])}")
+    typer.echo(f"⏭️  Skipped: {len(results['skipped'])}")
+    typer.echo(f"⏱️  Total time: {overall_elapsed:.1f}s ({overall_elapsed / 60:.1f} minutes)")
+
+    if results["completed"]:
+        avg_time = sum(r[2] for r in results["completed"]) / len(results["completed"])
+        typer.echo(f"📈 Average time per site: {avg_time:.1f}s")
+
+    if results["failed"]:
+        typer.echo(f"\n{'=' * 60}")
+        typer.echo("❌ FAILED SITES:")
+        typer.echo(f"{'=' * 60}")
+        for site, message, elapsed in results["failed"]:
+            typer.echo(f"  • {site}: {message}")
+
+    if results["completed"]:
+        typer.echo(f"\n{'=' * 60}")
+        typer.echo("✅ COMPLETED SITES:")
+        typer.echo(f"{'=' * 60}")
+        for site, message, elapsed in sorted(results["completed"], key=lambda x: x[2], reverse=True)[:10]:
+            typer.echo(f"  • {site}: {message}")
+        if len(results["completed"]) > 10:
+            typer.echo(f"  ... and {len(results['completed']) - 10} more")
 
 
 if __name__ == "__main__":
