@@ -40,6 +40,17 @@ dependencies = [
     "core",
     "fastexcel>=0.18.0",
     "textual>=0.70.0",
+    "py7zr",
+    "polars>=1.37.1",
+    "pyexecjs>=1.5.1",
+    "capsolver>=1.0.7",
+    "fuzzywuzzy>=0.18.0",
+    "google-api-python-client>=2.188.0",
+    "google-auth-oauthlib>=1.2.4",
+    "nameparser>=1.1.3",
+    "selectolax>=0.4.6",
+    "aiosqlite>=0.22.1",
+    "hrequests>=0.9.0",
 ]
 
 [project.scripts]

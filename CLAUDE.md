@@ -128,5 +128,35 @@ Each module has its own CLAUDE.md with detailed API patterns:
 - `core/*/CLAUDE.md` - Module-specific patterns (io, session, proxy, etc.)
 
 
+## Debugging Learnings
+
+Real debugging cases from production scraper issues. Use these patterns when diagnosing problems.
+
+### Cross-Platform Patterns
+
+- **Legacy code issues:** When a legacy project has bugs (false drops, missing providers, 403s), first check if it needs migration to the new codebase (`healthsparq`/`sapphire` library). Migration often resolves multiple issues at once.
+- **AutoQA validation:** Always check AutoQA code against reference implementations (e.g., Baylor Scott for HealthSparq). Outdated AutoQA scripts produce false drop reports.
+- **False drops triage:** When false drops are identified, verify via AutoQA files whether the root cause is scraping (missing/corrupt raw data) vs mapping (incorrect normalization or network assignment).
+- **Corrupt raw files:** Empty or truncated raw files indicate scraping occurred before the page/navigation fully loaded. Look for patterns in the corrupt files (same county, same specialty) to identify the trigger.
+
+### Carrier-Specific (Algolia / Direct API)
+
+- **High provider counts with DRILLDOWN_FACETS:** If counts remain above 20k even after applying all `DRILLDOWN_FACETS`, switch to zip code drilldown instead of county-level queries. Use Algolia params to filter by zip within each county.
+- **Navigation timing:** Corrupt/empty raw HTML files can result from scraping before navigation completes. Add a static sleep after navigation actions before extracting HTML.
+- **Identifying corrupt files:** Check if corrupt files share common search parameters (same county + specialty combo) to find the root cause pattern.
+
+### Healthsparq-Specific (Browser Automation + API)
+
+- **NPI keyword search returning wrong data:** NPI keyword search can return provider names (labels) instead of NPI IDs. Fix: add an intermediate search function using the search results API (phase 1) with fallback params to resolve NPIs correctly.
+- **Multi-NPI orgs:** For organizations with multiple NPIs, the keyword fallback search may pull the same provider under different NPIs. Deduplicate or validate against expected NPI lists.
+- **Network/plan code mapping:** Mapper functions must use filename/path info for plan code extraction. A common bug (especially in bluecard_national) is the mapper returning all networks when no plan codes are passed. Always pass the file path to the mapper and post-process filenames for plan code extraction.
+- **Raw cache for debugging:** Store intermediate search-by-NPI/name data in the raw cache (DB). Without this data, root cause identification for false drops is significantly harder.
+
+### Sapphire-Specific (ProviderFinderOnline / Proxy)
+
+- **403 request blocking:** When seeing 403 errors, check in this order: (1) Is the proxy type appropriate? Session-based proxies are not ideal for all scenarios. (2) Is the codebase legacy and needs migration?
+- **Proxy configuration:** Sapphire module accepts proxy via three sources in priority order: `config.yaml` > environment variable > default session-based fallback. After migrating a legacy project, immediately verify the proxy configuration.
+- **Proxy type selection:** For sites that block aggressively, prefer `dataimpulse_rotating` over session-based proxies. Session proxies maintain the same IP which makes blocking easier for the target site.
+
 ## CLI Documentation
 - Always use Typer for args in CLI.
