@@ -1,0 +1,146 @@
+#!/usr/bin/env node
+
+/**
+ * Daily Standup Generator
+ * Generates a clean summary of recent work for daily check-ins
+ */
+
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+function getGitCommits(repoPath = '.', hours = 24) {
+  try {
+    process.chdir(repoPath);
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    const command = `git log --since="${since}" --author="$(git config user.name)" --oneline --no-merges`;
+    const output = execSync(command, { encoding: 'utf8', stdio: 'pipe' }).trim();
+    return output ? output.split('\n').map(line => {
+      const [hash, ...messageParts] = line.split(' ');
+      return {
+        hash: hash.substring(0, 7),
+        message: messageParts.join(' ')
+      };
+    }) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function categorizeCommit(message) {
+  const msg = message.toLowerCase();
+  if (msg.includes('fix') || msg.includes('bug')) return 'fixes';
+  if (msg.includes('feat') || msg.includes('add') || msg.includes('new')) return 'features';
+  if (msg.includes('refactor') || msg.includes('clean') || msg.includes('improve')) return 'improvements';
+  if (msg.includes('test') || msg.includes('spec')) return 'testing';
+  if (msg.includes('doc') || msg.includes('readme')) return 'documentation';
+  if (msg.includes('config') || msg.includes('setup') || msg.includes('deploy')) return 'config';
+  return 'other';
+}
+
+function generateStandup(repos = ['.'], hours = 24) {
+  const allCommits = [];
+  const repoSummaries = [];
+
+  repos.forEach(repo => {
+    const commits = getGitCommits(repo, hours);
+    if (commits.length > 0) {
+      const repoName = path.basename(path.resolve(repo));
+      repoSummaries.push(`${repoName}: ${commits.length} commits`);
+      allCommits.push(...commits.map(c => ({ ...c, repo: repoName })));
+    }
+  });
+
+  if (allCommits.length === 0) {
+    return "No commits found in the last 24 hours.";
+  }
+
+  // Categorize commits
+  const categories = {};
+  allCommits.forEach(commit => {
+    const category = categorizeCommit(commit.message);
+    if (!categories[category]) categories[category] = [];
+    categories[category].push(commit);
+  });
+
+  // Generate summary
+  let summary = `## Daily Standup - ${new Date().toLocaleDateString()}\n\n`;
+  summary += `**Yesterday I worked on:**\n`;
+  summary += `- ${repoSummaries.join('\n- ')}\n\n`;
+
+  Object.entries(categories).forEach(([category, commits]) => {
+    if (commits.length > 0) {
+      summary += `**${category.charAt(0).toUpperCase() + category.slice(1)}:**\n`;
+      commits.forEach(commit => {
+        const repoPrefix = repos.length > 1 ? `[${commit.repo}] ` : '';
+        summary += `- ${repoPrefix}${commit.message} (${commit.hash})\n`;
+      });
+      summary += '\n';
+    }
+  });
+
+  summary += `**Today I plan to:**\n`;
+  summary += `- [Add your priorities here]\n\n`;
+  summary += `**Blockers:**\n`;
+  summary += `- None\n`;
+
+  return summary;
+}
+
+// CLI Interface
+const args = process.argv.slice(2);
+const command = args[0];
+
+switch (command) {
+  case '--help':
+  case '-h':
+    console.log(`
+Daily Standup Generator
+
+Usage:
+  standup-gen                    # Generate standup for current repo
+  standup-gen --hours 48         # Look back 48 hours instead of 24
+  standup-gen --repos repo1,repo2 # Check multiple repositories
+  standup-gen --save             # Save output to standup.md
+  standup-gen --copy             # Copy to clipboard (requires xclip/pbcopy)
+
+Examples:
+  standup-gen --hours 48 --save
+  standup-gen --repos /path/to/monorepo,/path/to/frontend --copy
+`);
+    break;
+
+  case '--version':
+  case '-v':
+    console.log('1.0.0');
+    break;
+
+  default:
+    const hoursIndex = args.indexOf('--hours');
+    const hours = hoursIndex !== -1 ? parseInt(args[hoursIndex + 1]) || 24 : 24;
+    
+    const reposIndex = args.indexOf('--repos');
+    const repos = reposIndex !== -1 ? args[reposIndex + 1].split(',') : ['.'];
+    
+    const save = args.includes('--save');
+    const copy = args.includes('--copy');
+    
+    const output = generateStandup(repos, hours);
+    
+    if (save) {
+      fs.writeFileSync('standup.md', output);
+      console.log('✅ Standup saved to standup.md');
+    } else if (copy) {
+      try {
+        // Try to copy to clipboard
+        const clipboardCmd = process.platform === 'darwin' ? 'pbcopy' : 'xclip -selection clipboard';
+        execSync(clipboardCmd, { input: output });
+        console.log('✅ Standup copied to clipboard');
+      } catch (error) {
+        console.log('❌ Could not copy to clipboard. Output:');
+        console.log(output);
+      }
+    } else {
+      console.log(output);
+    }
+}

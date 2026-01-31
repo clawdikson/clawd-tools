@@ -1,0 +1,393 @@
+#!/usr/bin/env node
+
+/**
+ * Reading Progress Tracker
+ * Helps track reading progress, session duration, and insights
+ * Perfect for building consistent reading habits
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Configuration
+const TOOLS_DIR = path.dirname(__filename);
+const DATA_DIR = path.join(TOOLS_DIR, '.reading-data');
+const BOOKS_FILE = path.join(DATA_DIR, 'books.json');
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
+
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Helper functions
+function loadData(file, defaultData = []) {
+    if (!fs.existsSync(file)) {
+        fs.writeFileSync(file, JSON.stringify(defaultData, null, 2));
+        return defaultData;
+    }
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+}
+
+function saveData(file, data) {
+    fs.writeFileSync(file, JSON.stringify(data, null, 2));
+}
+
+function formatDuration(minutes) {
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+}
+
+function calculateNSTTime() {
+    // NST is UTC-3:30 (standard) or NDT UTC-2:30 (daylight)
+    // For simplicity, using UTC-3:30 (NST)
+    const now = new Date();
+    const nst = new Date(now.getTime() - (3.5 * 60 * 60 * 1000));
+    return nst;
+}
+
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// Commands
+class ReadingTracker {
+    constructor() {
+        this.books = loadData(BOOKS_FILE, []);
+        this.sessions = loadData(SESSIONS_FILE, []);
+    }
+
+    addBook(title, author, pages = null) {
+        const book = {
+            id: generateId(),
+            title,
+            author,
+            totalPages: pages,
+            currentPage: 0,
+            status: 'reading',
+            dateAdded: calculateNSTTime().toISOString(),
+            dateCompleted: null,
+            insights: []
+        };
+        
+        this.books.push(book);
+        saveData(BOOKS_FILE, this.books);
+        console.log(`📚 Added "${title}" by ${author}${pages ? ` (${pages} pages)` : ''}`);
+        return book.id;
+    }
+
+    startSession(bookId) {
+        const book = this.books.find(b => b.id === bookId);
+        if (!book) {
+            console.error('❌ Book not found');
+            return;
+        }
+
+        const session = {
+            id: generateId(),
+            bookId,
+            startTime: calculateNSTTime().toISOString(),
+            endTime: null,
+            duration: null,
+            pagesRead: null,
+            notes: null
+        };
+
+        this.sessions.push(session);
+        saveData(SESSIONS_FILE, this.sessions);
+        console.log(`🕐 Reading session started for "${book.title}"`);
+        console.log(`⚡ Use: read end ${session.id} --pages X [--notes "insight"]`);
+        return session.id;
+    }
+
+    endSession(sessionId, pagesRead, notes = null) {
+        const session = this.sessions.find(s => s.id === sessionId);
+        if (!session) {
+            console.error('❌ Session not found');
+            return;
+        }
+
+        const endTime = calculateNSTTime();
+        const startTime = new Date(session.startTime);
+        const duration = Math.round((endTime - startTime) / (1000 * 60)); // minutes
+
+        session.endTime = endTime.toISOString();
+        session.duration = duration;
+        session.pagesRead = pagesRead;
+        session.notes = notes;
+
+        // Update book progress
+        const book = this.books.find(b => b.id === session.bookId);
+        if (book) {
+            book.currentPage += pagesRead;
+            if (book.totalPages && book.currentPage >= book.totalPages) {
+                book.status = 'completed';
+                book.dateCompleted = endTime.toISOString();
+                console.log(`🎉 Congratulations! You finished "${book.title}"!`);
+            }
+            if (notes) {
+                book.insights.push({
+                    date: endTime.toISOString(),
+                    note: notes
+                });
+            }
+        }
+
+        saveData(SESSIONS_FILE, this.sessions);
+        saveData(BOOKS_FILE, this.books);
+
+        console.log(`✅ Session completed!`);
+        console.log(`📖 Read ${pagesRead} pages in ${formatDuration(duration)}`);
+        if (book && book.status === 'completed') {
+            console.log(`🎉 Congratulations! You finished "${book.title}"!`);
+        }
+    }
+
+    quickSession(bookId, pages, duration, notes = null) {
+        const book = this.books.find(b => b.id === bookId);
+        if (!book) {
+            console.error('❌ Book not found');
+            return;
+        }
+
+        const now = calculateNSTTime();
+        const session = {
+            id: generateId(),
+            bookId,
+            startTime: new Date(now.getTime() - (duration * 60 * 1000)).toISOString(),
+            endTime: now.toISOString(),
+            duration,
+            pagesRead: pages,
+            notes
+        };
+
+        this.sessions.push(session);
+        
+        // Update book progress
+        book.currentPage += pages;
+        if (book.totalPages && book.currentPage >= book.totalPages) {
+            book.status = 'completed';
+            book.dateCompleted = now.toISOString();
+        }
+        if (notes) {
+            book.insights.push({
+                date: now.toISOString(),
+                note: notes
+            });
+        }
+
+        saveData(SESSIONS_FILE, this.sessions);
+        saveData(BOOKS_FILE, this.books);
+
+        console.log(`📚 Logged reading session: ${pages} pages in ${formatDuration(duration)}`);
+        if (book.status === 'completed') {
+            console.log(`🎉 You finished "${book.title}"!`);
+        }
+    }
+
+    listBooks() {
+        if (this.books.length === 0) {
+            console.log('📚 No books added yet. Use: read add "Title" "Author"');
+            return;
+        }
+
+        console.log('\n📚 Your Reading List:\n');
+        this.books.forEach((book, index) => {
+            const progress = book.totalPages 
+                ? ` (${book.currentPage}/${book.totalPages} pages - ${Math.round((book.currentPage / book.totalPages) * 100)}%)`
+                : ` (page ${book.currentPage})`;
+            
+            const status = book.status === 'completed' ? '✅' : '📖';
+            console.log(`${index + 1}. ${status} "${book.title}" by ${book.author}${progress}`);
+            console.log(`   ID: ${book.id}`);
+        });
+        console.log();
+    }
+
+    stats(bookId = null) {
+        const targetBooks = bookId ? this.books.filter(b => b.id === bookId) : this.books;
+        const targetSessions = bookId ? this.sessions.filter(s => s.bookId === bookId) : this.sessions;
+
+        if (targetBooks.length === 0) {
+            console.log('📊 No data available');
+            return;
+        }
+
+        const totalSessions = targetSessions.filter(s => s.duration !== null).length;
+        const totalMinutes = targetSessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+        const totalPages = targetSessions.reduce((sum, s) => sum + (s.pagesRead || 0), 0);
+        const completedBooks = targetBooks.filter(b => b.status === 'completed').length;
+
+        console.log('\n📊 Reading Statistics:\n');
+        
+        if (bookId) {
+            const book = targetBooks[0];
+            console.log(`📖 Book: "${book.title}" by ${book.author}`);
+            console.log(`📄 Progress: ${book.currentPage}${book.totalPages ? `/${book.totalPages}` : ''} pages`);
+            if (book.totalPages) {
+                console.log(`📈 Completion: ${Math.round((book.currentPage / book.totalPages) * 100)}%`);
+            }
+            console.log(`⏱️  Time invested: ${formatDuration(totalMinutes)}`);
+            console.log(`📚 Reading sessions: ${totalSessions}`);
+            
+            if (book.insights.length > 0) {
+                console.log('\n💡 Recent insights:');
+                book.insights.slice(-3).forEach((insight, i) => {
+                    console.log(`   ${i + 1}. ${insight.note}`);
+                });
+            }
+        } else {
+            console.log(`📚 Total books: ${this.books.length} (${completedBooks} completed)`);
+            console.log(`📄 Total pages read: ${totalPages}`);
+            console.log(`⏱️  Total time reading: ${formatDuration(totalMinutes)}`);
+            console.log(`🎯 Reading sessions: ${totalSessions}`);
+            
+            if (totalSessions > 0) {
+                const avgSession = Math.round(totalMinutes / totalSessions);
+                const avgPages = Math.round(totalPages / totalSessions);
+                console.log(`📈 Average session: ${formatDuration(avgSession)}, ${avgPages} pages`);
+            }
+
+            // Show recent activity
+            const recentSessions = targetSessions
+                .filter(s => s.endTime)
+                .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))
+                .slice(0, 5);
+
+            if (recentSessions.length > 0) {
+                console.log('\n🕐 Recent sessions:');
+                recentSessions.forEach(session => {
+                    const book = this.books.find(b => b.id === session.bookId);
+                    const date = new Date(session.endTime).toLocaleDateString();
+                    console.log(`   ${date}: ${session.pagesRead}p in ${formatDuration(session.duration)} - "${book?.title}"`);
+                });
+            }
+        }
+        console.log();
+    }
+
+    help() {
+        console.log(`
+📚 Reading Tracker - Build your reading habit!
+
+COMMANDS:
+  read add "Book Title" "Author" [pages]     Add a new book to track
+  read list                                  Show all books
+  read start <book-id>                      Start a reading session
+  read end <session-id> --pages X [--notes "insight"]  End session with progress
+  read quick <book-id> --pages X --duration Y [--notes "insight"]  Log past session
+  read stats [book-id]                      Show reading statistics
+  read help                                 Show this help
+
+EXAMPLES:
+  read add "Rich Dad Poor Dad" "Robert Kiyosaki" 336
+  read start abc123
+  read end def456 --pages 15 --notes "Key insight about assets vs liabilities"
+  read quick abc123 --pages 10 --duration 30 --notes "Cash flow quadrant concept"
+  read stats abc123
+
+TIPS:
+  • Use consistent short sessions (15-30 min) for habit building
+  • Log insights immediately while fresh in memory
+  • Track page numbers to see daily progress
+  • Review stats weekly to maintain momentum
+
+Perfect for Dikson's goal: 1% better daily through consistent reading! 📈
+`);
+    }
+}
+
+// CLI Interface
+function main() {
+    const args = process.argv.slice(2);
+    const tracker = new ReadingTracker();
+
+    if (args.length === 0) {
+        tracker.help();
+        return;
+    }
+
+    const command = args[0];
+
+    try {
+        switch (command) {
+            case 'add':
+                if (args.length < 3) {
+                    console.error('❌ Usage: read add "Title" "Author" [pages]');
+                    return;
+                }
+                const pages = args[4] ? parseInt(args[4]) : null;
+                tracker.addBook(args[1], args[2], pages);
+                break;
+
+            case 'list':
+                tracker.listBooks();
+                break;
+
+            case 'start':
+                if (args.length < 2) {
+                    console.error('❌ Usage: read start <book-id>');
+                    return;
+                }
+                tracker.startSession(args[1]);
+                break;
+
+            case 'end':
+                if (args.length < 4 || args[2] !== '--pages') {
+                    console.error('❌ Usage: read end <session-id> --pages X [--notes "insight"]');
+                    return;
+                }
+                const sessionId = args[1];
+                const pagesRead = parseInt(args[3]);
+                let notes = null;
+                
+                const notesIndex = args.indexOf('--notes');
+                if (notesIndex !== -1 && args[notesIndex + 1]) {
+                    notes = args[notesIndex + 1];
+                }
+                
+                tracker.endSession(sessionId, pagesRead, notes);
+                break;
+
+            case 'quick':
+                if (args.length < 6) {
+                    console.error('❌ Usage: read quick <book-id> --pages X --duration Y [--notes "insight"]');
+                    return;
+                }
+                const bookId = args[1];
+                const pagesIndex = args.indexOf('--pages');
+                const durationIndex = args.indexOf('--duration');
+                const notesIndex2 = args.indexOf('--notes');
+                
+                if (pagesIndex === -1 || durationIndex === -1) {
+                    console.error('❌ Both --pages and --duration are required');
+                    return;
+                }
+                
+                const quickPages = parseInt(args[pagesIndex + 1]);
+                const quickDuration = parseInt(args[durationIndex + 1]);
+                const quickNotes = notesIndex2 !== -1 ? args[notesIndex2 + 1] : null;
+                
+                tracker.quickSession(bookId, quickPages, quickDuration, quickNotes);
+                break;
+
+            case 'stats':
+                const statsBookId = args[1] || null;
+                tracker.stats(statsBookId);
+                break;
+
+            case 'help':
+            default:
+                tracker.help();
+                break;
+        }
+    } catch (error) {
+        console.error('❌ Error:', error.message);
+    }
+}
+
+if (require.main === module) {
+    main();
+}

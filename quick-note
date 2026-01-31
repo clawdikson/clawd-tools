@@ -1,0 +1,243 @@
+#!/usr/bin/env node
+/**
+ * Quick Note - Instant thought capture with auto-filing
+ * 
+ * Usage:
+ *   qn "idea about X"
+ *   qn -t tag "note with tag" 
+ *   qn -s "search term"
+ *   qn -l                    # list recent notes
+ *   qn --stats              # show stats
+ */
+
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
+
+const WORKSPACE = '/home/azureuser/clawd';
+const NOTES_DIR = path.join(WORKSPACE, 'memory', 'quick-notes');
+const TODAY = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+// Ensure notes directory exists
+if (!fs.existsSync(NOTES_DIR)) {
+    fs.mkdirSync(NOTES_DIR, { recursive: true });
+}
+
+function getTimestamp() {
+    const now = new Date();
+    const nstOffset = -3.5; // NST is UTC-3:30
+    const nstTime = new Date(now.getTime() + (nstOffset * 60 * 60 * 1000));
+    return nstTime.toISOString().replace('T', ' ').substring(0, 19) + ' NST';
+}
+
+function getCurrentContext() {
+    // Try to get current working directory context
+    try {
+        const cwd = process.cwd();
+        if (cwd.includes('beena') || cwd.includes('monorepo')) {
+            return '[WORK]';
+        } else if (cwd.includes('clawd')) {
+            return '[PERSONAL]';
+        }
+        return '[GENERAL]';
+    } catch {
+        return '[GENERAL]';
+    }
+}
+
+function saveNote(content, tags = []) {
+    const timestamp = getTimestamp();
+    const context = getCurrentContext();
+    const noteFile = path.join(NOTES_DIR, `${TODAY}.md`);
+    
+    // Format note entry
+    const tagString = tags.length > 0 ? ` #${tags.join(' #')}` : '';
+    const noteEntry = `## ${timestamp}${tagString}\n${context} ${content}\n\n`;
+    
+    // Append to today's file
+    fs.appendFileSync(noteFile, noteEntry);
+    
+    // Also append to master notes file for easy searching
+    const masterFile = path.join(NOTES_DIR, 'all-notes.md');
+    fs.appendFileSync(masterFile, noteEntry);
+    
+    console.log(`✅ Note saved to ${TODAY}.md${tagString ? ' with tags: ' + tags.join(', ') : ''}`);
+}
+
+function searchNotes(query) {
+    const masterFile = path.join(NOTES_DIR, 'all-notes.md');
+    
+    if (!fs.existsSync(masterFile)) {
+        console.log('No notes found yet. Create some with: qn "your note"');
+        return;
+    }
+    
+    const content = fs.readFileSync(masterFile, 'utf8');
+    const lines = content.split('\n');
+    const matches = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].toLowerCase().includes(query.toLowerCase())) {
+            // Include context (timestamp line + content)
+            const timestampLine = i > 0 && lines[i-1].startsWith('## ') ? lines[i-1] : null;
+            matches.push({
+                line: i + 1,
+                timestamp: timestampLine,
+                content: lines[i]
+            });
+        }
+    }
+    
+    if (matches.length === 0) {
+        console.log(`No notes found matching: "${query}"`);
+        return;
+    }
+    
+    console.log(`\n🔍 Found ${matches.length} note(s) matching "${query}":\n`);
+    matches.slice(0, 10).forEach(match => { // Show max 10 results
+        if (match.timestamp) console.log(match.timestamp);
+        console.log(`   ${match.content}`);
+        console.log('');
+    });
+    
+    if (matches.length > 10) {
+        console.log(`... and ${matches.length - 10} more. Refine your search for fewer results.`);
+    }
+}
+
+function listRecentNotes(count = 10) {
+    const files = fs.readdirSync(NOTES_DIR)
+        .filter(f => f.endsWith('.md') && f !== 'all-notes.md')
+        .sort()
+        .reverse()
+        .slice(0, 3); // Last 3 days
+    
+    if (files.length === 0) {
+        console.log('No notes found yet. Create some with: qn "your note"');
+        return;
+    }
+    
+    console.log(`\n📝 Recent notes (last ${count} entries):\n`);
+    
+    let shown = 0;
+    for (const file of files) {
+        if (shown >= count) break;
+        
+        const content = fs.readFileSync(path.join(NOTES_DIR, file), 'utf8');
+        const entries = content.split('## ').filter(e => e.trim()).reverse(); // Most recent first
+        
+        for (const entry of entries) {
+            if (shown >= count) break;
+            
+            const lines = entry.trim().split('\n');
+            if (lines.length >= 2) {
+                console.log(`## ${lines[0]}`); // Timestamp
+                console.log(`   ${lines[1]}`); // Content
+                console.log('');
+                shown++;
+            }
+        }
+    }
+}
+
+function showStats() {
+    const files = fs.readdirSync(NOTES_DIR).filter(f => f.endsWith('.md') && f !== 'all-notes.md');
+    const masterFile = path.join(NOTES_DIR, 'all-notes.md');
+    
+    let totalNotes = 0;
+    if (fs.existsSync(masterFile)) {
+        const content = fs.readFileSync(masterFile, 'utf8');
+        totalNotes = (content.match(/## \d{4}-\d{2}-\d{2}/g) || []).length;
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    const todayFile = path.join(NOTES_DIR, `${today}.md`);
+    let todayCount = 0;
+    
+    if (fs.existsSync(todayFile)) {
+        const content = fs.readFileSync(todayFile, 'utf8');
+        todayCount = (content.match(/## \d{4}-\d{2}-\d{2}/g) || []).length;
+    }
+    
+    console.log('\n📊 Quick Notes Stats:');
+    console.log(`   Total notes: ${totalNotes}`);
+    console.log(`   Notes today: ${todayCount}`);
+    console.log(`   Days with notes: ${files.length}`);
+    console.log(`   Average per day: ${files.length > 0 ? Math.round(totalNotes / files.length * 10) / 10 : 0}`);
+    
+    if (totalNotes > 0) {
+        console.log(`\nℹ️  Use "qn -s keyword" to search your ${totalNotes} notes`);
+    }
+}
+
+function main() {
+    const args = process.argv.slice(2);
+    
+    if (args.length === 0 || args[0] === '-h' || args[0] === '--help') {
+        console.log(`
+Quick Note - Instant thought capture
+        
+Usage:
+  qn "your note here"                    Save a quick note
+  qn -t tag1,tag2 "note with tags"       Save with tags
+  qn -s "search term"                    Search existing notes  
+  qn -l [count]                          List recent notes (default: 10)
+  qn --stats                             Show statistics
+  
+Examples:
+  qn "Remember to update README"
+  qn -t meeting,action "Follow up with team about X"
+  qn -s "README"
+  qn -l 5
+        `);
+        return;
+    }
+    
+    // Handle search
+    if (args[0] === '-s' || args[0] === '--search') {
+        if (args[1]) {
+            searchNotes(args[1]);
+        } else {
+            console.log('Please provide a search term: qn -s "keyword"');
+        }
+        return;
+    }
+    
+    // Handle list
+    if (args[0] === '-l' || args[0] === '--list') {
+        const count = args[1] ? parseInt(args[1]) : 10;
+        listRecentNotes(count);
+        return;
+    }
+    
+    // Handle stats
+    if (args[0] === '--stats') {
+        showStats();
+        return;
+    }
+    
+    // Handle tagged notes
+    if (args[0] === '-t' || args[0] === '--tags') {
+        if (args.length < 3) {
+            console.log('Usage: qn -t tag1,tag2 "your note"');
+            return;
+        }
+        
+        const tags = args[1].split(',').map(t => t.trim());
+        const content = args.slice(2).join(' ');
+        saveNote(content, tags);
+        return;
+    }
+    
+    // Default: save note
+    const content = args.join(' ');
+    if (content.trim()) {
+        saveNote(content);
+    } else {
+        console.log('Please provide a note: qn "your note here"');
+    }
+}
+
+if (require.main === module) {
+    main();
+}
