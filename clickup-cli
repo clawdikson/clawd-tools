@@ -1,0 +1,337 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+
+const CONFIG_FILE = path.join(__dirname, '.clickup-config.json');
+const API_BASE = 'https://api.clickup.com/api/v2';
+
+// Default configuration
+const DEFAULT_CONFIG = {
+  token: null,
+  workspace: '9017490901', // Dikson's known workspace ID
+  defaultList: null,
+  timezone: 'America/St_Johns' // Newfoundland timezone
+};
+
+// Color codes for terminal output
+const colors = {
+  green: '\x1b[32m',
+  red: '\x1b[31m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m',
+  magenta: '\x1b[35m',
+  bold: '\x1b[1m',
+  reset: '\x1b[0m'
+};
+
+function loadConfig() {
+  if (fs.existsSync(CONFIG_FILE)) {
+    return { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) };
+  }
+  return DEFAULT_CONFIG;
+}
+
+function saveConfig(config) {
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+async function makeRequest(endpoint, method = 'GET', data = null) {
+  const config = loadConfig();
+  
+  if (!config.token) {
+    console.error(`${colors.red}Error: No ClickUp token configured. Run: cu setup${colors.reset}`);
+    process.exit(1);
+  }
+
+  return new Promise((resolve, reject) => {
+    const url = new URL(endpoint, API_BASE);
+    
+    const options = {
+      hostname: url.hostname,
+      path: url.pathname + url.search,
+      method,
+      headers: {
+        'Authorization': config.token,
+        'Content-Type': 'application/json'
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(body));
+          } catch (e) {
+            resolve(body);
+          }
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+
+    req.on('error', reject);
+
+    if (data) {
+      req.write(JSON.stringify(data));
+    }
+
+    req.end();
+  });
+}
+
+function formatDate(timestamp) {
+  if (!timestamp) return 'No due date';
+  return new Date(parseInt(timestamp)).toLocaleString('en-CA', {
+    timeZone: 'America/St_Johns',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function formatTask(task, showDetails = false) {
+  const priority = task.priority ? `[${task.priority.priority.toUpperCase()}]` : '';
+  const status = task.status.status;
+  const dueDate = formatDate(task.due_date);
+  const assignees = task.assignees.map(a => a.username).join(', ') || 'Unassigned';
+  
+  let output = `${colors.cyan}${task.id}${colors.reset} ${priority} ${task.name}`;
+  
+  if (showDetails) {
+    output += `\n  └ Status: ${status} | Due: ${dueDate} | Assigned: ${assignees}`;
+    if (task.description) {
+      output += `\n  └ ${task.description.substring(0, 100)}${task.description.length > 100 ? '...' : ''}`;
+    }
+  }
+  
+  return output;
+}
+
+async function setup() {
+  const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  console.log(`${colors.bold}ClickUp CLI Setup${colors.reset}`);
+  console.log('Get your API token from: https://app.clickup.com/settings/apps');
+  
+  const token = await new Promise(resolve => {
+    readline.question('Enter your ClickUp API token: ', resolve);
+  });
+
+  console.log('\nTesting token...');
+  
+  try {
+    const user = await makeRequest('/user', 'GET');
+    console.log(`${colors.green}✓ Token valid! Hello, ${user.user.username}${colors.reset}`);
+    
+    const config = loadConfig();
+    config.token = token;
+    saveConfig(config);
+    
+    console.log(`${colors.green}✓ Configuration saved${colors.reset}`);
+    
+  } catch (error) {
+    console.error(`${colors.red}✗ Token validation failed: ${error.message}${colors.reset}`);
+  }
+  
+  readline.close();
+}
+
+async function listTasks(filter = 'open') {
+  try {
+    const config = loadConfig();
+    const params = new URLSearchParams({
+      archived: 'false',
+      subtasks: 'true'
+    });
+
+    if (filter === 'overdue') {
+      params.set('due_date_lt', Date.now());
+      params.set('statuses[]', 'Open');
+    } else if (filter === 'today') {
+      const today = new Date();
+      const endOfDay = new Date(today);
+      endOfDay.setHours(23, 59, 59, 999);
+      params.set('due_date_lt', endOfDay.getTime());
+      params.set('statuses[]', 'Open');
+    }
+
+    const response = await makeRequest(`/team/${config.workspace}/task?${params}`);
+    
+    if (response.tasks.length === 0) {
+      console.log(`${colors.yellow}No ${filter} tasks found${colors.reset}`);
+      return;
+    }
+
+    console.log(`${colors.bold}${filter.toUpperCase()} TASKS (${response.tasks.length})${colors.reset}\n`);
+    
+    response.tasks.forEach(task => {
+      console.log(formatTask(task, true));
+      console.log();
+    });
+
+  } catch (error) {
+    console.error(`${colors.red}Error fetching tasks: ${error.message}${colors.reset}`);
+  }
+}
+
+async function createTask(name, description = '', priority = 'normal') {
+  try {
+    const config = loadConfig();
+    
+    // Get spaces to find a list
+    const spaces = await makeRequest(`/team/${config.workspace}/space`);
+    if (spaces.spaces.length === 0) {
+      console.error(`${colors.red}No spaces found in workspace${colors.reset}`);
+      return;
+    }
+
+    // Get lists from first space
+    const lists = await makeRequest(`/space/${spaces.spaces[0].id}/list`);
+    if (lists.lists.length === 0) {
+      console.error(`${colors.red}No lists found in space${colors.reset}`);
+      return;
+    }
+
+    const listId = config.defaultList || lists.lists[0].id;
+    
+    const taskData = {
+      name,
+      description,
+      priority: priority === 'urgent' ? 1 : priority === 'high' ? 2 : priority === 'normal' ? 3 : 4
+    };
+
+    const task = await makeRequest(`/list/${listId}/task`, 'POST', taskData);
+    console.log(`${colors.green}✓ Task created: ${task.id}${colors.reset}`);
+    console.log(`  ${task.name}`);
+    console.log(`  ${task.url}`);
+
+  } catch (error) {
+    console.error(`${colors.red}Error creating task: ${error.message}${colors.reset}`);
+  }
+}
+
+async function completeTask(taskId) {
+  try {
+    const config = loadConfig();
+    
+    // Get task details first
+    const task = await makeRequest(`/task/${taskId}`);
+    
+    // Find a "completed" status
+    const completedStatus = task.statuses.find(s => 
+      s.status.toLowerCase().includes('complete') || 
+      s.status.toLowerCase().includes('done') ||
+      s.status.toLowerCase().includes('closed')
+    );
+    
+    if (!completedStatus) {
+      console.error(`${colors.red}No completed status found for this task${colors.reset}`);
+      return;
+    }
+
+    await makeRequest(`/task/${taskId}`, 'PUT', {
+      status: completedStatus.status
+    });
+
+    console.log(`${colors.green}✓ Task completed: ${task.name}${colors.reset}`);
+
+  } catch (error) {
+    console.error(`${colors.red}Error completing task: ${error.message}${colors.reset}`);
+  }
+}
+
+async function dailyOverview() {
+  console.log(`${colors.bold}📊 DAILY OVERVIEW${colors.reset}\n`);
+  
+  try {
+    // Today's tasks
+    await listTasks('today');
+    
+    // Overdue tasks
+    console.log(`${colors.bold}⚠️  OVERDUE TASKS${colors.reset}\n`);
+    await listTasks('overdue');
+
+  } catch (error) {
+    console.error(`${colors.red}Error generating overview: ${error.message}${colors.reset}`);
+  }
+}
+
+// Main CLI logic
+const args = process.argv.slice(2);
+const command = args[0];
+
+switch (command) {
+  case 'setup':
+    setup();
+    break;
+    
+  case 'list':
+  case 'ls':
+    listTasks(args[1] || 'open');
+    break;
+    
+  case 'create':
+  case 'add':
+    if (!args[1]) {
+      console.error(`${colors.red}Usage: cu create "Task name" [description] [priority]${colors.reset}`);
+      process.exit(1);
+    }
+    createTask(args[1], args[2] || '', args[3] || 'normal');
+    break;
+    
+  case 'complete':
+  case 'done':
+    if (!args[1]) {
+      console.error(`${colors.red}Usage: cu complete <task-id>${colors.reset}`);
+      process.exit(1);
+    }
+    completeTask(args[1]);
+    break;
+    
+  case 'overview':
+  case 'daily':
+    dailyOverview();
+    break;
+    
+  case 'help':
+  case '--help':
+  case undefined:
+    console.log(`${colors.bold}ClickUp CLI (cu)${colors.reset}
+
+${colors.cyan}Commands:${colors.reset}
+  setup                     Initial setup and token configuration
+  list [filter]            List tasks (filters: open, overdue, today)
+  create "name" [desc] [priority]  Create new task
+  complete <task-id>       Mark task as complete
+  overview                 Daily overview (today + overdue tasks)
+
+${colors.cyan}Examples:${colors.reset}
+  cu setup
+  cu list overdue
+  cu create "Fix API timeout" "Payment service timing out" high
+  cu complete 123456
+  cu overview
+
+${colors.cyan}Aliases:${colors.reset}
+  ls = list
+  add = create
+  done = complete
+  daily = overview
+`);
+    break;
+    
+  default:
+    console.error(`${colors.red}Unknown command: ${command}${colors.reset}`);
+    console.log(`Run ${colors.cyan}cu help${colors.reset} for usage information`);
+    process.exit(1);
+}
