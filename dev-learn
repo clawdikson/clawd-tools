@@ -1,0 +1,519 @@
+#!/usr/bin/env node
+
+/**
+ * Development Learning Tracker
+ * Systematically capture, organize, and search technical learnings from daily development work
+ * Perfect for CTOs and senior developers who encounter new technologies/patterns frequently
+ */
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { execSync } = require('child_process');
+
+const DATA_DIR = path.join(os.homedir(), '.dev-learn');
+const LEARNINGS_FILE = path.join(DATA_DIR, 'learnings.json');
+const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
+
+// ANSI color codes
+const colors = {
+  reset: '\x1b[0m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  white: '\x1b[37m',
+  gray: '\x1b[90m',
+  bright: '\x1b[1m'
+};
+
+// Learning categories
+const CATEGORIES = [
+  'language',    // New programming language features
+  'framework',   // Framework/library patterns  
+  'architecture',// System design insights
+  'tool',        // Development tools/utilities
+  'debugging',   // Problem-solving techniques
+  'performance', // Optimization learnings
+  'security',    // Security best practices
+  'workflow',    // Process improvements
+  'pattern',     // Design patterns
+  'concept',     // General programming concepts
+  'other'        // Miscellaneous learnings
+];
+
+// Initialize data directory and files
+function initializeData() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  
+  if (!fs.existsSync(LEARNINGS_FILE)) {
+    fs.writeFileSync(LEARNINGS_FILE, '[]');
+  }
+  
+  if (!fs.existsSync(CONFIG_FILE)) {
+    const defaultConfig = {
+      timezone: 'America/St_Johns', // NST/NDT
+      defaultCategory: 'concept',
+      showTips: true
+    };
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(defaultConfig, null, 2));
+  }
+}
+
+// Get current NST time
+function getNSTTime() {
+  return new Date().toLocaleString('en-CA', {
+    timeZone: 'America/St_Johns',
+    year: 'numeric',
+    month: '2-digit', 
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
+
+// Load learnings from file
+function loadLearnings() {
+  try {
+    const data = fs.readFileSync(LEARNINGS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return [];
+  }
+}
+
+// Save learnings to file
+function saveLearnings(learnings) {
+  fs.writeFileSync(LEARNINGS_FILE, JSON.stringify(learnings, null, 2));
+}
+
+// Generate unique ID
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+// Add a new learning
+function addLearning(args) {
+  const learning = args._.slice(1).join(' '); // Skip 'add' command
+  
+  if (!learning.trim()) {
+    console.log(`${colors.red}Error:${colors.reset} Learning description is required`);
+    console.log(`${colors.gray}Usage: dev-learn add "description" [--category category] [--tags tag1,tag2]${colors.reset}`);
+    return;
+  }
+  
+  const category = args.category || args.c || 'concept';
+  const tags = args.tags || args.t || '';
+  const tagsList = tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+  
+  if (!CATEGORIES.includes(category)) {
+    console.log(`${colors.red}Error:${colors.reset} Invalid category '${category}'`);
+    console.log(`${colors.gray}Valid categories:${colors.reset} ${CATEGORIES.join(', ')}`);
+    return;
+  }
+  
+  const learnings = loadLearnings();
+  
+  const newLearning = {
+    id: generateId(),
+    learning: learning.trim(),
+    category,
+    tags: tagsList,
+    timestamp: getNSTTime(),
+    date: new Date().toISOString().split('T')[0] // YYYY-MM-DD
+  };
+  
+  learnings.push(newLearning);
+  saveLearnings(learnings);
+  
+  console.log(`${colors.green}✓${colors.reset} Learning captured:`);
+  console.log(`  ${colors.bright}${learning}${colors.reset}`);
+  console.log(`  ${colors.gray}Category: ${category}${colors.reset}`);
+  if (tagsList.length > 0) {
+    console.log(`  ${colors.gray}Tags: ${tagsList.join(', ')}${colors.reset}`);
+  }
+  console.log(`  ${colors.gray}Time: ${newLearning.timestamp} NST${colors.reset}`);
+}
+
+// List learnings with optional filters
+function listLearnings(args) {
+  const learnings = loadLearnings();
+  
+  if (learnings.length === 0) {
+    console.log(`${colors.yellow}No learnings captured yet.${colors.reset}`);
+    console.log(`${colors.gray}Add your first learning: dev-learn add "something I learned today"${colors.reset}`);
+    return;
+  }
+  
+  let filtered = [...learnings];
+  
+  // Filter by category
+  if (args.category || args.c) {
+    const category = args.category || args.c;
+    filtered = filtered.filter(l => l.category === category);
+  }
+  
+  // Filter by tag
+  if (args.tag || args.t) {
+    const tag = args.tag || args.t;
+    filtered = filtered.filter(l => l.tags && l.tags.includes(tag));
+  }
+  
+  // Filter by date
+  if (args.date || args.d) {
+    const date = args.date || args.d;
+    filtered = filtered.filter(l => l.date === date);
+  }
+  
+  // Sort by newest first
+  filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  // Limit results
+  const limit = args.limit || args.l || 10;
+  if (filtered.length > limit) {
+    filtered = filtered.slice(0, limit);
+  }
+  
+  console.log(`${colors.bright}Development Learnings${colors.reset} ${colors.gray}(${filtered.length} shown)${colors.reset}\n`);
+  
+  filtered.forEach((learning, index) => {
+    const categoryColor = getCategoryColor(learning.category);
+    console.log(`${colors.gray}${index + 1}.${colors.reset} ${learning.learning}`);
+    console.log(`   ${categoryColor}[${learning.category}]${colors.reset} ${colors.gray}• ${learning.timestamp.split(' ')[0]} • ${learning.id}${colors.reset}`);
+    
+    if (learning.tags && learning.tags.length > 0) {
+      console.log(`   ${colors.blue}#${learning.tags.join(' #')}${colors.reset}`);
+    }
+    console.log();
+  });
+}
+
+// Get color for category
+function getCategoryColor(category) {
+  const categoryColors = {
+    'language': colors.green,
+    'framework': colors.blue,
+    'architecture': colors.magenta,
+    'tool': colors.cyan,
+    'debugging': colors.red,
+    'performance': colors.yellow,
+    'security': colors.red,
+    'workflow': colors.cyan,
+    'pattern': colors.magenta,
+    'concept': colors.white,
+    'other': colors.gray
+  };
+  return categoryColors[category] || colors.white;
+}
+
+// Search learnings
+function searchLearnings(args) {
+  const query = args._.slice(1).join(' '); // Skip 'search' command
+  
+  if (!query.trim()) {
+    console.log(`${colors.red}Error:${colors.reset} Search query is required`);
+    console.log(`${colors.gray}Usage: dev-learn search "keyword"${colors.reset}`);
+    return;
+  }
+  
+  const learnings = loadLearnings();
+  const queryLower = query.toLowerCase();
+  
+  const matches = learnings.filter(learning => 
+    learning.learning.toLowerCase().includes(queryLower) ||
+    learning.category.toLowerCase().includes(queryLower) ||
+    (learning.tags && learning.tags.some(tag => tag.toLowerCase().includes(queryLower)))
+  );
+  
+  if (matches.length === 0) {
+    console.log(`${colors.yellow}No learnings found for "${query}"${colors.reset}`);
+    return;
+  }
+  
+  console.log(`${colors.bright}Search Results${colors.reset} ${colors.gray}(${matches.length} found for "${query}")${colors.reset}\n`);
+  
+  matches.forEach((learning, index) => {
+    const categoryColor = getCategoryColor(learning.category);
+    
+    // Highlight search term in learning text
+    const highlightedLearning = learning.learning.replace(
+      new RegExp(query, 'gi'),
+      `${colors.bright}${colors.yellow}$&${colors.reset}`
+    );
+    
+    console.log(`${colors.gray}${index + 1}.${colors.reset} ${highlightedLearning}`);
+    console.log(`   ${categoryColor}[${learning.category}]${colors.reset} ${colors.gray}• ${learning.timestamp.split(' ')[0]} • ${learning.id}${colors.reset}`);
+    
+    if (learning.tags && learning.tags.length > 0) {
+      console.log(`   ${colors.blue}#${learning.tags.join(' #')}${colors.reset}`);
+    }
+    console.log();
+  });
+}
+
+// Show statistics
+function showStats(args) {
+  const learnings = loadLearnings();
+  
+  if (learnings.length === 0) {
+    console.log(`${colors.yellow}No learnings captured yet.${colors.reset}`);
+    return;
+  }
+  
+  console.log(`${colors.bright}Development Learning Statistics${colors.reset}\n`);
+  
+  // Total learnings
+  console.log(`${colors.green}Total Learnings:${colors.reset} ${learnings.length}`);
+  
+  // By category
+  const byCategory = {};
+  learnings.forEach(learning => {
+    byCategory[learning.category] = (byCategory[learning.category] || 0) + 1;
+  });
+  
+  console.log(`\n${colors.bright}By Category:${colors.reset}`);
+  Object.entries(byCategory)
+    .sort(([,a], [,b]) => b - a)
+    .forEach(([category, count]) => {
+      const categoryColor = getCategoryColor(category);
+      console.log(`  ${categoryColor}${category}:${colors.reset} ${count}`);
+    });
+  
+  // Recent activity (last 7 days)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  
+  const recentLearnings = learnings.filter(learning => {
+    const learningDate = new Date(learning.timestamp);
+    return learningDate >= sevenDaysAgo;
+  });
+  
+  console.log(`\n${colors.bright}Recent Activity (Last 7 days):${colors.reset} ${recentLearnings.length} learnings`);
+  
+  // Daily breakdown
+  const daily = {};
+  recentLearnings.forEach(learning => {
+    const date = learning.date;
+    daily[date] = (daily[date] || 0) + 1;
+  });
+  
+  if (Object.keys(daily).length > 0) {
+    console.log(`\n${colors.bright}Daily Breakdown:${colors.reset}`);
+    Object.entries(daily)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .forEach(([date, count]) => {
+        console.log(`  ${date}: ${count} learning${count !== 1 ? 's' : ''}`);
+      });
+  }
+  
+  // Most used tags
+  const allTags = {};
+  learnings.forEach(learning => {
+    if (learning.tags) {
+      learning.tags.forEach(tag => {
+        allTags[tag] = (allTags[tag] || 0) + 1;
+      });
+    }
+  });
+  
+  const topTags = Object.entries(allTags)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 5);
+    
+  if (topTags.length > 0) {
+    console.log(`\n${colors.bright}Top Tags:${colors.reset}`);
+    topTags.forEach(([tag, count]) => {
+      console.log(`  ${colors.blue}#${tag}${colors.reset}: ${count}`);
+    });
+  }
+}
+
+// Show today's learnings
+function showToday(args) {
+  const today = new Date().toISOString().split('T')[0];
+  const learnings = loadLearnings();
+  
+  const todaysLearnings = learnings.filter(learning => learning.date === today);
+  
+  console.log(`${colors.bright}Today's Development Learnings${colors.reset} ${colors.gray}(${today})${colors.reset}\n`);
+  
+  if (todaysLearnings.length === 0) {
+    console.log(`${colors.yellow}No learnings captured today yet.${colors.reset}`);
+    console.log(`${colors.gray}Add one: dev-learn add "something I learned today"${colors.reset}`);
+    return;
+  }
+  
+  todaysLearnings.forEach((learning, index) => {
+    const categoryColor = getCategoryColor(learning.category);
+    console.log(`${colors.gray}${index + 1}.${colors.reset} ${learning.learning}`);
+    console.log(`   ${categoryColor}[${learning.category}]${colors.reset} ${colors.gray}• ${learning.timestamp.split(' ')[1]} NST${colors.reset}`);
+    
+    if (learning.tags && learning.tags.length > 0) {
+      console.log(`   ${colors.blue}#${learning.tags.join(' #')}${colors.reset}`);
+    }
+    console.log();
+  });
+}
+
+// Show help
+function showHelp() {
+  console.log(`${colors.bright}Development Learning Tracker${colors.reset}
+Systematically capture and organize technical learnings from daily development work
+
+${colors.bright}USAGE:${colors.reset}
+  dev-learn <command> [options]
+
+${colors.bright}COMMANDS:${colors.reset}
+  ${colors.green}add${colors.reset} <learning>              Add a new learning
+  ${colors.green}list${colors.reset}                        List recent learnings
+  ${colors.green}search${colors.reset} <query>              Search learnings
+  ${colors.green}today${colors.reset}                       Show today's learnings  
+  ${colors.green}stats${colors.reset}                       Show learning statistics
+  ${colors.green}categories${colors.reset}                  List available categories
+  ${colors.green}help${colors.reset}                        Show this help
+
+${colors.bright}OPTIONS:${colors.reset}
+  ${colors.cyan}--category, -c${colors.reset} <category>   Filter by category
+  ${colors.cyan}--tags, -t${colors.reset} <tag1,tag2>      Add/filter by tags
+  ${colors.cyan}--date, -d${colors.reset} <YYYY-MM-DD>     Filter by date
+  ${colors.cyan}--limit, -l${colors.reset} <number>        Limit results (default: 10)
+
+${colors.bright}CATEGORIES:${colors.reset}
+  ${CATEGORIES.map(cat => {
+    const color = getCategoryColor(cat);
+    return `${color}${cat}${colors.reset}`;
+  }).join(', ')}
+
+${colors.bright}EXAMPLES:${colors.reset}
+  ${colors.gray}# Capture a quick learning${colors.reset}
+  dev-learn add "TypeScript union types can be discriminated with literal types"
+  
+  ${colors.gray}# Add with category and tags${colors.reset}
+  dev-learn add "Redis pipelining reduces network roundtrips" --category performance --tags redis,optimization
+  
+  ${colors.gray}# Search for specific topics${colors.reset}
+  dev-learn search "react"
+  
+  ${colors.gray}# Review today's learnings${colors.reset}
+  dev-learn today
+  
+  ${colors.gray}# List architecture learnings${colors.reset}
+  dev-learn list --category architecture
+  
+  ${colors.gray}# Show learning statistics${colors.reset}
+  dev-learn stats
+
+${colors.bright}PURPOSE:${colors.reset}
+Transform daily development work into systematic learning. Perfect for CTOs and senior 
+developers who encounter new technologies, patterns, and solutions regularly but want 
+to build a searchable knowledge base instead of losing insights.
+`);
+}
+
+// Show categories
+function showCategories() {
+  console.log(`${colors.bright}Available Categories:${colors.reset}\n`);
+  
+  const categoryDescriptions = {
+    'language': 'Programming language features, syntax, idioms',
+    'framework': 'Framework/library patterns, best practices',
+    'architecture': 'System design insights, patterns, trade-offs',
+    'tool': 'Development tools, utilities, configurations',
+    'debugging': 'Problem-solving techniques, troubleshooting',
+    'performance': 'Optimization techniques, profiling insights',
+    'security': 'Security best practices, vulnerabilities',
+    'workflow': 'Development process improvements',
+    'pattern': 'Design patterns, coding patterns',
+    'concept': 'General programming concepts, algorithms',
+    'other': 'Miscellaneous learnings that don\'t fit elsewhere'
+  };
+  
+  CATEGORIES.forEach(category => {
+    const color = getCategoryColor(category);
+    console.log(`${color}${category.padEnd(12)}${colors.reset} ${colors.gray}${categoryDescriptions[category]}${colors.reset}`);
+  });
+}
+
+// Parse command line arguments
+function parseArgs(argv) {
+  const args = { _: [] };
+  
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    
+    if (arg.startsWith('--')) {
+      const [key, value] = arg.slice(2).split('=');
+      if (value !== undefined) {
+        args[key] = value;
+      } else if (i + 1 < argv.length && !argv[i + 1].startsWith('-')) {
+        args[key] = argv[++i];
+      } else {
+        args[key] = true;
+      }
+    } else if (arg.startsWith('-')) {
+      const flags = arg.slice(1);
+      if (flags.length === 1 && i + 1 < argv.length && !argv[i + 1].startsWith('-')) {
+        args[flags] = argv[++i];
+      } else {
+        for (const flag of flags) {
+          args[flag] = true;
+        }
+      }
+    } else {
+      args._.push(arg);
+    }
+  }
+  
+  return args;
+}
+
+// Main function
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const command = args._[0];
+  
+  // Initialize data storage
+  initializeData();
+  
+  // Route commands
+  switch (command) {
+    case 'add':
+      addLearning(args);
+      break;
+    case 'list':
+    case 'ls':
+      listLearnings(args);
+      break;
+    case 'search':
+    case 'find':
+      searchLearnings(args);
+      break;
+    case 'today':
+      showToday(args);
+      break;
+    case 'stats':
+    case 'statistics':
+      showStats(args);
+      break;
+    case 'categories':
+    case 'cats':
+      showCategories();
+      break;
+    case 'help':
+    case '--help':
+    case '-h':
+    default:
+      showHelp();
+      break;
+  }
+}
+
+// Run the CLI
+if (require.main === module) {
+  main();
+}
