@@ -1,0 +1,479 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const COLORS = {
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m',
+  gray: '\x1b[90m',
+  reset: '\x1b[0m',
+  bold: '\x1b[1m'
+};
+
+const ICONS = {
+  pass: '✅',
+  warn: '⚠️',
+  fail: '❌',
+  info: 'ℹ️',
+  branch: '🌿',
+  commit: '📝',
+  file: '📁'
+};
+
+class RepoHealth {
+  constructor() {
+    this.checks = [
+      { name: 'Git Status', fn: this.checkGitStatus },
+      { name: 'Recent Activity', fn: this.checkRecentActivity },
+      { name: 'Branch Health', fn: this.checkBranchHealth },
+      { name: 'Code Quality', fn: this.checkCodeQuality },
+      { name: 'Documentation', fn: this.checkDocumentation },
+      { name: 'Dependencies', fn: this.checkDependencies },
+      { name: 'Security', fn: this.checkSecurity }
+    ];
+  }
+
+  async scanRepo(repoPath) {
+    const startTime = Date.now();
+    const results = {
+      path: repoPath,
+      name: path.basename(repoPath),
+      healthy: true,
+      score: 0,
+      maxScore: 0,
+      checks: [],
+      summary: {},
+      scanTime: 0
+    };
+
+    console.log(`\n${COLORS.cyan}${ICONS.file} Scanning: ${results.name}${COLORS.reset}`);
+    console.log(`${COLORS.gray}Path: ${repoPath}${COLORS.reset}\n`);
+
+    // Check if it's a git repository
+    if (!this.isGitRepo(repoPath)) {
+      console.log(`${COLORS.red}${ICONS.fail} Not a git repository${COLORS.reset}\n`);
+      return null;
+    }
+
+    process.chdir(repoPath);
+
+    for (const check of this.checks) {
+      try {
+        const result = await check.fn.call(this);
+        results.checks.push(result);
+        results.score += result.score || 0;
+        results.maxScore += result.maxScore || 0;
+        
+        if (result.status === 'fail') {
+          results.healthy = false;
+        }
+      } catch (error) {
+        console.log(`${COLORS.red}${ICONS.fail} ${check.name}: Error - ${error.message}${COLORS.reset}`);
+      }
+    }
+
+    results.scanTime = Date.now() - startTime;
+    results.summary = this.generateSummary(results);
+    
+    this.printSummary(results);
+    return results;
+  }
+
+  isGitRepo(repoPath) {
+    return fs.existsSync(path.join(repoPath, '.git'));
+  }
+
+  checkGitStatus() {
+    const result = { name: 'Git Status', status: 'pass', score: 10, maxScore: 10, details: [] };
+    
+    try {
+      const status = execSync('git status --porcelain', { encoding: 'utf-8', stdio: 'pipe' });
+      const lines = status.trim().split('\n').filter(line => line.trim());
+      
+      if (lines.length === 0) {
+        console.log(`${COLORS.green}${ICONS.pass} Git Status: Clean working directory${COLORS.reset}`);
+      } else {
+        const staged = lines.filter(line => line.startsWith('A ') || line.startsWith('M ') || line.startsWith('D ')).length;
+        const unstaged = lines.filter(line => line.startsWith(' M') || line.startsWith(' D')).length;
+        const untracked = lines.filter(line => line.startsWith('??')).length;
+        
+        result.status = staged > 0 ? 'warn' : (unstaged > 5 || untracked > 10) ? 'warn' : 'pass';
+        result.score = Math.max(0, 10 - Math.floor(lines.length / 2));
+        
+        console.log(`${COLORS.yellow}${ICONS.warn} Git Status: ${lines.length} changes (${staged} staged, ${unstaged} unstaged, ${untracked} untracked)${COLORS.reset}`);
+      }
+    } catch (error) {
+      result.status = 'fail';
+      result.score = 0;
+      console.log(`${COLORS.red}${ICONS.fail} Git Status: Error checking status${COLORS.reset}`);
+    }
+    
+    return result;
+  }
+
+  checkRecentActivity() {
+    const result = { name: 'Recent Activity', status: 'pass', score: 10, maxScore: 10, details: [] };
+    
+    try {
+      const lastCommit = execSync('git log -1 --format="%cr"', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+      const commitCount7d = execSync('git rev-list --count HEAD --since="7 days ago"', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+      const commitCount30d = execSync('git rev-list --count HEAD --since="30 days ago"', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+      
+      const count7d = parseInt(commitCount7d);
+      const count30d = parseInt(commitCount30d);
+      
+      if (lastCommit.includes('month') && !lastCommit.includes('1 month')) {
+        result.status = 'warn';
+        result.score = 5;
+      } else if (lastCommit.includes('year')) {
+        result.status = 'fail';
+        result.score = 0;
+      }
+      
+      const icon = result.status === 'pass' ? ICONS.pass : result.status === 'warn' ? ICONS.warn : ICONS.fail;
+      const color = result.status === 'pass' ? COLORS.green : result.status === 'warn' ? COLORS.yellow : COLORS.red;
+      
+      console.log(`${color}${icon} Recent Activity: Last commit ${lastCommit} (${count7d} commits in 7d, ${count30d} in 30d)${COLORS.reset}`);
+      
+    } catch (error) {
+      result.status = 'fail';
+      result.score = 0;
+      console.log(`${COLORS.red}${ICONS.fail} Recent Activity: Error checking activity${COLORS.reset}`);
+    }
+    
+    return result;
+  }
+
+  checkBranchHealth() {
+    const result = { name: 'Branch Health', status: 'pass', score: 10, maxScore: 10, details: [] };
+    
+    try {
+      const currentBranch = execSync('git branch --show-current', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+      const allBranches = execSync('git branch -a', { encoding: 'utf-8', stdio: 'pipe' }).trim().split('\n');
+      const localBranches = allBranches.filter(b => !b.includes('remotes/') && !b.includes('*')).length;
+      
+      // Check if on main/master/develop
+      const isMainBranch = ['main', 'master', 'develop', 'dev'].includes(currentBranch);
+      
+      // Check for ahead/behind
+      let aheadBehind = '';
+      try {
+        aheadBehind = execSync('git status -b --porcelain', { encoding: 'utf-8', stdio: 'pipe' })
+          .split('\n')[0].replace('## ', '');
+      } catch (e) {
+        // Remote tracking might not exist
+      }
+      
+      if (localBranches > 10) {
+        result.status = 'warn';
+        result.score = 7;
+      }
+      
+      const branchIcon = isMainBranch ? ICONS.pass : ICONS.info;
+      console.log(`${COLORS.blue}${branchIcon} Branch Health: On '${currentBranch}' (${localBranches} local branches)${COLORS.reset}`);
+      
+      if (aheadBehind.includes('ahead') || aheadBehind.includes('behind')) {
+        console.log(`${COLORS.yellow}${ICONS.warn}   ${aheadBehind}${COLORS.reset}`);
+      }
+      
+    } catch (error) {
+      result.status = 'fail';
+      result.score = 0;
+      console.log(`${COLORS.red}${ICONS.fail} Branch Health: Error checking branches${COLORS.reset}`);
+    }
+    
+    return result;
+  }
+
+  checkCodeQuality() {
+    const result = { name: 'Code Quality', status: 'pass', score: 10, maxScore: 10, details: [] };
+    const issues = [];
+    
+    // Check for package.json and dependencies
+    if (fs.existsSync('package.json')) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+        
+        // Check for linting tools
+        const hasLinter = pkg.devDependencies && (
+          pkg.devDependencies.eslint || 
+          pkg.devDependencies.jshint || 
+          pkg.devDependencies.tslint
+        );
+        
+        // Check for testing
+        const hasTests = pkg.scripts && (
+          pkg.scripts.test || 
+          pkg.scripts['test:unit'] || 
+          pkg.scripts.jest
+        );
+        
+        if (!hasLinter) issues.push('No linting tools found');
+        if (!hasTests) issues.push('No test scripts found');
+        
+      } catch (e) {
+        issues.push('Invalid package.json');
+      }
+    }
+    
+    // Check for common code quality files
+    const qualityFiles = ['.eslintrc', '.eslintrc.json', '.eslintrc.js', 'tsconfig.json', '.prettierrc'];
+    const hasQualityConfig = qualityFiles.some(file => fs.existsSync(file));
+    
+    if (!hasQualityConfig) issues.push('No code quality config found');
+    
+    // Check for large files (>1MB)
+    try {
+      const largeFiles = execSync('find . -type f -size +1M ! -path "./.git/*" ! -path "./node_modules/*" 2>/dev/null || true', 
+        { encoding: 'utf-8', stdio: 'pipe' }).trim().split('\n').filter(f => f);
+      
+      if (largeFiles.length > 0 && largeFiles[0] !== '') {
+        issues.push(`${largeFiles.length} large files (>1MB)`);
+      }
+    } catch (e) {
+      // Ignore find errors
+    }
+    
+    if (issues.length === 0) {
+      console.log(`${COLORS.green}${ICONS.pass} Code Quality: Good practices detected${COLORS.reset}`);
+    } else {
+      result.status = issues.length > 2 ? 'fail' : 'warn';
+      result.score = Math.max(0, 10 - issues.length * 2);
+      console.log(`${COLORS.yellow}${ICONS.warn} Code Quality: ${issues.join(', ')}${COLORS.reset}`);
+    }
+    
+    return result;
+  }
+
+  checkDocumentation() {
+    const result = { name: 'Documentation', status: 'pass', score: 10, maxScore: 10, details: [] };
+    const docs = [];
+    
+    // Essential docs
+    const essentialDocs = ['README.md', 'README.rst', 'README.txt'];
+    const hasReadme = essentialDocs.some(doc => fs.existsSync(doc));
+    
+    if (hasReadme) docs.push('README');
+    
+    // Additional docs
+    const additionalDocs = ['CHANGELOG.md', 'CONTRIBUTING.md', 'LICENSE', 'docs/', 'documentation/'];
+    additionalDocs.forEach(doc => {
+      if (fs.existsSync(doc)) docs.push(doc.replace('/', '').replace('.md', ''));
+    });
+    
+    if (!hasReadme) {
+      result.status = 'fail';
+      result.score = 0;
+      console.log(`${COLORS.red}${ICONS.fail} Documentation: No README found${COLORS.reset}`);
+    } else if (docs.length < 2) {
+      result.status = 'warn';
+      result.score = 6;
+      console.log(`${COLORS.yellow}${ICONS.warn} Documentation: Basic docs only (${docs.join(', ')})${COLORS.reset}`);
+    } else {
+      console.log(`${COLORS.green}${ICONS.pass} Documentation: Good coverage (${docs.join(', ')})${COLORS.reset}`);
+    }
+    
+    return result;
+  }
+
+  checkDependencies() {
+    const result = { name: 'Dependencies', status: 'pass', score: 10, maxScore: 10, details: [] };
+    
+    if (fs.existsSync('package.json')) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+        const deps = Object.keys(pkg.dependencies || {});
+        const devDeps = Object.keys(pkg.devDependencies || {});
+        const totalDeps = deps.length + devDeps.length;
+        
+        // Check for package-lock.json or yarn.lock
+        const hasLockFile = fs.existsSync('package-lock.json') || fs.existsSync('yarn.lock');
+        
+        if (!hasLockFile) {
+          result.status = 'warn';
+          result.score = 7;
+          console.log(`${COLORS.yellow}${ICONS.warn} Dependencies: ${totalDeps} deps, no lock file${COLORS.reset}`);
+        } else if (totalDeps > 50) {
+          result.status = 'warn';
+          result.score = 8;
+          console.log(`${COLORS.yellow}${ICONS.warn} Dependencies: ${totalDeps} deps (many dependencies)${COLORS.reset}`);
+        } else {
+          console.log(`${COLORS.green}${ICONS.pass} Dependencies: ${totalDeps} deps, lock file present${COLORS.reset}`);
+        }
+        
+      } catch (e) {
+        result.status = 'fail';
+        result.score = 0;
+        console.log(`${COLORS.red}${ICONS.fail} Dependencies: Error reading package.json${COLORS.reset}`);
+      }
+    } else {
+      console.log(`${COLORS.gray}${ICONS.info} Dependencies: No package.json found${COLORS.reset}`);
+    }
+    
+    return result;
+  }
+
+  checkSecurity() {
+    const result = { name: 'Security', status: 'pass', score: 10, maxScore: 10, details: [] };
+    const issues = [];
+    
+    // Check for sensitive files that shouldn't be tracked
+    const sensitiveFiles = ['.env', 'config/secrets.yml', 'id_rsa', 'id_dsa', '*.pem'];
+    const foundSensitive = [];
+    
+    sensitiveFiles.forEach(pattern => {
+      try {
+        const files = execSync(`git ls-files | grep -E "${pattern.replace('*', '.*')}" || true`, 
+          { encoding: 'utf-8', stdio: 'pipe' }).trim();
+        if (files) foundSensitive.push(...files.split('\n').filter(f => f));
+      } catch (e) {
+        // Ignore grep errors
+      }
+    });
+    
+    // Check for .gitignore
+    if (!fs.existsSync('.gitignore')) {
+      issues.push('No .gitignore');
+    }
+    
+    if (foundSensitive.length > 0) {
+      issues.push(`Sensitive files tracked: ${foundSensitive.slice(0, 3).join(', ')}`);
+    }
+    
+    if (issues.length === 0) {
+      console.log(`${COLORS.green}${ICONS.pass} Security: No obvious security issues${COLORS.reset}`);
+    } else {
+      result.status = foundSensitive.length > 0 ? 'fail' : 'warn';
+      result.score = Math.max(0, 10 - issues.length * 3);
+      console.log(`${COLORS.yellow}${ICONS.warn} Security: ${issues.join(', ')}${COLORS.reset}`);
+    }
+    
+    return result;
+  }
+
+  generateSummary(results) {
+    const percentage = Math.round((results.score / results.maxScore) * 100);
+    const grade = percentage >= 90 ? 'A' : percentage >= 80 ? 'B' : percentage >= 70 ? 'C' : percentage >= 60 ? 'D' : 'F';
+    const status = results.healthy ? 'Healthy' : 'Issues Found';
+    
+    return {
+      percentage,
+      grade,
+      status,
+      issues: results.checks.filter(c => c.status === 'fail').length,
+      warnings: results.checks.filter(c => c.status === 'warn').length
+    };
+  }
+
+  printSummary(results) {
+    const s = results.summary;
+    const color = s.grade === 'A' ? COLORS.green : s.grade === 'B' ? COLORS.blue : s.grade === 'C' ? COLORS.yellow : COLORS.red;
+    
+    console.log(`\n${COLORS.bold}${color}📊 HEALTH SCORE: ${s.percentage}% (Grade ${s.grade})${COLORS.reset}`);
+    console.log(`${COLORS.gray}Status: ${s.status} | Issues: ${s.issues} | Warnings: ${s.warnings} | Scan time: ${results.scanTime}ms${COLORS.reset}`);
+  }
+}
+
+// CLI Interface
+async function main() {
+  const args = process.argv.slice(2);
+  
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(`
+${COLORS.bold}${COLORS.cyan}🏥 Repository Health Scanner${COLORS.reset}
+Analyze git repositories for code quality, best practices, and project health.
+
+${COLORS.bold}Usage:${COLORS.reset}
+  repo-health [paths...]          Scan repositories
+  repo-health --help             Show this help
+
+${COLORS.bold}Examples:${COLORS.reset}
+  repo-health                    Scan current directory
+  repo-health /path/to/repo      Scan specific repository  
+  repo-health ~/projects/*       Scan multiple repositories
+  repo-health . ../other-repo    Scan current and another repo
+
+${COLORS.bold}Health Checks:${COLORS.reset}
+  • Git Status        Clean working directory, staging area
+  • Recent Activity   Commit frequency and recency
+  • Branch Health     Current branch, local branch count
+  • Code Quality      Linting, testing, large files
+  • Documentation     README, CHANGELOG, other docs
+  • Dependencies      Package management, lock files
+  • Security          Sensitive files, .gitignore
+
+${COLORS.bold}Output:${COLORS.reset}
+  Each repository receives a health score (0-100%) and grade (A-F).
+  Issues are flagged with actionable recommendations.
+
+${COLORS.bold}Grades:${COLORS.reset}
+  A (90-100%)  ${COLORS.green}Excellent${COLORS.reset} - Production ready
+  B (80-89%)   ${COLORS.blue}Good${COLORS.reset} - Minor improvements needed  
+  C (70-79%)   ${COLORS.yellow}Fair${COLORS.reset} - Some issues to address
+  D (60-69%)   ${COLORS.yellow}Poor${COLORS.reset} - Significant issues
+  F (<60%)     ${COLORS.red}Failing${COLORS.reset} - Major problems
+`);
+    return;
+  }
+
+  const scanner = new RepoHealth();
+  const repos = args.length > 0 ? args : [process.cwd()];
+  
+  console.log(`${COLORS.bold}${COLORS.cyan}🏥 Repository Health Scanner${COLORS.reset}`);
+  console.log(`${COLORS.gray}Scanning ${repos.length} ${repos.length === 1 ? 'repository' : 'repositories'}...${COLORS.reset}`);
+
+  const results = [];
+  const originalCwd = process.cwd();
+
+  try {
+    for (const repo of repos) {
+      const repoPath = path.resolve(repo);
+      
+      if (!fs.existsSync(repoPath)) {
+        console.log(`\n${COLORS.red}${ICONS.fail} Repository not found: ${repoPath}${COLORS.reset}`);
+        continue;
+      }
+
+      const result = await scanner.scanRepo(repoPath);
+      if (result) {
+        results.push(result);
+      }
+    }
+  } finally {
+    process.chdir(originalCwd);
+  }
+
+  // Overall summary
+  if (results.length > 1) {
+    console.log(`\n${COLORS.bold}${COLORS.cyan}📈 OVERALL SUMMARY${COLORS.reset}`);
+    const avgScore = Math.round(results.reduce((sum, r) => sum + r.summary.percentage, 0) / results.length);
+    const healthyRepos = results.filter(r => r.healthy).length;
+    
+    console.log(`Average Health Score: ${avgScore}%`);
+    console.log(`Healthy Repositories: ${healthyRepos}/${results.length}`);
+    
+    // Top issues
+    const allIssues = results.flatMap(r => r.checks.filter(c => c.status === 'fail'));
+    if (allIssues.length > 0) {
+      const issueTypes = {};
+      allIssues.forEach(issue => {
+        issueTypes[issue.name] = (issueTypes[issue.name] || 0) + 1;
+      });
+      
+      console.log(`\n${COLORS.bold}Common Issues:${COLORS.reset}`);
+      Object.entries(issueTypes)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .forEach(([issue, count]) => {
+          console.log(`  ${COLORS.red}•${COLORS.reset} ${issue}: ${count} ${count === 1 ? 'repository' : 'repositories'}`);
+        });
+    }
+  }
+}
+
+main().catch(console.error);
