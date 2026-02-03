@@ -1,0 +1,124 @@
+{
+  "last_synced": "2026-02-03T01:53:48.671486Z",
+  "total_entries": 8,
+  "entries": [
+    {
+      "path": "healthsparq/audiobee_maine_community_health_options/2026-01-26.md",
+      "site_type": "healthsparq",
+      "organization": "audiobee_maine_community_health_options",
+      "date": "2026-01-26",
+      "error_type": "False NPI drop",
+      "tags": [
+        "healthsparq",
+        "false-drops",
+        "search",
+        "auto-qa",
+        "npi-matching",
+        "caching",
+        "data-mapping"
+      ],
+      "clickup_page_id": "8cqqzen-3657",
+      "clickup_date_updated": 1769549378526
+    },
+    {
+      "path": "healthsparq/audiobee_bluecard_national/2026-01-26.md",
+      "site_type": "healthsparq",
+      "organization": "audiobee_bluecard_national",
+      "date": "2026-01-26",
+      "error_type": "Providers were mapped to all networks",
+      "tags": [
+        "healthsparq"
+      ],
+      "clickup_page_id": "8cqqzen-4017",
+      "clickup_date_updated": 1769685558382
+    },
+    {
+      "path": "carrier/audiobee_devoted_health/2026-01-26.md",
+      "site_type": "carrier",
+      "organization": "audiobee_devoted_health",
+      "date": "2026-01-26",
+      "error_type": "Significant missing providers in the scrape.",
+      "tags": [
+        "carrier",
+        "algolia",
+        "false-drops"
+      ],
+      "clickup_page_id": "8cqqzen-3717",
+      "clickup_date_updated": 1769548874000
+    },
+    {
+      "path": "carrier/audiobee_mainecare/2026-01-26.md",
+      "site_type": "carrier",
+      "organization": "audiobee_mainecare",
+      "date": "2026-01-26",
+      "error_type": "Missing providers / False drops identified",
+      "tags": [
+        "carrier",
+        "false-drops"
+      ],
+      "clickup_page_id": "8cqqzen-3757",
+      "clickup_date_updated": 1769548949760
+    },
+    {
+      "path": "carrier/audiobee_firstcare_health/2026-01-27.md",
+      "site_type": "carrier",
+      "organization": "audiobee_firstcare_health",
+      "date": "2026-01-27",
+      "error_type": "False drops identified",
+      "tags": [
+        "npi-matching",
+        "carrier",
+        "auto-qa",
+        "false-drops"
+      ],
+      "clickup_page_id": "8cqqzen-3797",
+      "clickup_date_updated": 1769549254585
+    },
+    {
+      "path": "carrier/audiobee_firstcare_health/2026-01-28.md",
+      "site_type": "carrier",
+      "organization": "audiobee_firstcare_health",
+      "date": "2026-01-28",
+      "error_type": "Missing profiles identified",
+      "tags": [
+        "carrier",
+        "search",
+        "deprecated-code"
+      ],
+      "clickup_page_id": "8cqqzen-3937",
+      "clickup_date_updated": 1769684863328
+    },
+    {
+      "path": "sapphire/audiobee_molina/2026-01-29.md",
+      "site_type": "sapphire",
+      "organization": "audiobee_molina",
+      "date": "2026-01-29",
+      "error_type": "Request Blocking (403)",
+      "tags": [
+        "proxy",
+        "false-drops",
+        "sapphire",
+        "npi-matching",
+        "request-blocking"
+      ],
+      "clickup_page_id": "8cqqzen-3917",
+      "clickup_date_updated": 1769684855983
+    },
+    {
+      "path": "sapphire/audiobee_braven_health/2026-01-29.md",
+      "site_type": "sapphire",
+      "organization": "audiobee_braven_health",
+      "date": "2026-01-29",
+      "error_type": "Request Blocking (403)",
+      "tags": [
+        "proxy",
+        "false-drops",
+        "sapphire",
+        "npi-matching",
+        "request-blocking"
+      ],
+      "clickup_page_id": "8cqqzen-3977",
+      "clickup_date_updated": 1769684916984
+    }
+  ]
+}
