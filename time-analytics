@@ -1,0 +1,429 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+
+// Configuration
+const DATA_DIR = path.join(process.env.HOME, '.time-analytics');
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
+const CATEGORIES_FILE = path.join(DATA_DIR, 'categories.json');
+
+// Default categories for CTO/startup founder
+const DEFAULT_CATEGORIES = {
+  'dev': { name: 'Development', color: '\x1b[32m', description: 'Coding, debugging, technical implementation' },
+  'meet': { name: 'Meetings', color: '\x1b[34m', description: 'Team meetings, client calls, 1:1s' },
+  'plan': { name: 'Planning', color: '\x1b[35m', description: 'Strategy, architecture, roadmap planning' },
+  'review': { name: 'Code Review', color: '\x1b[36m', description: 'PR reviews, technical discussions' },
+  'admin': { name: 'Admin', color: '\x1b[33m', description: 'Email, paperwork, administrative tasks' },
+  'learn': { name: 'Learning', color: '\x1b[95m', description: 'Reading, tutorials, skill development' },
+  'break': { name: 'Break', color: '\x1b[90m', description: 'Rest, meals, personal time' },
+  'deep': { name: 'Deep Work', color: '\x1b[92m', description: 'Focused, uninterrupted technical work' },
+  'comm': { name: 'Communication', color: '\x1b[94m', description: 'Slack, email, team coordination' },
+  'debug': { name: 'Debugging', color: '\x1b[91m', description: 'Troubleshooting, investigation, problem solving' }
+};
+
+// Colors
+const RESET = '\x1b[0m';
+const BOLD = '\x1b[1m';
+const GREEN = '\x1b[32m';
+const RED = '\x1b[31m';
+const YELLOW = '\x1b[33m';
+const BLUE = '\x1b[34m';
+const GRAY = '\x1b[90m';
+
+// Ensure data directory exists
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  
+  if (!fs.existsSync(CATEGORIES_FILE)) {
+    fs.writeFileSync(CATEGORIES_FILE, JSON.stringify(DEFAULT_CATEGORIES, null, 2));
+  }
+  
+  if (!fs.existsSync(SESSIONS_FILE)) {
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify({ sessions: [] }, null, 2));
+  }
+}
+
+// Load data
+function loadSessions() {
+  try {
+    return JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+  } catch (error) {
+    return { sessions: [] };
+  }
+}
+
+function loadCategories() {
+  try {
+    return JSON.parse(fs.readFileSync(CATEGORIES_FILE, 'utf8'));
+  } catch (error) {
+    return DEFAULT_CATEGORIES;
+  }
+}
+
+function saveData(sessions, categories) {
+  fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2));
+  if (categories) {
+    fs.writeFileSync(CATEGORIES_FILE, JSON.stringify(categories, null, 2));
+  }
+}
+
+// Convert UTC to NST (Newfoundland Standard Time = UTC-3.5, or UTC-2.5 in summer)
+function toNST(date = new Date()) {
+  // Simplified - using UTC-3.5 (winter NST)
+  const nstOffset = -3.5 * 60; // minutes
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  return new Date(utc + (nstOffset * 60000));
+}
+
+function formatNSTTime(date) {
+  const nst = new Date(date);
+  return nst.toLocaleString('en-CA', { 
+    timeZone: 'America/St_Johns',
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function formatDuration(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours === 0) return `${mins}m`;
+  if (mins === 0) return `${hours}h`;
+  return `${hours}h ${mins}m`;
+}
+
+// Generate session ID
+function generateSessionId() {
+  return Math.random().toString(36).substr(2, 6);
+}
+
+// Commands
+function startSession(category, description = '') {
+  ensureDataDir();
+  const sessions = loadSessions();
+  const categories = loadCategories();
+  
+  if (!categories[category]) {
+    console.log(`${RED}Error: Unknown category '${category}'${RESET}`);
+    console.log(`Available categories: ${Object.keys(categories).join(', ')}`);
+    return;
+  }
+  
+  // Check for active session
+  const activeSession = sessions.sessions.find(s => !s.endTime);
+  if (activeSession) {
+    console.log(`${YELLOW}Warning: Active session found (${activeSession.category} - ${activeSession.description || 'No description'})${RESET}`);
+    console.log(`Use 'time-analytics stop' first, or 'time-analytics switch ${category}' to switch directly.`);
+    return;
+  }
+  
+  const sessionId = generateSessionId();
+  const session = {
+    id: sessionId,
+    category,
+    description,
+    startTime: new Date().toISOString(),
+    endTime: null
+  };
+  
+  sessions.sessions.push(session);
+  saveData(sessions);
+  
+  const categoryInfo = categories[category];
+  console.log(`${categoryInfo.color}Started ${categoryInfo.name} session${RESET}: ${description || 'No description'}`);
+  console.log(`${GRAY}Session ID: ${sessionId} | Started: ${formatNSTTime(session.startTime)}${RESET}`);
+}
+
+function stopSession(sessionId = null) {
+  ensureDataDir();
+  const sessions = loadSessions();
+  const categories = loadCategories();
+  
+  let sessionToStop;
+  
+  if (sessionId) {
+    sessionToStop = sessions.sessions.find(s => s.id === sessionId && !s.endTime);
+    if (!sessionToStop) {
+      console.log(`${RED}Error: No active session found with ID '${sessionId}'${RESET}`);
+      return;
+    }
+  } else {
+    sessionToStop = sessions.sessions.find(s => !s.endTime);
+    if (!sessionToStop) {
+      console.log(`${YELLOW}No active session to stop.${RESET}`);
+      return;
+    }
+  }
+  
+  sessionToStop.endTime = new Date().toISOString();
+  const duration = Math.round((new Date(sessionToStop.endTime) - new Date(sessionToStop.startTime)) / (1000 * 60));
+  
+  saveData(sessions);
+  
+  const categoryInfo = categories[sessionToStop.category];
+  console.log(`${categoryInfo.color}Stopped ${categoryInfo.name} session${RESET}: ${sessionToStop.description || 'No description'}`);
+  console.log(`${GRAY}Duration: ${formatDuration(duration)} | Ended: ${formatNSTTime(sessionToStop.endTime)}${RESET}`);
+}
+
+function switchSession(category, description = '') {
+  ensureDataDir();
+  const sessions = loadSessions();
+  const categories = loadCategories();
+  
+  if (!categories[category]) {
+    console.log(`${RED}Error: Unknown category '${category}'${RESET}`);
+    console.log(`Available categories: ${Object.keys(categories).join(', ')}`);
+    return;
+  }
+  
+  // Stop current session if exists
+  const activeSession = sessions.sessions.find(s => !s.endTime);
+  if (activeSession) {
+    activeSession.endTime = new Date().toISOString();
+    const duration = Math.round((new Date(activeSession.endTime) - new Date(activeSession.startTime)) / (1000 * 60));
+    console.log(`${GRAY}Stopped previous session (${duration} minutes)${RESET}`);
+  }
+  
+  // Start new session
+  const sessionId = generateSessionId();
+  const session = {
+    id: sessionId,
+    category,
+    description,
+    startTime: new Date().toISOString(),
+    endTime: null
+  };
+  
+  sessions.sessions.push(session);
+  saveData(sessions);
+  
+  const categoryInfo = categories[category];
+  console.log(`${categoryInfo.color}Switched to ${categoryInfo.name} session${RESET}: ${description || 'No description'}`);
+  console.log(`${GRAY}Session ID: ${sessionId} | Started: ${formatNSTTime(session.startTime)}${RESET}`);
+}
+
+function showStatus() {
+  ensureDataDir();
+  const sessions = loadSessions();
+  const categories = loadCategories();
+  
+  const activeSession = sessions.sessions.find(s => !s.endTime);
+  
+  if (activeSession) {
+    const categoryInfo = categories[activeSession.category];
+    const duration = Math.round((new Date() - new Date(activeSession.startTime)) / (1000 * 60));
+    
+    console.log(`${BOLD}Active Session${RESET}`);
+    console.log(`${categoryInfo.color}${categoryInfo.name}${RESET}: ${activeSession.description || 'No description'}`);
+    console.log(`${GRAY}Started: ${formatNSTTime(activeSession.startTime)} | Duration: ${formatDuration(duration)}${RESET}`);
+  } else {
+    console.log(`${GRAY}No active session${RESET}`);
+  }
+  
+  // Show today's summary
+  const today = new Date().toISOString().split('T')[0];
+  const todaySessions = sessions.sessions.filter(s => {
+    return s.endTime && s.startTime.split('T')[0] === today;
+  });
+  
+  if (todaySessions.length > 0) {
+    console.log(`\\n${BOLD}Today's Summary${RESET}`);
+    const categoryTotals = {};
+    
+    todaySessions.forEach(session => {
+      const duration = Math.round((new Date(session.endTime) - new Date(session.startTime)) / (1000 * 60));
+      categoryTotals[session.category] = (categoryTotals[session.category] || 0) + duration;
+    });
+    
+    Object.entries(categoryTotals).forEach(([cat, minutes]) => {
+      const categoryInfo = categories[cat];
+      console.log(`  ${categoryInfo.color}${categoryInfo.name}${RESET}: ${formatDuration(minutes)}`);
+    });
+    
+    const totalMinutes = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+    console.log(`  ${BOLD}Total tracked: ${formatDuration(totalMinutes)}${RESET}`);
+  }
+}
+
+function showAnalytics(days = 7) {
+  ensureDataDir();
+  const sessions = loadSessions();
+  const categories = loadCategories();
+  
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+  
+  const recentSessions = sessions.sessions.filter(s => {
+    return s.endTime && new Date(s.startTime) >= cutoffDate;
+  });
+  
+  if (recentSessions.length === 0) {
+    console.log(`${YELLOW}No completed sessions found in the last ${days} days.${RESET}`);
+    return;
+  }
+  
+  console.log(`${BOLD}Time Analytics - Last ${days} Days${RESET}`);
+  console.log(`${GRAY}${recentSessions.length} sessions analyzed${RESET}\\n`);
+  
+  // Category breakdown
+  const categoryTotals = {};
+  const categoryCount = {};
+  
+  recentSessions.forEach(session => {
+    const duration = Math.round((new Date(session.endTime) - new Date(session.startTime)) / (1000 * 60));
+    categoryTotals[session.category] = (categoryTotals[session.category] || 0) + duration;
+    categoryCount[session.category] = (categoryCount[session.category] || 0) + 1;
+  });
+  
+  const totalMinutes = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+  
+  console.log(`${BOLD}Category Breakdown${RESET}`);
+  Object.entries(categoryTotals)
+    .sort(([,a], [,b]) => b - a)
+    .forEach(([cat, minutes]) => {
+      const categoryInfo = categories[cat];
+      const percentage = ((minutes / totalMinutes) * 100).toFixed(1);
+      const avgSession = Math.round(minutes / categoryCount[cat]);
+      const bar = '█'.repeat(Math.round(percentage / 2));
+      
+      console.log(`${categoryInfo.color}${categoryInfo.name.padEnd(12)}${RESET} ${formatDuration(minutes).padEnd(6)} ${percentage.padStart(5)}% ${GRAY}${bar}${RESET}`);
+      console.log(`${GRAY}                    ${categoryCount[cat]} sessions, avg ${formatDuration(avgSession)}${RESET}`);
+    });
+  
+  console.log(`\\n${BOLD}Summary${RESET}`);
+  console.log(`Total time tracked: ${formatDuration(totalMinutes)}`);
+  console.log(`Daily average: ${formatDuration(Math.round(totalMinutes / days))}`);
+  console.log(`Sessions per day: ${(recentSessions.length / days).toFixed(1)}`);
+  
+  // Productivity insights
+  const deepWork = (categoryTotals.deep || 0) + (categoryTotals.dev || 0);
+  const meetings = categoryTotals.meet || 0;
+  const admin = categoryTotals.admin || 0;
+  
+  console.log(`\\n${BOLD}Productivity Insights${RESET}`);
+  console.log(`Deep work time: ${formatDuration(deepWork)} (${((deepWork / totalMinutes) * 100).toFixed(1)}%)`);
+  console.log(`Meeting time: ${formatDuration(meetings)} (${((meetings / totalMinutes) * 100).toFixed(1)}%)`);
+  console.log(`Admin overhead: ${formatDuration(admin)} (${((admin / totalMinutes) * 100).toFixed(1)}%)`);
+  
+  if (deepWork > meetings) {
+    console.log(`${GREEN}✓ Good balance: More deep work than meetings${RESET}`);
+  } else if (meetings > deepWork * 1.5) {
+    console.log(`${YELLOW}⚠ Meeting heavy: Consider blocking more focused time${RESET}`);
+  }
+  
+  if (admin > totalMinutes * 0.3) {
+    console.log(`${YELLOW}⚠ High admin overhead: Look for automation opportunities${RESET}`);
+  }
+}
+
+function listCategories() {
+  ensureDataDir();
+  const categories = loadCategories();
+  
+  console.log(`${BOLD}Available Categories${RESET}\\n`);
+  Object.entries(categories).forEach(([key, cat]) => {
+    console.log(`${cat.color}${key.padEnd(8)}${RESET} ${cat.name.padEnd(15)} ${GRAY}${cat.description}${RESET}`);
+  });
+  
+  console.log(`\\n${GRAY}Usage: time-analytics start <category> [description]${RESET}`);
+}
+
+function showHelp() {
+  console.log(`${BOLD}Time Analytics - Track and analyze time usage patterns${RESET}
+
+${BOLD}USAGE${RESET}
+  time-analytics <command> [options]
+
+${BOLD}COMMANDS${RESET}
+  ${GREEN}start${RESET} <category> [description]    Start a new time tracking session
+  ${GREEN}stop${RESET} [session-id]               Stop the current/specific session  
+  ${GREEN}switch${RESET} <category> [description]  Stop current and start new session
+  ${GREEN}status${RESET}                          Show current session and today's summary
+  ${GREEN}analytics${RESET} [days]               Show time analytics (default: 7 days)
+  ${GREEN}categories${RESET}                      List available categories
+  ${GREEN}help${RESET}                           Show this help message
+
+${BOLD}EXAMPLES${RESET}
+  time-analytics start dev "Working on API endpoints"
+  time-analytics switch meet "Daily standup"
+  time-analytics stop
+  time-analytics analytics 14
+  time-analytics status
+
+${BOLD}CATEGORIES${RESET}
+  dev, meet, plan, review, admin, learn, break, deep, comm, debug
+
+${BOLD}INSIGHTS${RESET}
+  Track deep work vs meetings ratio, identify admin overhead,
+  understand daily patterns, optimize for focused time blocks.
+
+Built for CTO workflow - integrates with your "1% better daily" philosophy.`);
+}
+
+// Main CLI handler
+function main() {
+  const args = process.argv.slice(2);
+  const command = args[0];
+  
+  switch (command) {
+    case 'start':
+      if (!args[1]) {
+        console.log(`${RED}Error: Category required${RESET}`);
+        console.log(`Use: time-analytics categories`);
+        return;
+      }
+      startSession(args[1], args.slice(2).join(' '));
+      break;
+      
+    case 'stop':
+      stopSession(args[1]);
+      break;
+      
+    case 'switch':
+      if (!args[1]) {
+        console.log(`${RED}Error: Category required${RESET}`);
+        console.log(`Use: time-analytics categories`);
+        return;
+      }
+      switchSession(args[1], args.slice(2).join(' '));
+      break;
+      
+    case 'status':
+      showStatus();
+      break;
+      
+    case 'analytics':
+      showAnalytics(parseInt(args[1]) || 7);
+      break;
+      
+    case 'categories':
+      listCategories();
+      break;
+      
+    case 'help':
+    case '--help':
+    case '-h':
+      showHelp();
+      break;
+      
+    default:
+      if (!command) {
+        showStatus();
+      } else {
+        console.log(`${RED}Unknown command: ${command}${RESET}`);
+        showHelp();
+      }
+      break;
+  }
+}
+
+if (require.main === module) {
+  main();
+}
