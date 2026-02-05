@@ -1,0 +1,90 @@
+/* Scraping Toolkit Dashboard Styles */
+
+/* Main screen layout */
+Screen {
+    layout: vertical;
+}
+
+/* Tab container */
+#main-tabs {
+    height: 1fr;
+}
+
+TabPane {
+    padding: 0;
+}
+
+/* Project Tree Panel */
+#project-tree-container {
+    width: 40%;
+    border-right: solid $primary-darken-2;
+}
+
+#project-details-container {
+    width: 60%;
+    padding: 1;
+}
+
+/* Status colors */
+.status-healthy {
+    color: green;
+}
+
+.status-warning {
+    color: yellow;
+}
+
+.status-error {
+    color: red;
+}
+
+/* Run cards */
+RunCard {
+    height: auto;
+    margin-bottom: 1;
+    padding: 1;
+    border: solid $primary-darken-2;
+    background: $surface;
+}
+
+/* Data explorer */
+#data-tree-pane {
+    width: 40%;
+    border-right: solid $primary-darken-2;
+}
+
+#data-viewer-pane {
+    width: 60%;
+    padding: 1;
+}
+
+/* Validation results */
+#validate-results {
+    height: 1fr;
+}
+
+/* Settings sections */
+.settings-section {
+    margin-bottom: 2;
+    padding: 1;
+    border: solid $primary-darken-2;
+}
+
+.settings-title {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+/* Placeholders */
+.placeholder {
+    text-align: center;
+    color: $text-muted;
+    padding: 4;
+}
+
+/* No runs message */
+.no-runs-message {
+    text-align: center;
+    color: $text-muted;
+    padding: 4;
+}

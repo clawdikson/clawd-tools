@@ -1,0 +1,63 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/resolve-hook.sh hook_enforce_rg_over_grep.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/resolve-hook.sh hook_python_code_quality.py"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/resolve-hook.sh hook_prettier_formatting.py"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/resolve-hook.sh hook_markdown_formatting.py"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/resolve-hook.sh hook_bash_formatting.py"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/resolve-hook.sh hook_typescript_typecheck.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-claudemd-updater.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "hookify@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": true,
+    "general-dev@fcakyon-claude-plugins": false,
+    "claude-mem@thedotmack": true,
+    "serena@claude-plugins-official": true,
+    "compound-engineering@every-marketplace": true,
+    "playwright-skill@playwright-skill": true,
+    "auto-memory@severity1-marketplace": false,
+    "frontend-design@claude-code-plugins": false
+  }
+}

@@ -1,0 +1,40 @@
+20*
+.log
+.env
+.DS_Store
+.idea
+.vscode
+.pytest_cache
+__pycache__
+node_modules
+.env
+*.zip
+output
+skipped*
+downloaded_files
+.idea/
+old_code/
+healthsparq-server/
+audiobee_*/
+.venv/
+*.egg-info/
+uv.lock
+.coverage
+*.7z
+*.db
+
+# Continuous Claude cache (local only)
+.claude/cache/
+
+# Claude Code auto-memory
+.claude/auto-memory/dirty-files
+
+# bv (beads viewer) local config and caches
+.bv/
+
+# Google Drive credentials (NEVER commit these)
+**/service-account*.json
+secrets
+*.egg-info/
+
+browser_data*/

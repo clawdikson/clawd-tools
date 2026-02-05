@@ -1,0 +1,16 @@
+{
+  "sessionId": "2c49f153-5939-4e42-ab96-5f0f2480cd60",
+  "savedAt": "2026-01-09T18:59:04.138Z",
+  "trigger": "auto",
+  "projectDir": "/Users/dikson/Work/ideon_scraping/scraping",
+  "summary": {
+    "lastTodos": [],
+    "recentToolCalls": [],
+    "lastAssistantMessage": "",
+    "filesModified": [],
+    "errorsEncountered": [],
+    "goalFromConversation": "",
+    "currentFocus": ""
+  },
+  "customInstructions": null
+}

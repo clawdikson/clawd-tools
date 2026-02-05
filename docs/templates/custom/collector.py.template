@@ -1,0 +1,259 @@
+"""Phase 1: Data collection with mandatory checkpointing.
+
+Custom Carrier Architecture Pattern - Collector Template.
+See docs/CUSTOM_ARCHITECTURE.md for the full specification.
+"""
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, AsyncIterator
+import asyncio
+import sqlite3
+
+from core.io import create_store, BackendType
+from core.logging import logger, set_trace_id
+from core.progress import create_progress_bar, tqdm_logging
+
+# Optional: for API-based collectors
+# from core.session import HttpSession
+# from core.antibot import create_solver
+
+
+@dataclass
+class CollectorConfig:
+    """Configuration for the collector."""
+
+    base_url: str
+    states: list[str]
+    max_workers: int
+    storage_backend: str
+    output_dir: Path
+    carrier_config: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class CollectResult:
+    """Result of collection phase."""
+
+    success: bool
+    records_collected: int
+    records_resumed: int = 0
+    errors: list[str] | None = None
+
+
+class Checkpoint:
+    """SQLite-based checkpoint for resume capability.
+
+    Checkpointing is MANDATORY for all collectors. This ensures
+    that interrupted runs can resume from where they left off.
+    """
+
+    def __init__(self, db_path: Path):
+        self.db_path = db_path
+        self.conn = sqlite3.connect(db_path)
+        self._init_tables()
+
+    def _init_tables(self):
+        """Create checkpoint tables if they don't exist."""
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS progress (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS collected_ids (
+                record_id TEXT PRIMARY KEY,
+                collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        self.conn.commit()
+
+    def is_collected(self, record_id: str) -> bool:
+        """Check if a record has already been collected."""
+        cur = self.conn.execute(
+            "SELECT 1 FROM collected_ids WHERE record_id = ?", (record_id,)
+        )
+        return cur.fetchone() is not None
+
+    def mark_collected(self, record_id: str):
+        """Mark a record as collected."""
+        self.conn.execute(
+            "INSERT OR REPLACE INTO collected_ids (record_id) VALUES (?)",
+            (record_id,)
+        )
+
+    def get_progress(self, key: str) -> str | None:
+        """Get a progress value by key."""
+        cur = self.conn.execute(
+            "SELECT value FROM progress WHERE key = ?", (key,)
+        )
+        row = cur.fetchone()
+        return row[0] if row else None
+
+    def set_progress(self, key: str, value: str):
+        """Set a progress value."""
+        self.conn.execute(
+            "INSERT OR REPLACE INTO progress (key, value) VALUES (?, ?)",
+            (key, value)
+        )
+        self.conn.commit()
+
+    def flush(self):
+        """Ensure all changes are persisted."""
+        self.conn.commit()
+
+    def close(self):
+        """Close the database connection."""
+        self.conn.close()
+
+
+class {{CLASS_NAME}}Collector:
+    """Collect provider data with checkpoint/resume support.
+
+    TODO: Customize this class for your carrier's specific API/website.
+    """
+
+    def __init__(self, config: CollectorConfig, curr_date: str, fresh: bool = False):
+        self.config = config
+        self.curr_date = curr_date
+        self.fresh = fresh
+        self.session = None
+        self.store = None
+        self.checkpoint = None
+        self.resumed_count = 0
+
+    async def setup(self) -> None:
+        """Initialize resources for collection."""
+        output_dir = self.config.output_dir / self.curr_date
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Setup checkpoint
+        checkpoint_path = output_dir / "checkpoint.db"
+        if self.fresh and checkpoint_path.exists():
+            checkpoint_path.unlink()
+            logger.info("Fresh run: deleted existing checkpoint")
+
+        self.checkpoint = Checkpoint(checkpoint_path)
+
+        # Setup storage
+        self.store = create_store(
+            output_dir / "raw" / "collected",
+            backend=BackendType(self.config.storage_backend),
+        )
+
+        # TODO: Setup HTTP/browser session if needed
+        # self.session = await create_http_session(
+        #     base_url=self.config.base_url,
+        #     **self.config.carrier_config.get("session", {}),
+        # )
+
+    async def teardown(self) -> None:
+        """Cleanup resources."""
+        if self.session:
+            await self.session.close()
+        if self.store:
+            self.store.flush()
+            self.store.close()
+        if self.checkpoint:
+            self.checkpoint.flush()
+            self.checkpoint.close()
+
+    async def collect(self) -> AsyncIterator[dict[str, Any]]:
+        """Generate provider records.
+
+        TODO: Implement your carrier-specific collection logic here.
+        Use progress bars for visibility:
+
+        with tqdm_logging():
+            for state in create_progress_bar(states, desc="States", position=0):
+                for item in create_progress_bar(items, desc=f"{state}", position=1, leave=False):
+                    yield item
+        """
+        states = self.config.states
+
+        with tqdm_logging():
+            for state in create_progress_bar(states, desc="States", position=0, unit="state"):
+                set_trace_id(f"state:{state}")
+
+                # TODO: Implement actual data fetching
+                # Example: async for provider in self._fetch_state(state):
+                #     yield provider
+
+                # Placeholder - remove and implement actual logic
+                logger.info(f"Processing state: {state}")
+                yield {"npi": "placeholder", "state": state}
+
+    async def _fetch_state(self, state: str) -> AsyncIterator[dict]:
+        """Fetch providers for a state.
+
+        TODO: Implement state-level fetching with pagination.
+        Remember to use checkpoint for resume capability:
+
+        last_page = self.checkpoint.get_progress(f"state:{state}:page")
+        page = int(last_page) if last_page else 1
+
+        while True:
+            response = await self.session.get(...)
+            for provider in response["providers"]:
+                yield provider
+            self.checkpoint.set_progress(f"state:{state}:page", str(page + 1))
+            page += 1
+        """
+        # Placeholder implementation
+        yield {"npi": "placeholder", "state": state}
+
+    def get_record_id(self, record: dict[str, Any]) -> str:
+        """Extract unique ID for storage key.
+
+        TODO: Customize based on your data structure.
+        """
+        return record.get("npi") or record.get("providerId") or str(hash(str(record)))
+
+    async def run(self) -> CollectResult:
+        """Execute collection with checkpointing."""
+        await self.setup()
+        try:
+            count = 0
+            errors = []
+
+            async for record in self.collect():
+                record_id = self.get_record_id(record)
+
+                # Skip if already collected (resume)
+                if self.checkpoint.is_collected(record_id):
+                    self.resumed_count += 1
+                    continue
+
+                try:
+                    self.store.put(f"{record_id}.json", record)
+                    self.checkpoint.mark_collected(record_id)
+                    count += 1
+                except Exception as e:
+                    errors.append(f"{record_id}: {e}")
+                    logger.error(f"Failed to store {record_id}: {e}")
+
+            self.store.flush()
+            self.checkpoint.flush()
+
+            if self.resumed_count > 0:
+                logger.info(f"Resumed: skipped {self.resumed_count} already collected")
+
+            return CollectResult(
+                success=len(errors) == 0,
+                records_collected=count,
+                records_resumed=self.resumed_count,
+                errors=errors if errors else None,
+            )
+        finally:
+            await self.teardown()
+
+
+def run_collect_sync(
+    config: CollectorConfig,
+    curr_date: str,
+    fresh: bool = False
+) -> CollectResult:
+    """Synchronous wrapper for collection."""
+    collector = {{CLASS_NAME}}Collector(config, curr_date, fresh)
+    return asyncio.run(collector.run())

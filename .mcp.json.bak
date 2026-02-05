@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "bitbucket": {
+      "command": "npx",
+      "env": {
+        "BITBUCKET_URL": "https://api.bitbucket.org/2.0",
+        "BITBUCKET_WORKSPACE": "productaudiobee",
+        "BITBUCKET_USERNAME": "productaudiobee",
+        "BITBUCKET_PASSWORD": "bhfnC6pwRdtAmSjQ2EF9"
+      },
+      "args": [
+        "-y",
+        "bitbucket-mcp@latest"
+      ]
+    }
+  }
+}

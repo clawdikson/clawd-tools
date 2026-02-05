@@ -1,0 +1,40 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/hook_enforce_rg_over_grep.py"
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Edit|MultiEdit|Write|Task",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/hook_python_code_quality.py"
+        },
+        {
+          "type": "command",
+          "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/hook_prettier_formatting.py"
+        },
+        {
+          "type": "command",
+          "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/hook_markdown_formatting.py"
+        },
+        {
+          "type": "command",
+          "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/hook_bash_formatting.py"
+        },
+        {
+          "type": "command",
+          "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/hook_typescript_typecheck.py"
+        }
+      ]
+    }
+  ]
+}

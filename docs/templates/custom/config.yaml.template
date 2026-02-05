@@ -1,0 +1,50 @@
+# {{PROJECT_NAME}} Configuration
+# Generated for Custom Carrier Architecture Pattern
+
+project:
+  name: "{{PROJECT_NAME}}"
+  slug: "{{PROJECT_SLUG}}"
+  version: "1.0"
+
+site:
+  base_url: "{{BASE_URL}}"
+  auth_type: none  # none, cookie, bearer, oauth, basic
+
+coverage:
+  states: [{{STATES}}]
+
+# Carrier-specific configuration (nested allowed)
+carrier_config:
+  # Add carrier-specific settings here
+  # oauth:
+  #   client_id: "${CLIENT_ID}"
+  #   client_secret: "${CLIENT_SECRET}"
+  # custom_headers:
+  #   X-Api-Version: "2.0"
+
+phases:
+  collect: true
+  enrich: false
+  custom_mapper: false
+  normalize_input: collected  # or 'enriched' if Phase 2 runs
+
+concurrency:
+  max_workers: 50
+  batch_size: 1000
+
+output:
+  storage_backend: sqlite  # sqlite, json_files, jsonl
+  separate_by_product: false
+  phase1_output: collected
+  phase2_output: enriched
+
+session:
+  browser_type: null  # camoufox, playwright, patchright, null for API-only
+  proxy_types: [smartproxy_session]
+  timeout_ms: 30000
+
+# Optional sanity thresholds for QA
+thresholds:
+  min_providers: 1000
+  max_providers: 500000
+  max_churn_percent: 10

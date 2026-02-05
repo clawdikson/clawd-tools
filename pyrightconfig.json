@@ -1,0 +1,38 @@
+{
+  "include": [
+    "core",
+    "healthsparq",
+    "sapphire",
+    "audiobee_peak"
+  ],
+  "exclude": [
+    "**/20*",
+    "**/.venv",
+    "**/venv",
+    "**/__pycache__",
+    "**/node_modules",
+    "**/old_code",
+    "**/other_code",
+    "**/data",
+    "**/profiles",
+    "**/logger",
+    "**/archive",
+    "**/*.egg-info",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".coverage",
+    "output_generator",
+    "old_code",
+    "healthsparq-server",
+    "scripts",
+    "tools",
+    ".claude",
+    ".serena",
+    ".bv",
+    "thoughts"
+  ],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "warning",
+  "reportMissingTypeStubs": false
+}
