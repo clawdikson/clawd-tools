@@ -1,0 +1,402 @@
+#!/usr/bin/env node
+
+/**
+ * Morning Dashboard CLI
+ * Aggregates key information for daily startup routine
+ */
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const CONFIG_FILE = path.join(process.env.HOME, '.config', 'morning-dashboard.json');
+
+// ANSI Colors
+const colors = {
+    reset: '\x1b[0m',
+    bright: '\x1b[1m',
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    magenta: '\x1b[35m',
+    cyan: '\x1b[36m',
+    gray: '\x1b[90m'
+};
+
+// Icons
+const icons = {
+    weather: '🌤️',
+    calendar: '📅', 
+    tasks: '✅',
+    reading: '📚',
+    learning: '🧠',
+    health: '💪',
+    git: '🔀',
+    time: '⏱️',
+    warning: '⚠️',
+    info: 'ℹ️',
+    success: '✅',
+    check: '✓',
+    x: '✗'
+};
+
+function colorize(text, color) {
+    return colors[color] + text + colors.reset;
+}
+
+function section(title, icon = '') {
+    console.log(`\n${colorize(icon + ' ' + title, 'bright')}`);
+    console.log(colorize('─'.repeat(50), 'gray'));
+}
+
+function getWeather() {
+    try {
+        // Use wttr.in for simple weather without API key
+        const result = execSync('curl -s "https://wttr.in/St_Johns_NL?format=%C+%t+%f+%h+%w&u" 2>/dev/null', 
+            { encoding: 'utf-8', timeout: 5000 }).trim();
+        
+        if (result && !result.includes('Unknown location')) {
+            const parts = result.split(' ');
+            return {
+                condition: parts[0] || 'Unknown',
+                temp: parts[1] || 'N/A',
+                feels: parts[2] || 'N/A',
+                humidity: parts[3] || 'N/A',
+                wind: parts.slice(4).join(' ') || 'N/A'
+            };
+        }
+    } catch (error) {
+        // Silent fail
+    }
+    
+    return {
+        condition: 'Unknown',
+        temp: 'N/A',
+        feels: 'N/A', 
+        humidity: 'N/A',
+        wind: 'N/A'
+    };
+}
+
+function getTaskSummary() {
+    const summary = { today: 0, overdue: 0, total: 0, error: null };
+    
+    try {
+        // Check if ClickUp CLI is available
+        execSync('which cu', { stdio: 'ignore' });
+        
+        // Try to get task counts (this would need ClickUp CLI setup)
+        // For now, return placeholder data
+        summary.total = '?';
+        summary.today = '?';
+        summary.overdue = '?';
+        summary.error = 'ClickUp CLI not configured';
+    } catch (error) {
+        summary.error = 'ClickUp CLI not available';
+    }
+    
+    return summary;
+}
+
+function getReadingProgress() {
+    try {
+        const dataDir = path.join(process.env.HOME, 'clawd', 'tools', '.reading-data');
+        const booksFile = path.join(dataDir, 'books.json');
+        const sessionsFile = path.join(dataDir, 'sessions.json');
+        
+        if (!fs.existsSync(booksFile)) {
+            return { error: 'No reading data found' };
+        }
+        
+        const books = JSON.parse(fs.readFileSync(booksFile, 'utf-8'));
+        const sessions = fs.existsSync(sessionsFile) ? 
+            JSON.parse(fs.readFileSync(sessionsFile, 'utf-8')) : [];
+        
+        const activeBooks = books.filter(book => book.status === 'reading');
+        const recentSessions = sessions.filter(session => {
+            const sessionDate = new Date(session.endTime || session.startTime);
+            const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            return sessionDate >= dayAgo;
+        });
+        
+        return {
+            activeBooks: activeBooks.length,
+            recentSessions: recentSessions.length,
+            pagesYesterday: recentSessions.reduce((sum, s) => sum + (s.pages || 0), 0),
+            currentBook: activeBooks[0] ? `${activeBooks[0].title} (${Math.round((activeBooks[0].currentPage || 0) / activeBooks[0].totalPages * 100)}%)` : 'None'
+        };
+    } catch (error) {
+        return { error: 'Reading tracker data unavailable' };
+    }
+}
+
+function getLearnings() {
+    try {
+        const dataDir = path.join(process.env.HOME, '.config');
+        const learningsFile = path.join(dataDir, 'dev-learnings.json');
+        
+        if (!fs.existsSync(learningsFile)) {
+            return { error: 'No learning data found' };
+        }
+        
+        const data = JSON.parse(fs.readFileSync(learningsFile, 'utf-8'));
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
+        
+        const recentLearnings = data.learnings.filter(learning => {
+            const learningDate = new Date(learning.timestamp);
+            return learningDate >= yesterday;
+        });
+        
+        return {
+            total: data.learnings.length,
+            yesterday: recentLearnings.length,
+            recent: recentLearnings.slice(0, 2).map(l => ({
+                content: l.content.substring(0, 60) + (l.content.length > 60 ? '...' : ''),
+                category: l.category
+            }))
+        };
+    } catch (error) {
+        return { error: 'Learning tracker data unavailable' };
+    }
+}
+
+function getGitStatus() {
+    const repos = [
+        path.join(process.env.HOME, 'clawd'),
+        path.join(process.env.HOME, 'beena-monorepo'),
+        path.join(process.env.HOME, 'irap-project'),
+        path.join(process.env.HOME, 'scraping-base')
+    ];
+    
+    let status = { clean: 0, dirty: 0, errors: 0, total: 0 };
+    
+    repos.forEach(repo => {
+        if (!fs.existsSync(repo) || !fs.existsSync(path.join(repo, '.git'))) {
+            return;
+        }
+        
+        try {
+            status.total++;
+            const result = execSync('git status --porcelain', { 
+                cwd: repo, 
+                encoding: 'utf-8',
+                timeout: 2000
+            });
+            
+            if (result.trim()) {
+                status.dirty++;
+            } else {
+                status.clean++;
+            }
+        } catch (error) {
+            status.errors++;
+        }
+    });
+    
+    return status;
+}
+
+function getTimeAnalytics() {
+    try {
+        const dataFile = path.join(process.env.HOME, '.config', 'time-analytics.json');
+        if (!fs.existsSync(dataFile)) {
+            return { error: 'No time tracking data found' };
+        }
+        
+        const data = JSON.parse(fs.readFileSync(dataFile, 'utf-8'));
+        
+        // Get yesterday's sessions
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        
+        const yesterdaySessions = data.sessions.filter(s => 
+            s.endTime && s.endTime.startsWith(yesterdayStr)
+        );
+        
+        if (yesterdaySessions.length === 0) {
+            return { totalTime: '0h', sessions: 0, topCategory: 'None' };
+        }
+        
+        const totalMinutes = yesterdaySessions.reduce((sum, session) => {
+            const start = new Date(session.startTime);
+            const end = new Date(session.endTime);
+            return sum + Math.round((end - start) / (1000 * 60));
+        }, 0);
+        
+        const categoryTotals = {};
+        yesterdaySessions.forEach(session => {
+            const start = new Date(session.startTime);
+            const end = new Date(session.endTime);
+            const minutes = Math.round((end - start) / (1000 * 60));
+            
+            categoryTotals[session.category] = (categoryTotals[session.category] || 0) + minutes;
+        });
+        
+        const topCategory = Object.keys(categoryTotals).reduce((a, b) => 
+            categoryTotals[a] > categoryTotals[b] ? a : b, Object.keys(categoryTotals)[0]
+        );
+        
+        return {
+            totalTime: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
+            sessions: yesterdaySessions.length,
+            topCategory: `${topCategory} (${Math.floor(categoryTotals[topCategory] / 60)}h ${categoryTotals[topCategory] % 60}m)`
+        };
+    } catch (error) {
+        return { error: 'Time analytics data unavailable' };
+    }
+}
+
+function getNSTTime() {
+    // NST is UTC-3:30
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const nst = new Date(utc + (-3.5 * 3600000));
+    
+    return nst.toLocaleString('en-CA', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/St_Johns'
+    });
+}
+
+function displayDashboard() {
+    console.log(colorize('\n╭─────────────────────────────────────────────────────╮', 'cyan'));
+    console.log(colorize('│                🌅 MORNING DASHBOARD                 │', 'cyan'));
+    console.log(colorize('╰─────────────────────────────────────────────────────╯', 'cyan'));
+    
+    // Current time
+    console.log(`\n${colorize('📍 St. John\'s, NL', 'bright')} • ${colorize(getNSTTime(), 'gray')}`);
+    
+    // Weather
+    section('Weather', icons.weather);
+    const weather = getWeather();
+    if (weather.condition !== 'Unknown') {
+        console.log(`${weather.condition} • ${colorize(weather.temp, 'yellow')} (feels ${weather.feels})`);
+        console.log(`💨 ${weather.wind} • 💧 ${weather.humidity} humidity`);
+    } else {
+        console.log(colorize('Weather data unavailable', 'gray'));
+    }
+    
+    // Tasks
+    section('Tasks', icons.tasks);
+    const tasks = getTaskSummary();
+    if (tasks.error) {
+        console.log(colorize(tasks.error, 'gray'));
+    } else {
+        console.log(`${colorize(tasks.today, 'green')} due today • ${colorize(tasks.overdue, 'red')} overdue • ${tasks.total} total`);
+    }
+    
+    // Reading Progress
+    section('Reading Progress', icons.reading);
+    const reading = getReadingProgress();
+    if (reading.error) {
+        console.log(colorize(reading.error, 'gray'));
+    } else {
+        console.log(`📖 Current: ${colorize(reading.currentBook, 'green')}`);
+        console.log(`📊 ${reading.pagesYesterday} pages read yesterday • ${reading.recentSessions} sessions`);
+    }
+    
+    // Learning Captures
+    section('Learning Captures', icons.learning);
+    const learning = getLearnings();
+    if (learning.error) {
+        console.log(colorize(learning.error, 'gray'));
+    } else {
+        console.log(`💡 ${colorize(learning.yesterday, 'green')} learnings captured yesterday • ${learning.total} total`);
+        if (learning.recent && learning.recent.length > 0) {
+            learning.recent.forEach(l => {
+                console.log(`   ${colorize(l.category, 'cyan')}: ${l.content}`);
+            });
+        }
+    }
+    
+    // Git Status
+    section('Repository Status', icons.git);
+    const git = getGitStatus();
+    if (git.total === 0) {
+        console.log(colorize('No repositories found', 'gray'));
+    } else {
+        const cleanColor = git.dirty > 0 ? 'yellow' : 'green';
+        console.log(`${colorize(git.clean, cleanColor)} clean • ${colorize(git.dirty, 'red')} with changes • ${git.total} total repos`);
+        if (git.dirty > 0) {
+            console.log(colorize('  💡 Consider committing pending changes', 'yellow'));
+        }
+    }
+    
+    // Time Analytics (yesterday)
+    section('Yesterday\'s Time', icons.time);
+    const timeData = getTimeAnalytics();
+    if (timeData.error) {
+        console.log(colorize(timeData.error, 'gray'));
+    } else {
+        console.log(`⏱️ ${colorize(timeData.totalTime, 'green')} tracked • ${timeData.sessions} sessions`);
+        console.log(`🏆 Top category: ${colorize(timeData.topCategory, 'cyan')}`);
+    }
+    
+    // Quick Actions
+    section('Quick Actions', '🚀');
+    console.log(colorize('  morning help', 'blue') + '      Show detailed usage');
+    console.log(colorize('  cu daily', 'blue') + '           ClickUp daily overview');
+    console.log(colorize('  read stats', 'blue') + '         Reading progress summary');
+    console.log(colorize('  dl today', 'blue') + '          Today\'s captured learnings');
+    console.log(colorize('  ta status', 'blue') + '         Current time tracking status');
+    console.log(colorize('  rh .', 'blue') + '             Repository health check');
+    
+    console.log('');
+}
+
+function showHelp() {
+    console.log(`
+${colorize('Morning Dashboard CLI', 'bright')} ${colorize('v1.0.0', 'gray')}
+
+${colorize('USAGE:', 'bright')}
+  morning              Show morning dashboard
+  morning help         Show this help message
+
+${colorize('FEATURES:', 'bright')}
+  • Weather for St. John's, NL  
+  • Task summary (ClickUp integration)
+  • Reading progress overview
+  • Recent learning captures  
+  • Git repository status
+  • Yesterday's time analytics
+  • Quick action shortcuts
+
+${colorize('INTEGRATION:', 'bright')}
+  Works with existing tools: cu, read, dl, ta, rh
+  
+${colorize('MORNING ROUTINE:', 'bright')}
+  1. ${colorize('morning', 'cyan')} - Get daily overview
+  2. ${colorize('cu daily', 'cyan')} - Review today's tasks  
+  3. ${colorize('ta start deep "Morning focus"', 'cyan')} - Start time tracking
+  4. Begin productive work!
+
+Built by ClawdBot Overnight Coder • ${colorize('github.com/clawdikson/clawd-tools', 'blue')}
+`);
+}
+
+// Main execution
+const args = process.argv.slice(2);
+
+if (args.length > 0) {
+    switch (args[0]) {
+        case 'help':
+        case '--help':
+        case '-h':
+            showHelp();
+            break;
+        default:
+            console.log(colorize('Unknown command. Use "morning help" for usage.', 'red'));
+            process.exit(1);
+    }
+} else {
+    displayDashboard();
+}
