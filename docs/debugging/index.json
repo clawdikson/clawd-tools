@@ -1,6 +1,6 @@
 {
-  "last_synced": "2026-02-04T04:00:00.000Z",
-  "total_entries": 9,
+  "last_synced": "2026-02-05T04:00:00.000Z",
+  "total_entries": 11,
   "entries": [
     {
       "path": "healthsparq/audiobee_maine_community_health_options/2026-01-26.md",
@@ -129,12 +129,46 @@
       "tags": [
         "healthsparq",
         "auto-qa",
-        "npi-matching",
-        "label-search",
-        "network-search"
+        "false-drops",
+        "network-mapping",
+        "search-logic",
+        "npi-matching"
       ],
       "clickup_page_id": "8cqqzen-4417",
       "clickup_date_updated": 1770160837685
+    },
+    {
+      "path": "carrier/audiobee_jefferson_health/2026-02-04.md",
+      "site_type": "carrier",
+      "organization": "audiobee_jefferson_health",
+      "date": "2026-02-04",
+      "error_type": "Missing providers / False drops identified",
+      "tags": [
+        "carrier",
+        "auto-qa",
+        "false-drops",
+        "code-refactoring",
+        "missing-implementation"
+      ],
+      "clickup_page_id": "8cqqzen-4477",
+      "clickup_date_updated": 1770206002344
+    },
+    {
+      "path": "sapphire/audiobee_mass_gen/2026-02-04.md",
+      "site_type": "sapphire",
+      "organization": "audiobee_mass_gen",
+      "date": "2026-02-04",
+      "error_type": "Slow scrape",
+      "tags": [
+        "sapphire",
+        "performance",
+        "optimization",
+        "parallelization",
+        "headless",
+        "file-operations"
+      ],
+      "clickup_page_id": "8cqqzen-4517",
+      "clickup_date_updated": 1770206239827
     }
   ]
 }
