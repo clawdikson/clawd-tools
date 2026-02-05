@@ -1,6 +1,6 @@
 {
-  "last_synced": "2026-02-03T01:53:48.671486Z",
-  "total_entries": 8,
+  "last_synced": "2026-02-04T04:00:00.000Z",
+  "total_entries": 9,
   "entries": [
     {
       "path": "healthsparq/audiobee_maine_community_health_options/2026-01-26.md",
@@ -119,6 +119,22 @@
       ],
       "clickup_page_id": "8cqqzen-3977",
       "clickup_date_updated": 1769684916984
+    },
+    {
+      "path": "healthsparq/audiobee_medica/2026-02-03.md",
+      "site_type": "healthsparq",
+      "organization": "audiobee_medica",
+      "date": "2026-02-03",
+      "error_type": "AutoQA not pulling all data",
+      "tags": [
+        "healthsparq",
+        "auto-qa",
+        "npi-matching",
+        "label-search",
+        "network-search"
+      ],
+      "clickup_page_id": "8cqqzen-4417",
+      "clickup_date_updated": 1770160837685
     }
   ]
 }
