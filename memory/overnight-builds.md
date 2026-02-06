@@ -296,3 +296,79 @@ This tool addresses a critical gap for senior developers and CTOs: systematic le
 **After:** `dl search "react optimization"` → Instant access to specific insights with context and timestamps
 
 Creates a compound learning effect where insights build on each other, accelerates problem-solving through searchable solutions, and demonstrates continuous learning for career growth. Perfect complement to Dikson's productivity system and aligns directly with his learning-focused approach to personal development.
+
+## 2026-02-06 (3:30 AM UTC)
+
+**Built:** Meeting Notes Manager (`tools/meeting-notes` → `mn` command)
+
+**Purpose:** Zero-friction meeting capture and organization designed for productivity-focused CTOs
+
+**Key features:**
+- **Terminal-native meeting management** - complete meeting lifecycle from CLI
+- **Lightning-fast note capture** - `mn add <id> "note"` in 2 seconds vs multi-step app switching
+- **Action item tracking** - create, assign, track completion with meeting context
+- **Powerful search** - full-text search across all meetings, notes, and action items
+- **NST timezone aware** - all timestamps in Newfoundland local time
+- **Export capabilities** - generate markdown reports for sharing
+- **Analytics dashboard** - meeting patterns, completion rates, productivity metrics
+- **Interactive & quick modes** - full session capture or rapid command-line entry
+
+**Why perfectly suited for Dikson:**
+- **Eliminates context switching** - stays in terminal instead of opening heavy meeting apps  
+- **Supports CTO workflow** - systematic capture of technical discussions and decisions
+- **Aligns with 1% better daily** - quantifiable meeting productivity improvements
+- **Terminal-first approach** - integrates seamlessly with existing development environment
+- **Action item accountability** - tracks follow-ups with completion status
+- **Knowledge preservation** - builds searchable history of technical decisions
+- **Meeting efficiency** - faster capture leads to more focused discussions
+
+**Usage examples:**
+```bash
+# Daily standup
+mn new "Daily Standup"
+mn add abc123 "API performance improved 40% after optimization"
+mn action abc123 "Review monitoring alerts setup by Friday"
+
+# Architecture review
+mn new "Rate Limiting Design Review"  
+mn add def456 "Current: in-memory, Proposed: Redis sliding window"
+mn action def456 "Sarah to benchmark Redis vs in-memory performance"
+
+# Follow-up management
+mn actions          # See all pending action items
+mn search "API"     # Find API-related discussions
+mn export abc123    # Share meeting notes as markdown
+```
+
+**Smart design decisions:**
+- Dual modes: interactive session capture OR quick command-line entry
+- Action items linked to meeting context for full traceability
+- NST timezone integration matches Dikson's location automatically
+- Color-coded output with visual hierarchy for easy scanning
+- Command aliases for common operations (ls=list, find=search, done=complete)
+- JSON storage for easy backup and human-readable format
+- Export to markdown for team sharing and documentation
+
+**Tested:** ✅ All core functions work correctly
+- Meeting creation (interactive and quick modes)
+- Note addition with timestamps
+- Action item creation and tracking
+- List/show functionality with proper formatting
+- Search across all content types
+- Statistics generation and completion tracking
+- NST timezone handling
+- System-wide command availability (`mn` from any directory)
+
+**Files created:**
+- `tools/meeting-notes` (executable Node.js CLI)
+- `tools/README-meeting-notes.md` (comprehensive documentation)
+- System-wide command: `mn` (symlinked to `/usr/local/bin/mn`)
+
+**Impact potential:**
+This tool directly addresses a major productivity friction point for technical leaders: the overhead of meeting documentation. Context switching between terminal/IDE and note-taking apps breaks flow state during technical discussions. Traditional meeting tools are heavy, slow, and don't integrate with developer workflows.
+
+With `mn`, Dikson can capture insights instantly during technical discussions without leaving his development environment. The 2-second note capture vs 30+ second app-switching workflow represents massive time savings that compound across multiple meetings daily. Action item tracking ensures follow-ups don't get lost, while search functionality transforms meetings from isolated events into accumulated wisdom.
+
+**Perfect for CTO role:** Technical leadership requires systematic capture of architecture decisions, performance insights, team discussions, and strategic planning. This tool makes meeting documentation as fast as writing code, maintaining flow state while building institutional memory.
+
+**Complements existing tools:** Works alongside standup-gen (git-based), quick-note (thought capture), reading-tracker (learning), clickup-cli (task management), and dev-learn (technical insights) to create comprehensive productivity system.

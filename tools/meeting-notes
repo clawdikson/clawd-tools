@@ -1,0 +1,514 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+// Colors for output
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  green: '\x1b[32m',
+  blue: '\x1b[34m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
+  cyan: '\x1b[36m',
+  magenta: '\x1b[35m'
+};
+
+// NST timezone offset (-3.5 hours from UTC)
+function getNSTTime() {
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const nst = new Date(utc + (-3.5 * 3600000));
+  return nst;
+}
+
+function formatTime(date) {
+  return date.toLocaleString('en-US', {
+    timeZone: 'America/St_Johns',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Data directories
+const dataDir = path.join(process.env.HOME, '.meeting-notes');
+const meetingsFile = path.join(dataDir, 'meetings.json');
+const notesDir = path.join(dataDir, 'notes');
+
+// Ensure data directories exist
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+if (!fs.existsSync(notesDir)) fs.mkdirSync(notesDir, { recursive: true });
+
+// Load existing meetings
+function loadMeetings() {
+  if (!fs.existsSync(meetingsFile)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(meetingsFile, 'utf8'));
+  } catch (error) {
+    return [];
+  }
+}
+
+// Save meetings
+function saveMeetings(meetings) {
+  fs.writeFileSync(meetingsFile, JSON.stringify(meetings, null, 2));
+}
+
+// Generate meeting ID
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// Commands
+const commands = {
+  help() {
+    console.log(`
+${colors.bright}Meeting Notes Manager${colors.reset}
+Quick meeting capture and organization for productivity-focused CTOs
+
+${colors.bright}USAGE:${colors.reset}
+  mn <command> [options]
+
+${colors.bright}COMMANDS:${colors.reset}
+  ${colors.green}new${colors.reset} [title]              Start new meeting notes
+  ${colors.green}add${colors.reset} <meeting-id> <note>   Add note to existing meeting
+  ${colors.green}action${colors.reset} <meeting-id> <item> Add action item
+  ${colors.green}list${colors.reset} [filter]            List meetings (today/week/month/all)
+  ${colors.green}show${colors.reset} <meeting-id>         Show full meeting details
+  ${colors.green}search${colors.reset} <query>           Search meeting notes
+  ${colors.green}actions${colors.reset}                  Show all pending action items
+  ${colors.green}complete${colors.reset} <action-id>     Mark action item complete
+  ${colors.green}export${colors.reset} <meeting-id>      Export meeting to markdown
+  ${colors.green}stats${colors.reset}                   Show meeting statistics
+
+${colors.bright}EXAMPLES:${colors.reset}
+  mn new "Sprint Planning"              # Start new meeting
+  mn add abc123 "Discussed API refactor" # Add note
+  mn action abc123 "John to update docs by Friday" # Add action item
+  mn list today                         # Today's meetings
+  mn search "API"                       # Find API-related notes
+  mn actions                            # See all pending actions
+
+${colors.bright}ALIASES:${colors.reset}
+  create, start → new    ls → list    find → search
+  todo, task → action    done → complete
+
+${colors.cyan}Built to complement your productivity workflow.${colors.reset}
+`);
+  },
+
+  new(title = '') {
+    const now = getNSTTime();
+    const id = generateId();
+    
+    if (!title) {
+      // Interactive mode
+      console.log(`${colors.bright}New Meeting${colors.reset}`);
+      console.log('Press Ctrl+D when finished, Ctrl+C to cancel\n');
+      
+      process.stdin.setEncoding('utf8');
+      let input = '';
+      process.stdin.on('readable', () => {
+        let chunk = process.stdin.read();
+        if (chunk !== null) input += chunk;
+      });
+      
+      process.stdin.on('end', () => {
+        const lines = input.trim().split('\n');
+        const meetingTitle = lines[0] || 'Untitled Meeting';
+        const notes = lines.slice(1).filter(line => line.trim());
+        
+        const meeting = {
+          id,
+          title: meetingTitle,
+          timestamp: now.toISOString(),
+          notes: notes.map(note => ({
+            id: generateId(),
+            content: note,
+            timestamp: now.toISOString()
+          })),
+          actionItems: [],
+          attendees: []
+        };
+        
+        const meetings = loadMeetings();
+        meetings.push(meeting);
+        saveMeetings(meetings);
+        
+        console.log(`\n${colors.green}✓${colors.reset} Meeting saved: ${colors.bright}${meetingTitle}${colors.reset}`);
+        console.log(`${colors.cyan}ID:${colors.reset} ${id}`);
+        console.log(`${colors.cyan}Notes:${colors.reset} ${notes.length}`);
+      });
+      
+      return;
+    }
+    
+    // Quick mode with title
+    const meeting = {
+      id,
+      title,
+      timestamp: now.toISOString(),
+      notes: [],
+      actionItems: [],
+      attendees: []
+    };
+    
+    const meetings = loadMeetings();
+    meetings.push(meeting);
+    saveMeetings(meetings);
+    
+    console.log(`${colors.green}✓${colors.reset} Meeting created: ${colors.bright}${title}${colors.reset}`);
+    console.log(`${colors.cyan}ID:${colors.reset} ${id}`);
+    console.log(`${colors.yellow}Tip:${colors.reset} Use ${colors.cyan}mn add ${id} "note"${colors.reset} to add notes`);
+  },
+
+  add(meetingId, ...noteWords) {
+    if (!meetingId || noteWords.length === 0) {
+      console.log(`${colors.red}Error:${colors.reset} Usage: mn add <meeting-id> <note>`);
+      return;
+    }
+    
+    const note = noteWords.join(' ');
+    const meetings = loadMeetings();
+    const meeting = meetings.find(m => m.id === meetingId);
+    
+    if (!meeting) {
+      console.log(`${colors.red}Error:${colors.reset} Meeting not found: ${meetingId}`);
+      return;
+    }
+    
+    meeting.notes.push({
+      id: generateId(),
+      content: note,
+      timestamp: getNSTTime().toISOString()
+    });
+    
+    saveMeetings(meetings);
+    console.log(`${colors.green}✓${colors.reset} Note added to ${colors.bright}${meeting.title}${colors.reset}`);
+  },
+
+  action(meetingId, ...actionWords) {
+    if (!meetingId || actionWords.length === 0) {
+      console.log(`${colors.red}Error:${colors.reset} Usage: mn action <meeting-id> <action-item>`);
+      return;
+    }
+    
+    const action = actionWords.join(' ');
+    const meetings = loadMeetings();
+    const meeting = meetings.find(m => m.id === meetingId);
+    
+    if (!meeting) {
+      console.log(`${colors.red}Error:${colors.reset} Meeting not found: ${meetingId}`);
+      return;
+    }
+    
+    const actionId = generateId();
+    meeting.actionItems.push({
+      id: actionId,
+      content: action,
+      completed: false,
+      timestamp: getNSTTime().toISOString()
+    });
+    
+    saveMeetings(meetings);
+    console.log(`${colors.green}✓${colors.reset} Action item added: ${action}`);
+    console.log(`${colors.cyan}Action ID:${colors.reset} ${actionId}`);
+  },
+
+  list(filter = 'all') {
+    const meetings = loadMeetings();
+    
+    if (meetings.length === 0) {
+      console.log(`${colors.yellow}No meetings found.${colors.reset}`);
+      console.log(`${colors.cyan}Tip:${colors.reset} Use ${colors.cyan}mn new "Meeting Title"${colors.reset} to start`);
+      return;
+    }
+    
+    const now = getNSTTime();
+    const today = now.toISOString().split('T')[0];
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    
+    let filtered = meetings;
+    
+    switch (filter) {
+      case 'today':
+        filtered = meetings.filter(m => m.timestamp.split('T')[0] === today);
+        break;
+      case 'week':
+        filtered = meetings.filter(m => m.timestamp >= weekAgo);
+        break;
+      case 'month':
+        filtered = meetings.filter(m => m.timestamp >= monthAgo);
+        break;
+    }
+    
+    console.log(`${colors.bright}Meetings${colors.reset} (${filter === 'all' ? 'all time' : filter})\n`);
+    
+    filtered.reverse().forEach(meeting => {
+      const date = new Date(meeting.timestamp);
+      const actionItems = meeting.actionItems.filter(a => !a.completed).length;
+      
+      console.log(`${colors.cyan}${meeting.id}${colors.reset} ${colors.bright}${meeting.title}${colors.reset}`);
+      console.log(`  ${formatTime(date)} • ${meeting.notes.length} notes • ${actionItems} pending actions`);
+      console.log();
+    });
+  },
+
+  show(meetingId) {
+    if (!meetingId) {
+      console.log(`${colors.red}Error:${colors.reset} Usage: mn show <meeting-id>`);
+      return;
+    }
+    
+    const meetings = loadMeetings();
+    const meeting = meetings.find(m => m.id === meetingId);
+    
+    if (!meeting) {
+      console.log(`${colors.red}Error:${colors.reset} Meeting not found: ${meetingId}`);
+      return;
+    }
+    
+    console.log(`${colors.bright}${meeting.title}${colors.reset}`);
+    console.log(`${colors.cyan}Date:${colors.reset} ${formatTime(new Date(meeting.timestamp))}`);
+    console.log(`${colors.cyan}ID:${colors.reset} ${meeting.id}\n`);
+    
+    if (meeting.notes.length > 0) {
+      console.log(`${colors.bright}Notes:${colors.reset}`);
+      meeting.notes.forEach(note => {
+        const time = new Date(note.timestamp).toLocaleTimeString('en-US', {
+          timeZone: 'America/St_Johns',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        console.log(`  ${colors.cyan}${time}${colors.reset} ${note.content}`);
+      });
+      console.log();
+    }
+    
+    if (meeting.actionItems.length > 0) {
+      console.log(`${colors.bright}Action Items:${colors.reset}`);
+      meeting.actionItems.forEach(action => {
+        const status = action.completed ? `${colors.green}✓${colors.reset}` : `${colors.yellow}◯${colors.reset}`;
+        console.log(`  ${status} ${action.content} ${colors.cyan}(${action.id})${colors.reset}`);
+      });
+    }
+  },
+
+  search(query) {
+    if (!query) {
+      console.log(`${colors.red}Error:${colors.reset} Usage: mn search <query>`);
+      return;
+    }
+    
+    const meetings = loadMeetings();
+    const results = [];
+    
+    meetings.forEach(meeting => {
+      if (meeting.title.toLowerCase().includes(query.toLowerCase())) {
+        results.push({ type: 'title', meeting, content: meeting.title });
+      }
+      
+      meeting.notes.forEach(note => {
+        if (note.content.toLowerCase().includes(query.toLowerCase())) {
+          results.push({ type: 'note', meeting, content: note.content });
+        }
+      });
+      
+      meeting.actionItems.forEach(action => {
+        if (action.content.toLowerCase().includes(query.toLowerCase())) {
+          results.push({ type: 'action', meeting, content: action.content });
+        }
+      });
+    });
+    
+    if (results.length === 0) {
+      console.log(`${colors.yellow}No results found for "${query}"${colors.reset}`);
+      return;
+    }
+    
+    console.log(`${colors.bright}Search Results${colors.reset} for "${query}"\n`);
+    
+    results.forEach(result => {
+      const date = new Date(result.meeting.timestamp);
+      const typeColor = result.type === 'title' ? colors.magenta : 
+                       result.type === 'note' ? colors.blue : colors.yellow;
+      
+      console.log(`${colors.cyan}${result.meeting.id}${colors.reset} ${colors.bright}${result.meeting.title}${colors.reset}`);
+      console.log(`  ${typeColor}${result.type}:${colors.reset} ${result.content}`);
+      console.log(`  ${formatTime(date)}\n`);
+    });
+  },
+
+  actions() {
+    const meetings = loadMeetings();
+    const allActions = [];
+    
+    meetings.forEach(meeting => {
+      meeting.actionItems
+        .filter(action => !action.completed)
+        .forEach(action => {
+          allActions.push({
+            ...action,
+            meetingTitle: meeting.title,
+            meetingId: meeting.id
+          });
+        });
+    });
+    
+    if (allActions.length === 0) {
+      console.log(`${colors.green}✓ All action items completed!${colors.reset}`);
+      return;
+    }
+    
+    console.log(`${colors.bright}Pending Action Items${colors.reset}\n`);
+    
+    allActions.forEach(action => {
+      console.log(`${colors.yellow}◯${colors.reset} ${action.content}`);
+      console.log(`  ${colors.cyan}Meeting:${colors.reset} ${action.meetingTitle} (${action.meetingId})`);
+      console.log(`  ${colors.cyan}Created:${colors.reset} ${formatTime(new Date(action.timestamp))}`);
+      console.log(`  ${colors.cyan}Action ID:${colors.reset} ${action.id}\n`);
+    });
+  },
+
+  complete(actionId) {
+    if (!actionId) {
+      console.log(`${colors.red}Error:${colors.reset} Usage: mn complete <action-id>`);
+      return;
+    }
+    
+    const meetings = loadMeetings();
+    let found = false;
+    
+    meetings.forEach(meeting => {
+      meeting.actionItems.forEach(action => {
+        if (action.id === actionId) {
+          action.completed = true;
+          action.completedAt = getNSTTime().toISOString();
+          found = true;
+        }
+      });
+    });
+    
+    if (!found) {
+      console.log(`${colors.red}Error:${colors.reset} Action item not found: ${actionId}`);
+      return;
+    }
+    
+    saveMeetings(meetings);
+    console.log(`${colors.green}✓ Action item completed!${colors.reset}`);
+  },
+
+  export(meetingId) {
+    if (!meetingId) {
+      console.log(`${colors.red}Error:${colors.reset} Usage: mn export <meeting-id>`);
+      return;
+    }
+    
+    const meetings = loadMeetings();
+    const meeting = meetings.find(m => m.id === meetingId);
+    
+    if (!meeting) {
+      console.log(`${colors.red}Error:${colors.reset} Meeting not found: ${meetingId}`);
+      return;
+    }
+    
+    const date = new Date(meeting.timestamp);
+    const filename = `${date.toISOString().split('T')[0]}-${meeting.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}.md`;
+    
+    let markdown = `# ${meeting.title}\n\n`;
+    markdown += `**Date:** ${formatTime(date)}\n`;
+    markdown += `**Meeting ID:** ${meeting.id}\n\n`;
+    
+    if (meeting.notes.length > 0) {
+      markdown += `## Notes\n\n`;
+      meeting.notes.forEach(note => {
+        const time = new Date(note.timestamp).toLocaleTimeString('en-US', {
+          timeZone: 'America/St_Johns',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        markdown += `- **${time}** ${note.content}\n`;
+      });
+      markdown += `\n`;
+    }
+    
+    if (meeting.actionItems.length > 0) {
+      markdown += `## Action Items\n\n`;
+      meeting.actionItems.forEach(action => {
+        const status = action.completed ? '✅' : '⭕';
+        markdown += `${status} ${action.content}\n`;
+      });
+    }
+    
+    fs.writeFileSync(filename, markdown);
+    console.log(`${colors.green}✓${colors.reset} Exported to ${colors.bright}${filename}${colors.reset}`);
+  },
+
+  stats() {
+    const meetings = loadMeetings();
+    
+    if (meetings.length === 0) {
+      console.log(`${colors.yellow}No meetings to analyze.${colors.reset}`);
+      return;
+    }
+    
+    const now = getNSTTime();
+    const today = now.toISOString().split('T')[0];
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    
+    const todayCount = meetings.filter(m => m.timestamp.split('T')[0] === today).length;
+    const weekCount = meetings.filter(m => m.timestamp >= weekAgo).length;
+    const monthCount = meetings.filter(m => m.timestamp >= monthAgo).length;
+    
+    const totalNotes = meetings.reduce((sum, m) => sum + m.notes.length, 0);
+    const totalActions = meetings.reduce((sum, m) => sum + m.actionItems.length, 0);
+    const completedActions = meetings.reduce((sum, m) => 
+      sum + m.actionItems.filter(a => a.completed).length, 0);
+    
+    console.log(`${colors.bright}Meeting Statistics${colors.reset}\n`);
+    console.log(`${colors.cyan}Meetings:${colors.reset}`);
+    console.log(`  Today: ${todayCount}`);
+    console.log(`  This week: ${weekCount}`);
+    console.log(`  This month: ${monthCount}`);
+    console.log(`  All time: ${meetings.length}\n`);
+    
+    console.log(`${colors.cyan}Content:${colors.reset}`);
+    console.log(`  Total notes: ${totalNotes}`);
+    console.log(`  Avg notes per meeting: ${(totalNotes / meetings.length).toFixed(1)}\n`);
+    
+    console.log(`${colors.cyan}Action Items:${colors.reset}`);
+    console.log(`  Total created: ${totalActions}`);
+    console.log(`  Completed: ${completedActions}`);
+    console.log(`  Pending: ${totalActions - completedActions}`);
+    if (totalActions > 0) {
+      console.log(`  Completion rate: ${Math.round((completedActions / totalActions) * 100)}%`);
+    }
+  }
+};
+
+// Command aliases
+commands.create = commands.start = commands.new;
+commands.ls = commands.list;
+commands.find = commands.search;
+commands.todo = commands.task = commands.action;
+commands.done = commands.complete;
+
+// Parse command line arguments
+const [,, command, ...args] = process.argv;
+
+if (!command || command === 'help' || command === '--help' || command === '-h') {
+  commands.help();
+} else if (commands[command]) {
+  commands[command](...args);
+} else {
+  console.log(`${colors.red}Error:${colors.reset} Unknown command: ${command}`);
+  console.log(`Run ${colors.cyan}mn help${colors.reset} for available commands`);
+  process.exit(1);
+}

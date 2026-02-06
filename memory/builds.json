@@ -1,0 +1,131 @@
+{
+  "lastUpdated": "2026-02-06T03:30:00.000Z",
+  "builds": [
+    {
+      "id": "standup-gen",
+      "date": "2025-01-29",
+      "timestamp": "2025-01-29T03:30:00.000Z",
+      "name": "Daily Standup Generator",
+      "command": "standup-gen",
+      "path": "tools/standup-gen",
+      "purpose": "Automate daily standup creation from git commits",
+      "category": "productivity",
+      "features": [
+        "Scans git repos for commits in last 24h (configurable)",
+        "Auto-categorizes commits (features, fixes, improvements, etc.)",
+        "Generates clean markdown summary",
+        "Supports multiple repositories",
+        "Output options: stdout, save to file, copy to clipboard",
+        "Consistent format for standups"
+      ],
+      "source": "overnight-coder",
+      "tested": true,
+      "github": null
+    },
+    {
+      "id": "qn",
+      "date": "2025-01-30",
+      "timestamp": "2025-01-30T03:30:00.000Z",
+      "name": "Quick Note CLI",
+      "command": "qn",
+      "path": "tools/quick-note",
+      "purpose": "Instant thought capture with intelligent auto-filing",
+      "category": "productivity",
+      "features": [
+        "Lightning-fast note capture: qn 'thought'",
+        "Auto-timestamps with NST timezone",
+        "Context-aware tagging ([WORK]/[PERSONAL]/[GENERAL])",
+        "Tag support and search across all notes",
+        "Usage statistics and organized storage",
+        "Zero friction capture for improved habits"
+      ],
+      "source": "overnight-coder",
+      "tested": true,
+      "github": null
+    },
+    {
+      "id": "read",
+      "date": "2025-01-31",
+      "timestamp": "2025-01-31T03:30:00.000Z",
+      "name": "Reading Progress Tracker",
+      "command": "read",
+      "path": "tools/reading-tracker",
+      "purpose": "Transform reading from sporadic activity into measurable, consistent habit",
+      "category": "learning",
+      "features": [
+        "Book management with page tracking",
+        "Session tracking (real-time or retroactive)",
+        "Progress analytics and completion rates",
+        "Insight capture during reading sessions",
+        "Habit reinforcement with streak tracking",
+        "NST timezone-aware timestamps"
+      ],
+      "source": "overnight-coder",
+      "tested": true,
+      "github": null
+    },
+    {
+      "id": "cu",
+      "date": "2026-02-01",
+      "timestamp": "2026-02-01T03:30:00.000Z",
+      "name": "ClickUp CLI",
+      "command": "cu",
+      "path": "tools/clickup-cli",
+      "purpose": "Zero-friction task management from terminal without context switching",
+      "category": "productivity",
+      "features": [
+        "Terminal-native ClickUp integration",
+        "Smart workspace detection",
+        "Priority management with visual indicators",
+        "Context-aware filtering (overdue, today, open)",
+        "NST timezone aware",
+        "Quick task creation and completion"
+      ],
+      "source": "overnight-coder",
+      "tested": true,
+      "github": null
+    },
+    {
+      "id": "dl",
+      "date": "2026-02-02",
+      "timestamp": "2026-02-02T03:30:00.000Z",
+      "name": "Development Learning Tracker",
+      "command": "dl",
+      "path": "tools/dev-learn",
+      "purpose": "Systematically capture, organize, and search technical learnings from daily development work",
+      "category": "learning",
+      "features": [
+        "Lightning-fast learning capture",
+        "Smart categorization (11 dev-focused categories)",
+        "Powerful search with highlighted results",
+        "Rich tagging system for cross-cutting organization",
+        "Analytics dashboard for learning patterns",
+        "Daily review and persistent storage"
+      ],
+      "source": "overnight-coder",
+      "tested": true,
+      "github": null
+    },
+    {
+      "id": "mn",
+      "date": "2026-02-06",
+      "timestamp": "2026-02-06T03:30:00.000Z",
+      "name": "Meeting Notes Manager",
+      "command": "mn",
+      "path": "tools/meeting-notes",
+      "purpose": "Zero-friction meeting capture and organization designed for productivity-focused CTOs",
+      "category": "productivity",
+      "features": [
+        "Terminal-native meeting management",
+        "Lightning-fast note capture (2-second workflow)",
+        "Action item tracking with completion status",
+        "Powerful search across all meetings and content",
+        "NST timezone aware timestamps",
+        "Export capabilities and analytics dashboard"
+      ],
+      "source": "overnight-coder",
+      "tested": true,
+      "github": null
+    }
+  ]
+}
