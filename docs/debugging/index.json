@@ -1,6 +1,6 @@
 {
-  "last_synced": "2026-02-05T04:00:00.000Z",
-  "total_entries": 11,
+  "last_synced": "2026-02-06T04:04:46.348658Z",
+  "total_entries": 15,
   "entries": [
     {
       "path": "healthsparq/audiobee_maine_community_health_options/2026-01-26.md",
@@ -154,21 +154,76 @@
       "clickup_date_updated": 1770206002344
     },
     {
-      "path": "sapphire/audiobee_mass_gen/2026-02-04.md",
+      "path": "docs/debugging/sapphire/audiobee_mass_gen/2026-02-04.md",
       "site_type": "sapphire",
       "organization": "audiobee_mass_gen",
       "date": "2026-02-04",
       "error_type": "Slow scrape",
       "tags": [
-        "sapphire",
-        "performance",
         "optimization",
-        "parallelization",
-        "headless",
-        "file-operations"
+        "sapphire",
+        "performance"
       ],
       "clickup_page_id": "8cqqzen-4517",
-      "clickup_date_updated": 1770206239827
+      "clickup_date_updated": 1770329092663
+    },
+    {
+      "path": "docs/debugging/carrier/audiobee_uhc_medicaid/2026-02-04.md",
+      "site_type": "carrier",
+      "organization": "audiobee_uhc_medicaid",
+      "date": "2026-02-04",
+      "error_type": "Slow scraping speed and 202 errors using page.request APIRequest for API calls",
+      "tags": [
+        "code-refactoring",
+        "api-calls",
+        "carrier",
+        "performance"
+      ],
+      "clickup_page_id": "8cqqzen-4617",
+      "clickup_date_updated": 1770329049730
+    },
+    {
+      "path": "docs/debugging/carrier/audiobee_uhc_medicaid/2026-02-05.md",
+      "site_type": "carrier",
+      "organization": "audiobee_uhc_medicaid",
+      "date": "2026-02-05",
+      "error_type": "",
+      "tags": [
+        "carrier"
+      ],
+      "clickup_page_id": "8cqqzen-4637",
+      "clickup_date_updated": 1770328384109
+    },
+    {
+      "path": "docs/debugging/sapphire/audiobee_carefirst/2026-02-05.md",
+      "site_type": "sapphire",
+      "organization": "audiobee_carefirst",
+      "date": "2026-02-05",
+      "error_type": "False drops in large numbers",
+      "tags": [
+        "search",
+        "network-mapping",
+        "npi-matching",
+        "optimization",
+        "caching",
+        "false-drops",
+        "sapphire"
+      ],
+      "clickup_page_id": "8cqqzen-4657",
+      "clickup_date_updated": 1770329008699
+    },
+    {
+      "path": "docs/debugging/sapphire/audiobee_bcbs_kc/2026-02-05.md",
+      "site_type": "sapphire",
+      "organization": "audiobee_bcbs_kc",
+      "date": "2026-02-05",
+      "error_type": "",
+      "tags": [
+        "sapphire",
+        "network-mapping"
+      ],
+      "clickup_page_id": "8cqqzen-4677",
+      "clickup_date_updated": 1770329028266
     }
   ]
 }
