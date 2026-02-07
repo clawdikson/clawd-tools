@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-02-06T03:30:00.000Z",
+  "lastUpdated": "2026-02-07T03:30:00.000Z",
   "builds": [
     {
       "id": "standup-gen",
@@ -122,6 +122,27 @@
         "Powerful search across all meetings and content",
         "NST timezone aware timestamps",
         "Export capabilities and analytics dashboard"
+      ],
+      "source": "overnight-coder",
+      "tested": true,
+      "github": "clawd-tools"
+    },
+    {
+      "id": "apt",
+      "date": "2026-02-07",
+      "timestamp": "2026-02-07T03:30:00.000Z",
+      "name": "API Testing CLI",
+      "command": "apt",
+      "path": "tools/api-test",
+      "purpose": "Lightning-fast API testing from terminal for developers who live in CLI",
+      "category": "devops",
+      "features": [
+        "Terminal-native HTTP client (GET/POST/PUT/PATCH/DELETE)",
+        "Preset management for common API calls",
+        "Request history with NST timestamps and full context",
+        "Color-coded output with response timing and size",
+        "Authentication support (custom headers, Bearer tokens)",
+        "Zero context switching from development environment"
       ],
       "source": "overnight-coder",
       "tested": true,

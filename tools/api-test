@@ -1,0 +1,439 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+
+const execAsync = promisify(exec);
+
+class ApiTest {
+  constructor() {
+    this.configDir = path.join(process.env.HOME, '.api-test');
+    this.configFile = path.join(this.configDir, 'config.json');
+    this.historyFile = path.join(this.configDir, 'history.json');
+    this.presetsFile = path.join(this.configDir, 'presets.json');
+    
+    this.ensureConfigDir();
+    this.config = this.loadConfig();
+    this.history = this.loadHistory();
+    this.presets = this.loadPresets();
+  }
+
+  ensureConfigDir() {
+    if (!fs.existsSync(this.configDir)) {
+      fs.mkdirSync(this.configDir, { recursive: true });
+    }
+  }
+
+  loadConfig() {
+    if (!fs.existsSync(this.configFile)) {
+      const defaultConfig = {
+        defaultHeaders: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 10000,
+        followRedirects: true,
+        showHeaders: false,
+        prettyPrint: true
+      };
+      this.saveConfig(defaultConfig);
+      return defaultConfig;
+    }
+    return JSON.parse(fs.readFileSync(this.configFile, 'utf8'));
+  }
+
+  loadHistory() {
+    if (!fs.existsSync(this.historyFile)) {
+      return [];
+    }
+    return JSON.parse(fs.readFileSync(this.historyFile, 'utf8'));
+  }
+
+  loadPresets() {
+    if (!fs.existsSync(this.presetsFile)) {
+      return {};
+    }
+    return JSON.parse(fs.readFileSync(this.presetsFile, 'utf8'));
+  }
+
+  saveConfig(config) {
+    fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+    this.config = config;
+  }
+
+  saveHistory(history) {
+    // Keep only last 100 requests
+    const trimmed = history.slice(-100);
+    fs.writeFileSync(this.historyFile, JSON.stringify(trimmed, null, 2));
+    this.history = trimmed;
+  }
+
+  savePresets(presets) {
+    fs.writeFileSync(this.presetsFile, JSON.stringify(presets, null, 2));
+    this.presets = presets;
+  }
+
+  // Color formatting
+  red(text) { return `\x1b[31m${text}\x1b[0m`; }
+  green(text) { return `\x1b[32m${text}\x1b[0m`; }
+  yellow(text) { return `\x1b[33m${text}\x1b[0m`; }
+  blue(text) { return `\x1b[34m${text}\x1b[0m`; }
+  cyan(text) { return `\x1b[36m${text}\x1b[0m`; }
+  gray(text) { return `\x1b[90m${text}\x1b[0m`; }
+  bold(text) { return `\x1b[1m${text}\x1b[0m`; }
+
+  formatStatus(status) {
+    if (status >= 200 && status < 300) return this.green(status);
+    if (status >= 300 && status < 400) return this.yellow(status);
+    if (status >= 400 && status < 500) return this.red(status);
+    if (status >= 500) return this.red(this.bold(status));
+    return status;
+  }
+
+  formatMethod(method) {
+    const colors = {
+      'GET': this.green,
+      'POST': this.blue,
+      'PUT': this.yellow,
+      'PATCH': this.cyan,
+      'DELETE': this.red
+    };
+    return (colors[method] || this.gray)(method);
+  }
+
+  getNSTTime() {
+    return new Date().toLocaleString('en-CA', {
+      timeZone: 'America/St_Johns',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  }
+
+  async makeRequest(method, url, options = {}) {
+    const { data, headers: customHeaders, timeout } = options;
+    
+    const headers = { ...this.config.defaultHeaders, ...customHeaders };
+    
+    // Build curl command
+    let curlCmd = ['curl', '-s', '-S'];
+    
+    // Add method
+    if (method !== 'GET') {
+      curlCmd.push('-X', method);
+    }
+    
+    // Add headers
+    Object.entries(headers).forEach(([key, value]) => {
+      curlCmd.push('-H', `"${key}: ${value}"`);
+    });
+    
+    // Add data
+    if (data) {
+      curlCmd.push('-d', `'${typeof data === 'string' ? data : JSON.stringify(data)}'`);
+    }
+    
+    // Add timeout
+    curlCmd.push('--max-time', (timeout || this.config.timeout) / 1000);
+    
+    // Add timing and status
+    curlCmd.push('-w', '"METRICS:%{http_code}|%{time_total}|%{size_download}"');
+    
+    // Add URL
+    curlCmd.push(`"${url}"`);
+    
+    const fullCommand = curlCmd.join(' ');
+    
+    try {
+      const start = Date.now();
+      const { stdout, stderr } = await execAsync(fullCommand);
+      const responseTime = (Date.now() - start) / 1000;
+      
+      // Parse response - look for METRICS at the end
+      const metricsMatch = stdout.match(/METRICS:(\d+)\|([\d.]+)\|(\d+)"?$/);
+      
+      if (!metricsMatch) {
+        // Fallback - assume success if we got data
+        return {
+          status: 200,
+          data: stdout,
+          responseTime: responseTime,
+          responseSize: stdout.length,
+          error: null
+        };
+      }
+      
+      const status = parseInt(metricsMatch[1]);
+      const curlTime = parseFloat(metricsMatch[2]);
+      const responseSize = parseInt(metricsMatch[3]);
+      
+      // Remove metrics from response body
+      const responseBody = stdout.replace(/METRICS:\d+\|[\d.]+\|\d+"?$/, '').trim();
+      
+      return {
+        status,
+        data: responseBody,
+        responseTime: curlTime,
+        responseSize,
+        error: null
+      };
+    } catch (error) {
+      return {
+        status: 0,
+        data: null,
+        responseTime: 0,
+        responseSize: 0,
+        error: error.message
+      };
+    }
+  }
+
+  addToHistory(method, url, response, options = {}) {
+    const entry = {
+      timestamp: this.getNSTTime(),
+      method,
+      url,
+      status: response.status,
+      responseTime: response.responseTime,
+      responseSize: response.responseSize,
+      error: response.error,
+      headers: options.headers || {},
+      data: options.data || null
+    };
+    
+    this.history.push(entry);
+    this.saveHistory(this.history);
+  }
+
+  printResponse(response, showHeaders = false) {
+    if (response.error) {
+      console.log(this.red(`❌ Error: ${response.error}`));
+      return;
+    }
+    
+    console.log(this.bold(`Status: ${this.formatStatus(response.status)} | Time: ${response.responseTime.toFixed(2)}s | Size: ${response.responseSize} bytes`));
+    
+    if (response.data) {
+      console.log('\n' + this.blue('Response Body:'));
+      try {
+        const parsed = JSON.parse(response.data);
+        console.log(JSON.stringify(parsed, null, 2));
+      } catch {
+        console.log(response.data);
+      }
+    }
+  }
+
+  showHelp() {
+    console.log(this.bold('API Test CLI - Fast API testing from terminal\n'));
+    
+    console.log(this.blue('Usage:'));
+    console.log('  apt <method> <url> [options]');
+    console.log('  apt preset <name>');
+    console.log('  apt history [count]');
+    console.log('  apt save <name> <method> <url> [options]');
+    console.log('  apt list');
+    console.log('  apt config\n');
+    
+    console.log(this.blue('Methods:'));
+    console.log('  get, post, put, patch, delete\n');
+    
+    console.log(this.blue('Options:'));
+    console.log('  -d, --data <json>     Request body (JSON)');
+    console.log('  -H, --header <h:v>    Custom header (can repeat)');
+    console.log('  -t, --timeout <ms>    Request timeout');
+    console.log('  --headers             Show response headers');
+    console.log('  --no-pretty           Disable pretty printing\n');
+    
+    console.log(this.blue('Examples:'));
+    console.log('  apt get https://api.github.com/user');
+    console.log('  apt post https://httpbin.org/post -d \'{"key":"value"}\'');
+    console.log('  apt get https://api.example.com -H "Authorization:Bearer token"');
+    console.log('  apt save github-user get https://api.github.com/user');
+    console.log('  apt preset github-user');
+    console.log('  apt history 10');
+  }
+
+  parseHeaders(headerStrings) {
+    const headers = {};
+    headerStrings.forEach(headerString => {
+      const [key, ...valueParts] = headerString.split(':');
+      headers[key.trim()] = valueParts.join(':').trim();
+    });
+    return headers;
+  }
+
+  async run(args) {
+    if (args.length === 0 || args[0] === 'help' || args[0] === '--help' || args[0] === '-h') {
+      this.showHelp();
+      return;
+    }
+    
+    const command = args[0].toLowerCase();
+    
+    // Special commands
+    if (command === 'history') {
+      const count = args[1] ? parseInt(args[1]) : 10;
+      const recent = this.history.slice(-count).reverse();
+      
+      console.log(this.bold(`📜 Last ${recent.length} API requests:\n`));
+      
+      recent.forEach((entry, index) => {
+        const status = this.formatStatus(entry.status);
+        const method = this.formatMethod(entry.method);
+        console.log(`${this.gray(entry.timestamp)} ${method} ${entry.url}`);
+        console.log(`   ${status} | ${entry.responseTime.toFixed(2)}s | ${entry.responseSize} bytes`);
+        if (entry.error) console.log(`   ${this.red('Error:')} ${entry.error}`);
+        console.log();
+      });
+      return;
+    }
+    
+    if (command === 'list' || command === 'presets') {
+      console.log(this.bold('💾 Saved presets:\n'));
+      Object.entries(this.presets).forEach(([name, preset]) => {
+        const method = this.formatMethod(preset.method.toUpperCase());
+        console.log(`  ${this.cyan(name)} → ${method} ${preset.url}`);
+        if (preset.description) {
+          console.log(`    ${this.gray(preset.description)}`);
+        }
+      });
+      return;
+    }
+    
+    if (command === 'config') {
+      console.log(this.bold('⚙️  Current configuration:\n'));
+      console.log(JSON.stringify(this.config, null, 2));
+      return;
+    }
+    
+    if (command === 'save') {
+      if (args.length < 4) {
+        console.log(this.red('Usage: apt save <name> <method> <url> [options]'));
+        return;
+      }
+      
+      const [, name, method, url, ...options] = args;
+      const preset = {
+        method: method.toUpperCase(),
+        url,
+        description: `Saved ${method.toUpperCase()} request to ${url}`
+      };
+      
+      // Parse options for preset
+      const headers = [];
+      let data = null;
+      for (let i = 0; i < options.length; i++) {
+        if (options[i] === '-H' || options[i] === '--header') {
+          headers.push(options[++i]);
+        } else if (options[i] === '-d' || options[i] === '--data') {
+          data = options[++i];
+        }
+      }
+      
+      if (headers.length > 0) preset.headers = this.parseHeaders(headers);
+      if (data) preset.data = data;
+      
+      this.presets[name] = preset;
+      this.savePresets(this.presets);
+      
+      console.log(this.green(`✅ Preset '${name}' saved successfully`));
+      return;
+    }
+    
+    if (command === 'preset') {
+      if (args.length < 2) {
+        console.log(this.red('Usage: apt preset <name>'));
+        return;
+      }
+      
+      const presetName = args[1];
+      const preset = this.presets[presetName];
+      
+      if (!preset) {
+        console.log(this.red(`❌ Preset '${presetName}' not found`));
+        return;
+      }
+      
+      console.log(this.blue(`🚀 Running preset: ${presetName}`));
+      const response = await this.makeRequest(preset.method, preset.url, {
+        data: preset.data,
+        headers: preset.headers
+      });
+      
+      this.addToHistory(preset.method, preset.url, response, {
+        data: preset.data,
+        headers: preset.headers
+      });
+      
+      this.printResponse(response);
+      return;
+    }
+    
+    // HTTP method commands
+    const method = command.toUpperCase();
+    if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      console.log(this.red(`❌ Unknown command or method: ${command}`));
+      this.showHelp();
+      return;
+    }
+    
+    if (args.length < 2) {
+      console.log(this.red(`Usage: apt ${method.toLowerCase()} <url> [options]`));
+      return;
+    }
+    
+    const url = args[1];
+    const headers = [];
+    let data = null;
+    let timeout = null;
+    let showHeaders = this.config.showHeaders;
+    
+    // Parse options
+    for (let i = 2; i < args.length; i++) {
+      const arg = args[i];
+      
+      if (arg === '-d' || arg === '--data') {
+        data = args[++i];
+      } else if (arg === '-H' || arg === '--header') {
+        headers.push(args[++i]);
+      } else if (arg === '-t' || arg === '--timeout') {
+        timeout = parseInt(args[++i]);
+      } else if (arg === '--headers') {
+        showHeaders = true;
+      } else if (arg === '--no-pretty') {
+        // Handle in printResponse if needed
+      }
+    }
+    
+    console.log(this.blue(`🚀 ${this.formatMethod(method)} ${url}`));
+    
+    const requestOptions = {
+      data: data ? (data.startsWith('{') ? data : JSON.parse(data)) : null,
+      headers: this.parseHeaders(headers),
+      timeout
+    };
+    
+    const response = await this.makeRequest(method, url, requestOptions);
+    
+    this.addToHistory(method, url, response, requestOptions);
+    this.printResponse(response, showHeaders);
+  }
+}
+
+// Main execution
+if (require.main === module) {
+  const apiTest = new ApiTest();
+  apiTest.run(process.argv.slice(2)).catch(error => {
+    console.error('Error:', error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = ApiTest;

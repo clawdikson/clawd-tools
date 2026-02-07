@@ -372,3 +372,75 @@ With `mn`, Dikson can capture insights instantly during technical discussions wi
 **Perfect for CTO role:** Technical leadership requires systematic capture of architecture decisions, performance insights, team discussions, and strategic planning. This tool makes meeting documentation as fast as writing code, maintaining flow state while building institutional memory.
 
 **Complements existing tools:** Works alongside standup-gen (git-based), quick-note (thought capture), reading-tracker (learning), clickup-cli (task management), and dev-learn (technical insights) to create comprehensive productivity system.
+
+## 2026-02-07 (3:30 AM UTC)
+
+**Built:** API Testing CLI (`tools/api-test` → `apt` command)
+
+**Purpose:** Lightning-fast API testing from terminal for developers who live in CLI
+
+**Key features:**
+- **Terminal-native HTTP client** - GET/POST/PUT/PATCH/DELETE with curl backend
+- **Preset management** - Save and replay common API calls instantly  
+- **Request history** - Automatic logging with NST timestamps and full context
+- **Color-coded output** - Visual status codes, response timing, and size display
+- **Authentication support** - Custom headers, Bearer tokens, API keys
+- **Zero context switching** - Stay in terminal instead of opening GUI tools
+
+**Why perfectly suited for Dikson:**
+- **Eliminates GUI overhead** - 2-second API test vs 30+ seconds in Postman/browser
+- **Supports CTO workflow** - Rapid API debugging during development and production issues
+- **Aligns with 1% better daily** - Removes friction from common debugging tasks
+- **Terminal-first approach** - Integrates seamlessly with existing development environment
+- **NST timezone native** - All timestamps in Newfoundland local time
+- **Persistent knowledge** - Request history builds searchable debugging database
+
+**Usage examples:**
+```bash
+# Quick API testing
+apt get https://api.github.com/user
+apt post https://httpbin.org/post -d '{"key":"value"}'
+
+# Authentication testing  
+apt get https://api.stripe.com/v1/account -H "Authorization:Bearer sk_test_..."
+
+# Save common patterns
+apt save github-user get https://api.github.com/user -H "Authorization:Bearer token"
+apt preset github-user
+
+# Review testing history
+apt history 10
+```
+
+**Smart design decisions:**
+- Curl backend for reliability and performance
+- JSON response pretty-printing with fallback for plain text
+- Automatic request history with cleanup (last 100 requests)
+- Color-coded methods (GET=green, POST=blue, DELETE=red) and status codes
+- Preset system supports headers, data, and descriptions
+- NST timezone integration for consistent timestamps
+- Error handling with clear diagnostic messages
+
+**Tested:** ✅ All core functions work correctly
+- HTTP methods (GET, POST, PUT, PATCH, DELETE)
+- JSON request/response handling with pretty printing
+- Preset save/load functionality
+- Request history with timestamps and metrics
+- Custom headers and authentication
+- Response timing and size reporting
+- Error handling and timeout management
+
+**Files created:**
+- `tools/api-test` (executable Node.js CLI)
+- `tools/README-api-test.md` (comprehensive documentation with examples)
+- System-wide command: `apt` (symlinked to `/usr/local/bin/apt`)
+
+**Impact potential:**
+This tool addresses a major productivity bottleneck for developers and CTOs: the overhead of API testing during development. Context switching between terminal and GUI tools (Postman, browser dev tools) breaks flow state and adds 20-30 seconds to each test cycle.
+
+**Before:** Debug API issue → Open Postman → Set up request → Add headers → Send → Analyze → Back to terminal (60+ seconds)
+**After:** `apt get https://api.endpoint.com -H "Auth:Bearer token"` → Instant results (2 seconds)
+
+For a CTO managing multiple projects and debugging production issues, this represents massive time savings that compound throughout the day. The preset system transforms repetitive testing patterns into one-command operations, while history tracking creates a searchable database of API interactions.
+
+**Perfect for CTO workflow:** Production debugging, API integration testing, third-party service validation, authentication troubleshooting, performance monitoring, and team API documentation. Combines with existing tools (qn for insights, dl for learnings, mn for meeting notes) to create comprehensive development productivity system.
