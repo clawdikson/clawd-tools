@@ -1,0 +1,576 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+// Colors for terminal output
+const colors = {
+    reset: '\x1b[0m',
+    bright: '\x1b[1m',
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    magenta: '\x1b[35m',
+    cyan: '\x1b[36m',
+    gray: '\x1b[90m'
+};
+
+// Data storage directory
+const dataDir = path.join(process.env.HOME, '.meeting-notes');
+const meetingsFile = path.join(dataDir, 'meetings.json');
+const templatesFile = path.join(dataDir, 'templates.json');
+
+// Initialize data directory and files
+function initializeStorage() {
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    if (!fs.existsSync(meetingsFile)) {
+        fs.writeFileSync(meetingsFile, JSON.stringify({ meetings: [] }, null, 2));
+    }
+    
+    if (!fs.existsSync(templatesFile)) {
+        const defaultTemplates = {
+            "1-on-1": {
+                sections: ["Previous Action Items", "Current Projects", "Blockers", "Goals", "Feedback", "Next Actions"],
+                defaultDuration: 30
+            },
+            "standup": {
+                sections: ["Yesterday", "Today", "Blockers", "Notes"],
+                defaultDuration: 15
+            },
+            "planning": {
+                sections: ["Objectives", "Requirements", "Timeline", "Resources", "Risks", "Decisions", "Action Items"],
+                defaultDuration: 60
+            },
+            "retrospective": {
+                sections: ["What Went Well", "What Could Improve", "Action Items", "Experiments"],
+                defaultDuration: 45
+            },
+            "general": {
+                sections: ["Agenda", "Discussion", "Decisions", "Action Items", "Next Steps"],
+                defaultDuration: 30
+            }
+        };
+        fs.writeFileSync(templatesFile, JSON.stringify(defaultTemplates, null, 2));
+    }
+}
+
+// Get current NST time
+function getNSTTime() {
+    const now = new Date();
+    const nstOffset = -3.5; // NST is UTC-3:30
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const nst = new Date(utc + (nstOffset * 3600000));
+    return nst;
+}
+
+// Format date for NST
+function formatNSTDate(date) {
+    const nst = date || getNSTTime();
+    return nst.toLocaleDateString('en-CA') + ' ' + nst.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+    });
+}
+
+// Load meetings data
+function loadMeetings() {
+    try {
+        const data = JSON.parse(fs.readFileSync(meetingsFile, 'utf8'));
+        // Handle legacy format (array) vs new format (object with meetings property)
+        if (Array.isArray(data)) {
+            return { meetings: [] }; // Reset legacy format to new structure
+        }
+        return data;
+    } catch (error) {
+        return { meetings: [] };
+    }
+}
+
+// Save meetings data
+function saveMeetings(data) {
+    fs.writeFileSync(meetingsFile, JSON.stringify(data, null, 2));
+}
+
+// Load templates
+function loadTemplates() {
+    try {
+        return JSON.parse(fs.readFileSync(templatesFile, 'utf8'));
+    } catch (error) {
+        return {};
+    }
+}
+
+// Generate unique meeting ID
+function generateMeetingId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// Create new meeting
+function createMeeting(options) {
+    const data = loadMeetings();
+    const templates = loadTemplates();
+    const template = templates[options.template] || templates.general;
+    
+    const meeting = {
+        id: generateMeetingId(),
+        title: options.title,
+        type: options.template || 'general',
+        date: formatNSTDate(),
+        duration: options.duration || template.defaultDuration,
+        attendees: options.attendees || [],
+        sections: {},
+        actionItems: [],
+        decisions: [],
+        nextMeeting: options.nextMeeting || null,
+        tags: options.tags || []
+    };
+    
+    // Initialize sections from template
+    template.sections.forEach(section => {
+        meeting.sections[section] = "";
+    });
+    
+    data.meetings.push(meeting);
+    saveMeetings(data);
+    
+    console.log(`${colors.green}✅ Created meeting: ${meeting.title}${colors.reset}`);
+    console.log(`${colors.gray}   ID: ${meeting.id}${colors.reset}`);
+    console.log(`${colors.gray}   Date: ${meeting.date}${colors.reset}`);
+    console.log(`${colors.gray}   Template: ${meeting.type}${colors.reset}`);
+    
+    return meeting.id;
+}
+
+// Add content to meeting section
+function addToSection(meetingId, section, content) {
+    const data = loadMeetings();
+    const meeting = data.meetings.find(m => m.id === meetingId);
+    
+    if (!meeting) {
+        console.log(`${colors.red}❌ Meeting not found: ${meetingId}${colors.reset}`);
+        return;
+    }
+    
+    if (!meeting.sections.hasOwnProperty(section)) {
+        meeting.sections[section] = "";
+    }
+    
+    if (meeting.sections[section]) {
+        meeting.sections[section] += "\n";
+    }
+    meeting.sections[section] += `• ${content}`;
+    
+    saveMeetings(data);
+    console.log(`${colors.green}✅ Added to ${section}: ${content}${colors.reset}`);
+}
+
+// Add action item
+function addActionItem(meetingId, item, assignee = null, dueDate = null) {
+    const data = loadMeetings();
+    const meeting = data.meetings.find(m => m.id === meetingId);
+    
+    if (!meeting) {
+        console.log(`${colors.red}❌ Meeting not found: ${meetingId}${colors.reset}`);
+        return;
+    }
+    
+    const actionItem = {
+        id: generateMeetingId(),
+        description: item,
+        assignee: assignee,
+        dueDate: dueDate,
+        status: 'open',
+        created: formatNSTDate()
+    };
+    
+    meeting.actionItems.push(actionItem);
+    saveMeetings(data);
+    
+    console.log(`${colors.green}✅ Added action item: ${item}${colors.reset}`);
+    if (assignee) console.log(`${colors.gray}   Assigned to: ${assignee}${colors.reset}`);
+    if (dueDate) console.log(`${colors.gray}   Due: ${dueDate}${colors.reset}`);
+}
+
+// Add decision
+function addDecision(meetingId, decision) {
+    const data = loadMeetings();
+    const meeting = data.meetings.find(m => m.id === meetingId);
+    
+    if (!meeting) {
+        console.log(`${colors.red}❌ Meeting not found: ${meetingId}${colors.reset}`);
+        return;
+    }
+    
+    meeting.decisions.push({
+        description: decision,
+        timestamp: formatNSTDate()
+    });
+    
+    saveMeetings(data);
+    console.log(`${colors.green}✅ Added decision: ${decision}${colors.reset}`);
+}
+
+// List recent meetings
+function listMeetings(limit = 10, filter = null) {
+    const data = loadMeetings();
+    let meetings = data.meetings
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, limit);
+    
+    if (filter) {
+        meetings = meetings.filter(m => 
+            m.title.toLowerCase().includes(filter.toLowerCase()) ||
+            m.type.toLowerCase().includes(filter.toLowerCase()) ||
+            m.attendees.some(a => a.toLowerCase().includes(filter.toLowerCase()))
+        );
+    }
+    
+    if (meetings.length === 0) {
+        console.log(`${colors.yellow}📝 No meetings found${colors.reset}`);
+        return;
+    }
+    
+    console.log(`${colors.bright}📅 Recent Meetings${colors.reset}\n`);
+    
+    meetings.forEach(meeting => {
+        const actionCount = meeting.actionItems.length;
+        const decisionCount = meeting.decisions.length;
+        
+        console.log(`${colors.cyan}${meeting.title}${colors.reset} ${colors.gray}(${meeting.type})${colors.reset}`);
+        console.log(`${colors.gray}   ID: ${meeting.id}${colors.reset}`);
+        console.log(`${colors.gray}   Date: ${meeting.date} • ${meeting.duration}min${colors.reset}`);
+        if (meeting.attendees.length > 0) {
+            console.log(`${colors.gray}   Attendees: ${meeting.attendees.join(', ')}${colors.reset}`);
+        }
+        console.log(`${colors.gray}   ${actionCount} action items • ${decisionCount} decisions${colors.reset}`);
+        console.log();
+    });
+}
+
+// Show meeting details
+function showMeeting(meetingId) {
+    const data = loadMeetings();
+    const meeting = data.meetings.find(m => m.id === meetingId);
+    
+    if (!meeting) {
+        console.log(`${colors.red}❌ Meeting not found: ${meetingId}${colors.reset}`);
+        return;
+    }
+    
+    console.log(`${colors.bright}📅 ${meeting.title}${colors.reset}`);
+    console.log(`${colors.gray}Type: ${meeting.type} • Date: ${meeting.date} • Duration: ${meeting.duration}min${colors.reset}`);
+    
+    if (meeting.attendees.length > 0) {
+        console.log(`${colors.gray}Attendees: ${meeting.attendees.join(', ')}${colors.reset}`);
+    }
+    
+    console.log();
+    
+    // Show sections
+    Object.entries(meeting.sections).forEach(([section, content]) => {
+        console.log(`${colors.blue}## ${section}${colors.reset}`);
+        if (content.trim()) {
+            console.log(content);
+        } else {
+            console.log(`${colors.gray}(no notes)${colors.reset}`);
+        }
+        console.log();
+    });
+    
+    // Show decisions
+    if (meeting.decisions.length > 0) {
+        console.log(`${colors.magenta}## Decisions${colors.reset}`);
+        meeting.decisions.forEach(decision => {
+            console.log(`• ${decision.description} ${colors.gray}(${decision.timestamp})${colors.reset}`);
+        });
+        console.log();
+    }
+    
+    // Show action items
+    if (meeting.actionItems.length > 0) {
+        console.log(`${colors.yellow}## Action Items${colors.reset}`);
+        meeting.actionItems.forEach(item => {
+            const status = item.status === 'open' ? '🔴' : '✅';
+            const assignee = item.assignee ? ` → ${item.assignee}` : '';
+            const due = item.dueDate ? ` (due: ${item.dueDate})` : '';
+            console.log(`${status} ${item.description}${assignee}${due}`);
+        });
+        console.log();
+    }
+}
+
+// Search meetings
+function searchMeetings(query) {
+    const data = loadMeetings();
+    const results = data.meetings.filter(meeting => {
+        const searchText = (
+            meeting.title + ' ' + 
+            meeting.type + ' ' + 
+            Object.values(meeting.sections).join(' ') + ' ' +
+            meeting.actionItems.map(a => a.description).join(' ') + ' ' +
+            meeting.decisions.map(d => d.description).join(' ') + ' ' +
+            meeting.attendees.join(' ')
+        ).toLowerCase();
+        
+        return searchText.includes(query.toLowerCase());
+    });
+    
+    if (results.length === 0) {
+        console.log(`${colors.yellow}📝 No meetings found matching "${query}"${colors.reset}`);
+        return;
+    }
+    
+    console.log(`${colors.bright}🔍 Search Results for "${query}"${colors.reset}\n`);
+    
+    results.forEach(meeting => {
+        console.log(`${colors.cyan}${meeting.title}${colors.reset} ${colors.gray}(${meeting.date})${colors.reset}`);
+        console.log(`${colors.gray}   ID: ${meeting.id}${colors.reset}`);
+        console.log();
+    });
+}
+
+// Show all open action items
+function showOpenActions() {
+    const data = loadMeetings();
+    const allActions = [];
+    
+    data.meetings.forEach(meeting => {
+        meeting.actionItems.forEach(item => {
+            if (item.status === 'open') {
+                allActions.push({
+                    ...item,
+                    meetingTitle: meeting.title,
+                    meetingDate: meeting.date
+                });
+            }
+        });
+    });
+    
+    if (allActions.length === 0) {
+        console.log(`${colors.green}🎉 No open action items!${colors.reset}`);
+        return;
+    }
+    
+    console.log(`${colors.bright}📋 Open Action Items (${allActions.length})${colors.reset}\n`);
+    
+    allActions.sort((a, b) => new Date(a.dueDate || '9999-12-31') - new Date(b.dueDate || '9999-12-31'))
+             .forEach(action => {
+        const assignee = action.assignee ? ` → ${action.assignee}` : '';
+        const due = action.dueDate ? ` ${colors.yellow}(due: ${action.dueDate})${colors.reset}` : '';
+        console.log(`🔴 ${action.description}${assignee}${due}`);
+        console.log(`${colors.gray}   From: ${action.meetingTitle} (${action.meetingDate})${colors.reset}`);
+        console.log();
+    });
+}
+
+// Show help
+function showHelp() {
+    console.log(`${colors.bright}📝 Meeting Notes CLI${colors.reset}
+
+${colors.cyan}USAGE${colors.reset}
+  meeting-notes <command> [options]
+
+${colors.cyan}COMMANDS${colors.reset}
+  ${colors.green}create${colors.reset} <title>              Create new meeting
+    --type <template>           Meeting template (1-on-1, standup, planning, retrospective, general)
+    --duration <minutes>        Meeting duration
+    --attendees <list>          Comma-separated attendee list
+    --next <date>              Next meeting date
+    --tags <list>              Comma-separated tags
+
+  ${colors.green}add${colors.reset} <meeting-id> <section> <content>    Add content to meeting section
+  ${colors.green}action${colors.reset} <meeting-id> <description>        Add action item
+    --assignee <name>           Assign action item
+    --due <date>               Due date
+
+  ${colors.green}decision${colors.reset} <meeting-id> <description>      Add decision
+  ${colors.green}show${colors.reset} <meeting-id>                       Show meeting details
+  ${colors.green}list${colors.reset} [limit]                            List recent meetings
+    --filter <text>            Filter meetings
+  ${colors.green}search${colors.reset} <query>                          Search meetings
+  ${colors.green}actions${colors.reset}                                 Show all open action items
+
+${colors.cyan}EXAMPLES${colors.reset}
+  # Create 1-on-1 meeting
+  meeting-notes create "Weekly 1-on-1 with Sarah" --type 1-on-1 --attendees "Sarah Chen" --duration 30
+
+  # Add notes to sections
+  meeting-notes add abc123 "Previous Action Items" "Reviewed Q4 goals - 80% complete"
+  meeting-notes add abc123 "Blockers" "Waiting for design feedback on mobile flow"
+
+  # Add action items and decisions
+  meeting-notes action abc123 "Schedule architecture review" --assignee "John" --due "2024-02-15"
+  meeting-notes decision abc123 "Approved moving to microservices architecture"
+
+  # Review and search
+  meeting-notes list --filter "1-on-1"
+  meeting-notes search "architecture"
+  meeting-notes actions
+
+${colors.cyan}SHORTCUTS${colors.reset}
+  mn = meeting-notes           Full command alias
+  Create symlink: sudo ln -sf $(pwd)/meeting-notes /usr/local/bin/mn
+`);
+}
+
+// Main CLI handler
+function main() {
+    initializeStorage();
+    
+    const args = process.argv.slice(2);
+    
+    if (args.length === 0) {
+        showHelp();
+        return;
+    }
+    
+    const command = args[0];
+    
+    switch (command) {
+        case 'create': {
+            if (args.length < 2) {
+                console.log(`${colors.red}❌ Missing meeting title${colors.reset}`);
+                return;
+            }
+            
+            const title = args[1];
+            const options = { title };
+            
+            for (let i = 2; i < args.length; i += 2) {
+                const flag = args[i];
+                const value = args[i + 1];
+                
+                switch (flag) {
+                    case '--type':
+                        options.template = value;
+                        break;
+                    case '--duration':
+                        options.duration = parseInt(value);
+                        break;
+                    case '--attendees':
+                        options.attendees = value.split(',').map(a => a.trim());
+                        break;
+                    case '--next':
+                        options.nextMeeting = value;
+                        break;
+                    case '--tags':
+                        options.tags = value.split(',').map(t => t.trim());
+                        break;
+                }
+            }
+            
+            createMeeting(options);
+            break;
+        }
+        
+        case 'add': {
+            if (args.length < 4) {
+                console.log(`${colors.red}❌ Usage: meeting-notes add <meeting-id> <section> <content>${colors.reset}`);
+                return;
+            }
+            
+            const meetingId = args[1];
+            const section = args[2];
+            const content = args.slice(3).join(' ');
+            
+            addToSection(meetingId, section, content);
+            break;
+        }
+        
+        case 'action': {
+            if (args.length < 3) {
+                console.log(`${colors.red}❌ Usage: meeting-notes action <meeting-id> <description>${colors.reset}`);
+                return;
+            }
+            
+            const meetingId = args[1];
+            const description = args.slice(2).join(' ').replace(/--assignee.*|--due.*/, '').trim();
+            
+            let assignee = null;
+            let dueDate = null;
+            
+            const assigneeIndex = args.indexOf('--assignee');
+            if (assigneeIndex !== -1 && assigneeIndex + 1 < args.length) {
+                assignee = args[assigneeIndex + 1];
+            }
+            
+            const dueIndex = args.indexOf('--due');
+            if (dueIndex !== -1 && dueIndex + 1 < args.length) {
+                dueDate = args[dueIndex + 1];
+            }
+            
+            addActionItem(meetingId, description, assignee, dueDate);
+            break;
+        }
+        
+        case 'decision': {
+            if (args.length < 3) {
+                console.log(`${colors.red}❌ Usage: meeting-notes decision <meeting-id> <description>${colors.reset}`);
+                return;
+            }
+            
+            const meetingId = args[1];
+            const decision = args.slice(2).join(' ');
+            
+            addDecision(meetingId, decision);
+            break;
+        }
+        
+        case 'show': {
+            if (args.length < 2) {
+                console.log(`${colors.red}❌ Usage: meeting-notes show <meeting-id>${colors.reset}`);
+                return;
+            }
+            
+            showMeeting(args[1]);
+            break;
+        }
+        
+        case 'list': {
+            const limit = args[1] ? parseInt(args[1]) : 10;
+            const filterIndex = args.indexOf('--filter');
+            const filter = filterIndex !== -1 && filterIndex + 1 < args.length ? args[filterIndex + 1] : null;
+            
+            listMeetings(limit, filter);
+            break;
+        }
+        
+        case 'search': {
+            if (args.length < 2) {
+                console.log(`${colors.red}❌ Usage: meeting-notes search <query>${colors.reset}`);
+                return;
+            }
+            
+            const query = args.slice(1).join(' ');
+            searchMeetings(query);
+            break;
+        }
+        
+        case 'actions': {
+            showOpenActions();
+            break;
+        }
+        
+        case 'help':
+        case '--help':
+        case '-h': {
+            showHelp();
+            break;
+        }
+        
+        default: {
+            console.log(`${colors.red}❌ Unknown command: ${command}${colors.reset}`);
+            console.log(`Run 'meeting-notes help' for usage information.`);
+        }
+    }
+}
+
+if (require.main === module) {
+    main();
+}
