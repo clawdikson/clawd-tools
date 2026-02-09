@@ -1,0 +1,47 @@
+{
+  "lastUpdated": "2026-02-09T03:30:00.000Z",
+  "builds": [
+    {
+      "id": "time-tracker",
+      "date": "2026-02-09",
+      "timestamp": "2026-02-09T03:30:00.000Z",
+      "name": "Time Tracker CLI",
+      "command": "tt",
+      "path": "/home/azureuser/clawd/tools/time-tracker",
+      "purpose": "Lightning-fast time tracking for productivity analysis and project time allocation visibility",
+      "category": "productivity",
+      "features": [
+        "Real-time session tracking with start/stop and live duration display",
+        "Quick retroactive logging for completed work sessions with project categorization",
+        "Smart project system with 5 defaults plus custom project support with colors",
+        "Comprehensive analytics with daily/weekly/monthly breakdowns and time distribution percentages",
+        "Terminal-native workflow with color-coded output and NST timezone awareness",
+        "Historical data preservation with searchable JSON format for long-term analysis"
+      ],
+      "source": "overnight-coder",
+      "tested": true,
+      "github": null
+    },
+    {
+      "id": "meeting-notes",
+      "date": "2026-02-08",
+      "timestamp": "2026-02-08T03:32:00.000Z",
+      "name": "Meeting Notes CLI",
+      "command": "mn",
+      "path": "/home/azureuser/clawd/tools/meeting-notes",
+      "purpose": "Lightning-fast meeting note capture and organization from terminal for systematic meeting management",
+      "category": "productivity",
+      "features": [
+        "Smart templates for 1-on-1s, standups, planning, retrospectives",
+        "Action item tracking with ownership, due dates, completion status",
+        "Decision documentation with searchable timestamp history",
+        "Powerful search across all meeting content and attendees",
+        "NST timezone aware timestamps and date handling",
+        "Terminal-native workflow with zero context switching"
+      ],
+      "source": "overnight-coder",
+      "tested": true,
+      "github": "clawd-tools"
+    }
+  ]
+}

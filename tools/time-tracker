@@ -1,0 +1,482 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+// Configuration
+const DATA_DIR = path.join(process.env.HOME || process.cwd(), '.time-tracking');
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
+const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
+
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Initialize data files if they don't exist
+function initDataFiles() {
+    if (!fs.existsSync(SESSIONS_FILE)) {
+        fs.writeFileSync(SESSIONS_FILE, JSON.stringify({ sessions: [] }, null, 2));
+    }
+    if (!fs.existsSync(PROJECTS_FILE)) {
+        fs.writeFileSync(PROJECTS_FILE, JSON.stringify({ 
+            projects: [
+                { id: 'general', name: 'General Work', color: 'blue' },
+                { id: 'meetings', name: 'Meetings', color: 'green' },
+                { id: 'development', name: 'Development', color: 'cyan' },
+                { id: 'planning', name: 'Planning & Strategy', color: 'yellow' },
+                { id: 'admin', name: 'Administrative', color: 'red' }
+            ]
+        }, null, 2));
+    }
+}
+
+// Load data
+function loadSessions() {
+    try {
+        return JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+    } catch {
+        return { sessions: [] };
+    }
+}
+
+function loadProjects() {
+    try {
+        return JSON.parse(fs.readFileSync(PROJECTS_FILE, 'utf8'));
+    } catch {
+        return { projects: [] };
+    }
+}
+
+// Save data
+function saveSessions(data) {
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(data, null, 2));
+}
+
+function saveProjects(data) {
+    fs.writeFileSync(PROJECTS_FILE, JSON.stringify(data, null, 2));
+}
+
+// Color helpers
+const colors = {
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    magenta: '\x1b[35m',
+    cyan: '\x1b[36m',
+    white: '\x1b[37m',
+    gray: '\x1b[90m',
+    reset: '\x1b[0m',
+    bold: '\x1b[1m',
+    dim: '\x1b[2m'
+};
+
+function colorize(text, color) {
+    return `${colors[color] || ''}${text}${colors.reset}`;
+}
+
+// Time helpers
+function formatDuration(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+        return `${hours}h ${mins}m`;
+    }
+    return `${mins}m`;
+}
+
+function formatTime(timestamp) {
+    return new Date(timestamp).toLocaleString('en-CA', {
+        timeZone: 'America/St_Johns',
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function generateId() {
+    return Math.random().toString(36).substr(2, 9);
+}
+
+// Get current NST time
+function getNSTTime() {
+    return new Date().toLocaleString('en-CA', {
+        timeZone: 'America/St_Johns'
+    });
+}
+
+// Commands
+function showHelp() {
+    console.log(`
+${colorize('Time Tracker CLI', 'bold')} - Track work sessions and analyze productivity
+
+${colorize('Usage:', 'yellow')}
+  ${colorize('tt start <project> [description]', 'cyan')} - Start tracking time
+  ${colorize('tt stop [notes]', 'cyan')}               - Stop current session
+  ${colorize('tt status', 'cyan')}                     - Show current session
+  ${colorize('tt log <project> <minutes> [desc]', 'cyan')} - Log completed session
+  ${colorize('tt list [days]', 'cyan')}                - List recent sessions
+  ${colorize('tt stats [period]', 'cyan')}             - Show time statistics
+  ${colorize('tt projects', 'cyan')}                   - List all projects
+  ${colorize('tt project add <id> <name> [color]', 'cyan')} - Add new project
+  ${colorize('tt today', 'cyan')}                      - Today's summary
+  ${colorize('tt week', 'cyan')}                       - This week's summary
+
+${colorize('Examples:', 'yellow')}
+  tt start development "Fixing API timeout bug"
+  tt stop "Bug fixed, deployed to staging"
+  tt log meetings 45 "Team standup and 1-on-1"
+  tt stats week
+  tt project add research "R&D Projects" purple
+
+${colorize('Projects:', 'yellow')}
+  Use project IDs when starting sessions. Run 'tt projects' to see all available.
+`);
+}
+
+function startSession(projectId, description = '') {
+    const sessions = loadSessions();
+    const projects = loadProjects();
+    
+    // Check if there's an active session
+    const activeSession = sessions.sessions.find(s => !s.endTime);
+    if (activeSession) {
+        console.log(colorize('❌ Session already active:', 'red'));
+        const project = projects.projects.find(p => p.id === activeSession.projectId);
+        console.log(`   ${project ? project.name : activeSession.projectId} - ${formatDuration(getDuration(activeSession))}`);
+        console.log(colorize('   Stop current session first with: tt stop', 'gray'));
+        return;
+    }
+    
+    // Validate project
+    const project = projects.projects.find(p => p.id === projectId);
+    if (!project) {
+        console.log(colorize(`❌ Project '${projectId}' not found.`, 'red'));
+        console.log(colorize('Available projects:', 'gray'));
+        projects.projects.forEach(p => {
+            console.log(`   ${colorize(p.id, p.color)} - ${p.name}`);
+        });
+        return;
+    }
+    
+    const session = {
+        id: generateId(),
+        projectId,
+        description,
+        startTime: new Date().toISOString(),
+        timezone: 'America/St_Johns'
+    };
+    
+    sessions.sessions.push(session);
+    saveSessions(sessions);
+    
+    console.log(colorize('🎯 Started tracking:', 'green'));
+    console.log(`   ${colorize(project.name, project.color)} ${description ? '- ' + description : ''}`);
+    console.log(`   Started: ${colorize(getNSTTime(), 'gray')}`);
+}
+
+function stopSession(notes = '') {
+    const sessions = loadSessions();
+    const activeSession = sessions.sessions.find(s => !s.endTime);
+    
+    if (!activeSession) {
+        console.log(colorize('❌ No active session to stop.', 'red'));
+        return;
+    }
+    
+    activeSession.endTime = new Date().toISOString();
+    if (notes) activeSession.notes = notes;
+    
+    const duration = getDuration(activeSession);
+    saveSessions(sessions);
+    
+    const projects = loadProjects();
+    const project = projects.projects.find(p => p.id === activeSession.projectId);
+    
+    console.log(colorize('🏁 Session completed:', 'green'));
+    console.log(`   ${colorize(project ? project.name : activeSession.projectId, project?.color || 'white')} - ${formatDuration(duration)}`);
+    if (activeSession.description) console.log(`   ${colorize(activeSession.description, 'gray')}`);
+    if (notes) console.log(`   ${colorize(notes, 'dim')}`);
+}
+
+function showStatus() {
+    const sessions = loadSessions();
+    const activeSession = sessions.sessions.find(s => !s.endTime);
+    
+    if (!activeSession) {
+        console.log(colorize('⏱️  No active session', 'gray'));
+        return;
+    }
+    
+    const projects = loadProjects();
+    const project = projects.projects.find(p => p.id === activeSession.projectId);
+    const duration = getDuration(activeSession);
+    
+    console.log(colorize('🎯 Current session:', 'green'));
+    console.log(`   ${colorize(project ? project.name : activeSession.projectId, project?.color || 'white')} - ${formatDuration(duration)}`);
+    if (activeSession.description) console.log(`   ${colorize(activeSession.description, 'gray')}`);
+    console.log(`   Started: ${colorize(formatTime(activeSession.startTime), 'dim')}`);
+}
+
+function logSession(projectId, minutes, description = '') {
+    const projects = loadProjects();
+    const project = projects.projects.find(p => p.id === projectId);
+    
+    if (!project) {
+        console.log(colorize(`❌ Project '${projectId}' not found.`, 'red'));
+        return;
+    }
+    
+    const now = new Date();
+    const startTime = new Date(now.getTime() - (parseInt(minutes) * 60 * 1000));
+    
+    const session = {
+        id: generateId(),
+        projectId,
+        description,
+        startTime: startTime.toISOString(),
+        endTime: now.toISOString(),
+        timezone: 'America/St_Johns',
+        logged: true
+    };
+    
+    const sessions = loadSessions();
+    sessions.sessions.push(session);
+    saveSessions(sessions);
+    
+    console.log(colorize('📝 Session logged:', 'green'));
+    console.log(`   ${colorize(project.name, project.color)} - ${formatDuration(parseInt(minutes))}`);
+    if (description) console.log(`   ${colorize(description, 'gray')}`);
+}
+
+function getDuration(session) {
+    const start = new Date(session.startTime);
+    const end = session.endTime ? new Date(session.endTime) : new Date();
+    return Math.floor((end - start) / (1000 * 60));
+}
+
+function listSessions(days = 7) {
+    const sessions = loadSessions();
+    const projects = loadProjects();
+    
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(days));
+    
+    const recentSessions = sessions.sessions
+        .filter(s => new Date(s.startTime) >= cutoff && s.endTime)
+        .sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    
+    if (recentSessions.length === 0) {
+        console.log(colorize(`No sessions found in the last ${days} days.`, 'gray'));
+        return;
+    }
+    
+    console.log(colorize(`📊 Recent sessions (last ${days} days):`, 'bold'));
+    console.log();
+    
+    recentSessions.forEach(session => {
+        const project = projects.projects.find(p => p.id === session.projectId);
+        const duration = getDuration(session);
+        const startTime = formatTime(session.startTime);
+        
+        console.log(`${colorize('●', project?.color || 'white')} ${colorize(formatDuration(duration), 'yellow')} - ${colorize(project ? project.name : session.projectId, project?.color || 'white')}`);
+        if (session.description) console.log(`  ${colorize(session.description, 'gray')}`);
+        if (session.notes) console.log(`  ${colorize(session.notes, 'dim')}`);
+        console.log(`  ${colorize(startTime, 'gray')} ${session.logged ? colorize('(logged)', 'dim') : ''}`);
+        console.log();
+    });
+}
+
+function showStats(period = 'week') {
+    const sessions = loadSessions();
+    const projects = loadProjects();
+    
+    let cutoff = new Date();
+    let periodName = '';
+    
+    switch (period.toLowerCase()) {
+        case 'today':
+            cutoff.setHours(0, 0, 0, 0);
+            periodName = 'today';
+            break;
+        case 'week':
+            cutoff.setDate(cutoff.getDate() - 7);
+            periodName = 'this week';
+            break;
+        case 'month':
+            cutoff.setDate(cutoff.getDate() - 30);
+            periodName = 'this month';
+            break;
+        default:
+            cutoff.setDate(cutoff.getDate() - 7);
+            periodName = 'this week';
+    }
+    
+    const periodSessions = sessions.sessions
+        .filter(s => new Date(s.startTime) >= cutoff && s.endTime);
+    
+    if (periodSessions.length === 0) {
+        console.log(colorize(`No sessions found for ${periodName}.`, 'gray'));
+        return;
+    }
+    
+    // Calculate totals by project
+    const projectTotals = {};
+    let totalMinutes = 0;
+    
+    periodSessions.forEach(session => {
+        const duration = getDuration(session);
+        totalMinutes += duration;
+        
+        if (!projectTotals[session.projectId]) {
+            projectTotals[session.projectId] = { duration: 0, sessions: 0 };
+        }
+        projectTotals[session.projectId].duration += duration;
+        projectTotals[session.projectId].sessions += 1;
+    });
+    
+    console.log(colorize(`📈 Time statistics for ${periodName}:`, 'bold'));
+    console.log(colorize(`Total time: ${formatDuration(totalMinutes)}`, 'green'));
+    console.log(colorize(`Sessions: ${periodSessions.length}`, 'green'));
+    console.log();
+    
+    console.log(colorize('Time by project:', 'yellow'));
+    Object.entries(projectTotals)
+        .sort((a, b) => b[1].duration - a[1].duration)
+        .forEach(([projectId, stats]) => {
+            const project = projects.projects.find(p => p.id === projectId);
+            const percentage = ((stats.duration / totalMinutes) * 100).toFixed(1);
+            
+            console.log(`${colorize('●', project?.color || 'white')} ${colorize(project ? project.name : projectId, project?.color || 'white')}`);
+            console.log(`  ${formatDuration(stats.duration)} (${percentage}%) • ${stats.sessions} sessions`);
+            console.log();
+        });
+    
+    // Average session length
+    const avgSession = Math.round(totalMinutes / periodSessions.length);
+    console.log(colorize(`Average session: ${formatDuration(avgSession)}`, 'cyan'));
+}
+
+function listProjects() {
+    const projects = loadProjects();
+    
+    console.log(colorize('📋 Available projects:', 'bold'));
+    console.log();
+    
+    projects.projects.forEach(project => {
+        console.log(`${colorize('●', project.color)} ${colorize(project.id, project.color)} - ${project.name}`);
+    });
+    
+    console.log();
+    console.log(colorize('Usage: tt start <project-id> [description]', 'gray'));
+}
+
+function addProject(id, name, color = 'white') {
+    const projects = loadProjects();
+    
+    // Check if project already exists
+    if (projects.projects.find(p => p.id === id)) {
+        console.log(colorize(`❌ Project '${id}' already exists.`, 'red'));
+        return;
+    }
+    
+    // Validate color
+    const validColors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white', 'gray'];
+    if (!validColors.includes(color)) {
+        console.log(colorize(`❌ Invalid color '${color}'. Valid colors: ${validColors.join(', ')}`, 'red'));
+        return;
+    }
+    
+    projects.projects.push({ id, name, color });
+    saveProjects(projects);
+    
+    console.log(colorize('✅ Project added:', 'green'));
+    console.log(`${colorize('●', color)} ${colorize(id, color)} - ${name}`);
+}
+
+function todaySummary() {
+    showStats('today');
+}
+
+function weekSummary() {
+    showStats('week');
+}
+
+// Main CLI logic
+function main() {
+    initDataFiles();
+    
+    const args = process.argv.slice(2);
+    const command = args[0];
+    
+    switch (command) {
+        case 'start':
+            if (args[1]) {
+                startSession(args[1], args.slice(2).join(' '));
+            } else {
+                console.log(colorize('❌ Usage: tt start <project> [description]', 'red'));
+            }
+            break;
+            
+        case 'stop':
+            stopSession(args.slice(1).join(' '));
+            break;
+            
+        case 'status':
+            showStatus();
+            break;
+            
+        case 'log':
+            if (args[1] && args[2]) {
+                logSession(args[1], args[2], args.slice(3).join(' '));
+            } else {
+                console.log(colorize('❌ Usage: tt log <project> <minutes> [description]', 'red'));
+            }
+            break;
+            
+        case 'list':
+        case 'ls':
+            listSessions(args[1] || 7);
+            break;
+            
+        case 'stats':
+            showStats(args[1] || 'week');
+            break;
+            
+        case 'projects':
+            listProjects();
+            break;
+            
+        case 'project':
+            if (args[1] === 'add' && args[2] && args[3]) {
+                addProject(args[2], args[3], args[4]);
+            } else {
+                console.log(colorize('❌ Usage: tt project add <id> <name> [color]', 'red'));
+            }
+            break;
+            
+        case 'today':
+            todaySummary();
+            break;
+            
+        case 'week':
+            weekSummary();
+            break;
+            
+        case 'help':
+        case '--help':
+        case '-h':
+        default:
+            showHelp();
+            break;
+    }
+}
+
+if (require.main === module) {
+    main();
+}

@@ -296,3 +296,154 @@ This tool addresses a critical gap for senior developers and CTOs: systematic le
 **After:** `dl search "react optimization"` → Instant access to specific insights with context and timestamps
 
 Creates a compound learning effect where insights build on each other, accelerates problem-solving through searchable solutions, and demonstrates continuous learning for career growth. Perfect complement to Dikson's productivity system and aligns directly with his learning-focused approach to personal development.
+
+## 2026-02-08 (3:30 AM UTC)
+
+**Built:** Meeting Notes CLI (`tools/meeting-notes` → `mn` command)
+
+**Purpose:** Lightning-fast meeting note capture and organization from terminal for systematic meeting management
+
+**Key features:**
+- **Smart templates** - Pre-configured sections for 1-on-1s, standups, planning, retrospectives
+- **Action item tracking** - Assign ownership, due dates, completion status across all meetings
+- **Decision documentation** - Capture and search architectural/product decisions with timestamps
+- **Powerful search** - Find past content, decisions, action items across all meeting history
+- **NST timezone aware** - All timestamps in Newfoundland local time
+- **Terminal-native** - Zero context switching, stays in development environment
+
+**Why perfectly suited for Dikson:**
+- **CTO leadership role** - Multiple daily meetings with different teams requiring systematic tracking
+- **Decision accountability** - Documents architectural and product decisions with searchable history
+- **Team management** - Perfect for 1-on-1s with direct reports, action item follow-up
+- **Zero friction capture** - 2-second note capture vs 30+ second web app workflow
+- **Aligns with 1% better daily** - Transforms meeting chaos into systematic knowledge capture
+- **Terminal-first workflow** - Fits existing development environment perfectly
+- **Meeting pattern analysis** - Historical data enables meeting effectiveness improvement
+
+**Usage examples:**
+```bash
+# Create structured meetings
+mn create "Weekly 1-on-1 with Sarah" --type 1-on-1 --attendees "Sarah Chen" --duration 30
+
+# Rapid note capture during meetings
+mn add abc123 "Blockers" "Waiting for design feedback on mobile flow"
+mn action abc123 "Schedule architecture review" --assignee "John" --due "2026-02-15"
+mn decision abc123 "Approved microservices architecture migration"
+
+# Review and follow-up
+mn list --filter "1-on-1"
+mn actions
+mn search "architecture"
+```
+
+**Smart design decisions:**
+- 5 meeting templates cover all common leadership meeting types
+- Action item tracking with ownership and due dates prevents tasks from falling through cracks
+- Decision documentation with timestamps creates searchable institutional memory
+- NST timezone integration matches Dikson's location
+- Color-coded output for instant visual parsing
+- JSON storage enables easy backup and migration
+- Search across all content types (notes, decisions, action items, attendees)
+
+**Tested:** ✅ All core functions work correctly
+- Meeting creation with templates and attendee tracking
+- Content addition to template sections
+- Action item creation with assignment and due dates
+- Decision capture with timestamps
+- List functionality with filtering
+- Action item overview across all meetings
+- Full meeting detail display
+- Data persistence between sessions
+
+**Files created:**
+- `tools/meeting-notes` (executable Node.js CLI)
+- `tools/README-meeting-notes.md` (comprehensive documentation with workflows)
+- System-wide command: `mn` (symlinked to `/usr/local/bin/mn`)
+
+**Impact potential:**
+This tool directly addresses a major friction point for engineering leaders: meeting management overhead. Instead of scattered notes across apps and lost action items, it provides systematic capture with zero context switching. Perfect for CTOs who need to:
+
+- Track decisions across multiple technical discussions
+- Ensure action item accountability in team meetings  
+- Maintain searchable history of architectural decisions
+- Conduct effective 1-on-1s with direct reports
+- Prevent meeting insights from being lost
+
+**Before:** "I remember we decided something about the API architecture, but can't find the notes"  
+**After:** `mn search "API architecture"` → Instant access to decision with context and timestamp
+
+Creates compound value where meeting insights build institutional memory, accelerates decision-making through searchable precedents, and demonstrates systematic leadership approach. Perfect complement to existing productivity tools while maintaining terminal-native workflow.
+
+## 2026-02-09 (3:30 AM UTC)
+
+**Built:** Time Tracker CLI (`tools/time-tracker` → `tt` command)
+
+**Purpose:** Lightning-fast time tracking for productivity analysis and project time allocation visibility
+
+**Key features:**
+- **Real-time session tracking** - Start/stop with live duration display and session validation
+- **Quick retroactive logging** - Log completed work sessions with project categorization  
+- **Smart project system** - 5 default categories (development, meetings, planning, admin, general) + custom project support
+- **Comprehensive analytics** - Daily, weekly, monthly breakdowns with time distribution percentages
+- **Terminal-native workflow** - Color-coded output, NST timezone aware, zero context switching
+- **Historical data preservation** - All sessions stored with searchable JSON format for long-term analysis
+
+**Why perfectly suited for Dikson:**
+- **CTO time visibility** - Understand actual time allocation between coding, meetings, strategic work vs perceived time
+- **Objective productivity data** - Replace gut feelings about productivity with measurable time metrics
+- **Meeting overhead analysis** - Quantify time spent in meetings vs hands-on technical work for optimization
+- **Aligns with 1% better daily** - Makes invisible time visible and measurable for continuous improvement
+- **Project estimation accuracy** - Historical data enables better future time estimates for technical work
+- **Terminal-first workflow** - 2-second session start vs multi-step web app interfaces, stays in development environment
+- **Leadership insights** - Data supports better delegation and time management decisions
+
+**Usage examples:**
+```bash
+# Daily CTO workflow
+tt start planning "Sprint review and team priorities"
+tt stop "Identified 3 technical debt items"
+tt start development "Architecture review for microservices migration"
+
+# Quick session logging
+tt log meetings 45 "1-on-1 with senior engineers"
+
+# Time analysis
+tt today      # Daily breakdown
+tt stats week # Weekly project distribution
+tt list 5     # Last 5 sessions
+```
+
+**Smart design decisions:**
+- Color-coded projects for instant visual recognition (development=cyan, meetings=green, etc.)
+- NST timezone integration matches Dikson's location perfectly
+- Session overlap prevention eliminates double-counting errors
+- Dual tracking modes: real-time session start/stop OR retroactive quick logging for flexibility
+- JSON storage enables easy backup, migration, and potential future integrations
+- Project system balances structure with flexibility (defaults + custom projects)
+- Statistics show both absolute time and percentages for context
+
+**Tested:** ✅ All core functions work correctly
+- Session start/stop with duration tracking and notes
+- Project validation and color-coded output
+- Quick logging for retroactive time capture
+- Daily, weekly statistics with project breakdowns
+- List functionality showing recent sessions
+- Data persistence between sessions and proper NST timestamps
+- System-wide command availability (`tt` from any directory)
+
+**Files created:**
+- `tools/time-tracker` (executable Node.js CLI)
+- `tools/README-time-tracker.md` (comprehensive documentation with CTO workflow examples)
+- System-wide command: `tt` (symlinked to `/usr/local/bin/tt`)
+
+**Impact potential:**
+This tool addresses a fundamental challenge for engineering leaders: time visibility. Without systematic tracking, CTOs often struggle with:
+- **Time perception vs reality** - "I spent most of my week coding" when data shows 70% meetings
+- **Meeting overhead blindness** - Unaware of actual time cost of meeting culture
+- **Context switching costs** - Can't quantify impact of interruptions and task switching
+- **Estimation accuracy** - Future planning based on feeling rather than historical data
+
+**Before:** "I think I spent about 20 hours coding this week"  
+**After:** `tt stats week` → "Development: 12h 30m (31%), Meetings: 18h 15m (46%)" 
+
+This creates a compound learning effect where time awareness leads to better time allocation decisions, which improves productivity and work-life balance. Perfect for the "1% better daily" philosophy - you can't optimize what you can't measure. The terminal-native approach eliminates tracking friction that kills most time tracking initiatives.
